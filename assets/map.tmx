@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.5" tiledversion="1.7.2" orientation="isometric" renderorder="right-down" width="10" height="15" tilewidth="256" tileheight="128" infinite="0" nextlayerid="5" nextobjectid="1">
+ <tileset firstgid="1" source="desert.tsx"/>
+ <layer id="1" name="ground" width="10" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxTZmBgUEbDikgYlzg2rEKkOkUK1alAMT57VbCoU8TBx6ZWBYc8IXXY3IduLzHmEeNnaoczCCshYWLUorsJphcAgKkT6w==
+  </data>
+ </layer>
+ <layer id="2" name="floor" width="10" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxLYWBgKCKAk4C4BIjjgNgVDy6EqsOnhp7q4kk0LwKPuoRB6t9wCsyLJcPeZCAuJoATgRgAtmcw5w==
+  </data>
+ </layer>
+ <layer id="4" name="obstacles" width="10" height="15">
+  <data encoding="base64" compression="zlib">
+   eJxbzsDA0AzFr4F4P5RuRsLngbgRiAMYcAN/KN2IRY4Di9hLPGYhA5h504F4MhAvBuIVULEOIOZnxG1vD5RuQBI7S6K91FKH7N8uIO4D4kVAfBWIZ6OZx01Fe0lR54tH3o9E8wCymBdV
+  </data>
+ </layer>
+</map>
