@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_inspector_egui::WorldInspectorPlugin;
 
-pub mod tilemap;
+mod tilemap;
 
 pub struct GamePlugin;
 

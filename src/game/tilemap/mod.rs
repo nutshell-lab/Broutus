@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-pub mod load;
+mod load;
 mod texture;
 
 pub struct TilemapPlugin;

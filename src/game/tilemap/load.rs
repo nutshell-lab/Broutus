@@ -6,13 +6,16 @@ use std::{collections::HashMap, io::BufReader, path::Path};
 use bevy::asset::{AssetLoader, AssetPath, BoxedFuture, LoadContext, LoadedAsset};
 use bevy::reflect::TypeUuid;
 
-
 #[derive(Default)]
 pub struct TiledMapPlugin;
 
 impl Plugin for TiledMapPlugin {
     fn build(&self, app: &mut App) {
-        app.add_asset::<TiledMap>()
+        app.add_plugin(bevy::asset::diagnostic::AssetCountDiagnosticsPlugin::<
+            TiledMap,
+        >::default())
+            .add_plugin(bevy::asset::diagnostic::AssetCountDiagnosticsPlugin::<Image>::default())
+            .add_asset::<TiledMap>()
             .add_asset_loader(TiledLoader)
             .add_system(process_loaded_tile_maps);
     }

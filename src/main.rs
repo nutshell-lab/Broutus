@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
+use bevy::prelude::*;
 
 mod game;
 
@@ -16,8 +16,6 @@ fn main() {
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_plugin(LogDiagnosticsPlugin::default())
         .add_plugin(bevy::diagnostic::EntityCountDiagnosticsPlugin::default())
-        .add_plugin(bevy::asset::diagnostic::AssetCountDiagnosticsPlugin::<game::tilemap::load::TiledMap>::default())
-        .add_plugin(bevy::asset::diagnostic::AssetCountDiagnosticsPlugin::<Image>::default())
         .add_plugin(game::GamePlugin)
         .run();
 }
