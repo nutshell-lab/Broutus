@@ -1,10 +1,11 @@
 use bevy::math::Vec2;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
-use std::{collections::HashMap, io::BufReader};
+use std::{collections::HashMap, io::BufReader, path::Path};
 
 use bevy::asset::{AssetLoader, AssetPath, BoxedFuture, LoadContext, LoadedAsset};
 use bevy::reflect::TypeUuid;
+
 
 #[derive(Default)]
 pub struct TiledMapPlugin;
@@ -41,15 +42,21 @@ impl AssetLoader for TiledLoader {
         load_context: &'a mut LoadContext,
     ) -> BoxedFuture<'a, Result<(), anyhow::Error>> {
         Box::pin(async move {
+            // TODO find a nicer way to retreive the asset full_path from load_context
+            let current_dir_path = std::env::current_dir().unwrap();
+            let cargo_debug_dir = std::env::var("CARGO_MANIFEST_DIR");
+            let cargo_debug_dir_path = cargo_debug_dir
+                .as_ref()
+                .map(|v| Path::new(v).join("assets").join(load_context.path()));
+            let path = cargo_debug_dir_path.unwrap_or(current_dir_path);
+
             let root_dir = load_context.path().parent().unwrap();
-            let map = tiled::parse_with_path(BufReader::new(bytes), load_context.path())?;
+            let map = tiled::parse_with_path(BufReader::new(bytes), path.as_path())?;
 
             let mut dependencies = Vec::new();
             let mut handles = HashMap::default();
 
             for tileset in &map.tilesets {
-                println!("Tileset: {:?}", tileset.name);
-                println!("First image: {:?}", tileset.images.first());
                 let tile_path = root_dir.join(tileset.images.first().unwrap().source.as_str());
                 let asset_path = AssetPath::new(tile_path, None);
                 let texture: Handle<Image> = load_context.get_handle(asset_path.clone());
@@ -90,15 +97,12 @@ pub fn process_loaded_tile_maps(
     for event in map_events.iter() {
         match event {
             AssetEvent::Created { handle } => {
-                println!("Map added: {:?}", handle.id);
                 changed_maps.push(handle.clone());
             }
             AssetEvent::Modified { handle } => {
-                println!("Map modified: {:?}", handle.id);
                 changed_maps.push(handle.clone());
             }
             AssetEvent::Removed { handle } => {
-                println!("Map removed: {:?}", handle.id);
                 // if mesh was modified and removed in the same update, ignore the modification
                 // events are ordered so future modification events are ok
                 changed_maps = changed_maps

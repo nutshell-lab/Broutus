@@ -1,16 +1,12 @@
 use bevy::prelude::*;
 
-mod camera;
-mod load;
+pub mod load;
 mod texture;
 
 pub struct TilemapPlugin;
 
 fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
-
-    let handle: Handle<load::TiledMap> = asset_server.load("arena3.tmx");
-
+    let handle: Handle<load::TiledMap> = asset_server.load("maps/arena.tmx");
     let map_entity = commands.spawn().id();
 
     commands
@@ -27,8 +23,7 @@ impl Plugin for TilemapPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(bevy_ecs_tilemap::TilemapPlugin)
             .add_plugin(load::TiledMapPlugin)
-            .add_system(camera::movement)
-            .add_system(texture::set_texture_filters_to_nearest)
-            .add_startup_system(startup);
+            .add_startup_system(startup)
+            .add_system(texture::set_texture_filters_to_nearest);
     }
 }
