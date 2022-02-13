@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 mod load;
 mod texture;
+mod tile_inspector;
 
 pub struct TilemapPlugin;
 
@@ -10,7 +11,8 @@ impl Plugin for TilemapPlugin {
         app.add_plugin(bevy_ecs_tilemap::TilemapPlugin)
             .add_plugin(load::TiledMapPlugin)
             .add_startup_system(startup)
-            .add_system(texture::set_texture_filters_to_nearest);
+            .add_system(texture::set_texture_filters_to_nearest)
+            .add_system(tile_inspector::tile_coords_ui);
     }
 }
 

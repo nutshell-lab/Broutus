@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 bevy = { version = "0.6.0", features = ["render", "dynamic"] }
 bevy-inspector-egui = "0.8.0"
+bevy_egui = "0.11.1"
 bevy_ecs_tilemap = "0.5.0"
 tiled = { version = "0.9", default-features = false }
 anyhow = "1.0.53"
