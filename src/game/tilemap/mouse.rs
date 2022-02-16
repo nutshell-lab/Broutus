@@ -5,7 +5,7 @@ use bevy_egui::{egui, EguiContext};
 use super::load::TmxMap;
 
 #[derive(Default)]
-pub struct MouseMapPosition(TilePos);
+pub struct MouseMapPosition(pub Option<TilePos>);
 
 pub fn unproject_iso(pos: Vec2, tile_width: f32, tile_height: f32) -> Vec2 {
     let half_width = tile_width / 2.0;
@@ -44,15 +44,23 @@ pub fn update_mouse_position(
                         // In our case, tileset tile height is greater than the map tile height to be able to display obstacles, we need to adjust to that
                         mouse.y - map_screen_coords.y + (tile_size.1 - grid_size.y / 2.0),
                     );
-                    let map_position = unproject_iso(mouse_to_map_coords, grid_size.x, grid_size.y);
 
                     // Get tmx data to get map size in tiles
                     let tiled_map = &tmx_map.get(tmx_handle).unwrap().map;
 
-                    position.0 = TilePos(
-                        (map_position.x as u32).min(tiled_map.width - 1).max(0),
-                        (map_position.y as u32).min(tiled_map.height - 1).max(0),
-                    );
+                    let tile_position =
+                        unproject_iso(mouse_to_map_coords, grid_size.x, grid_size.y);
+
+                    // Check if the tile position is within map borders, otherwise return None, which is needed to handle correctly mouse events
+                    position.0 = if tile_position.x >= 0.0
+                        && tile_position.x < (tiled_map.width as f32)
+                        && tile_position.y >= 0.0
+                        && tile_position.y < (tiled_map.height as f32)
+                    {
+                        Some(TilePos(tile_position.x as u32, tile_position.y as u32))
+                    } else {
+                        None
+                    };
                 }
             }
         }
@@ -79,6 +87,10 @@ pub fn debug_ui_mouse_position(
     mut egui_context: ResMut<EguiContext>,
 ) {
     egui::Window::new("Mouse Map Position").show(egui_context.ctx_mut(), |ui| {
-        ui.label(format!("{}, {}", position.0 .0, position.0 .1));
+        if let Some(TilePos(x, y)) = position.0 {
+            ui.label(format!("{}, {}", x, y));
+        } else {
+            ui.label("#, #");
+        }
     });
 }
