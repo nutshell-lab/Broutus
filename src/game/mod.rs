@@ -1,14 +1,14 @@
 use bevy::prelude::*;
 use bevy_inspector_egui::WorldInspectorPlugin;
 
-mod tilemap;
+mod map;
 
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(WorldInspectorPlugin::new())
-            .add_plugin(tilemap::TilemapPlugin)
+            .add_plugin(map::MapPlugin)
             .add_startup_system(startup);
     }
 }

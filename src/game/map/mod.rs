@@ -5,9 +5,9 @@ mod load;
 mod mouse;
 mod texture;
 
-pub struct TilemapPlugin;
+pub struct MapPlugin;
 
-impl Plugin for TilemapPlugin {
+impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<mouse::MouseMapPosition>()
             .add_event::<events::TileClickedEvent>()
