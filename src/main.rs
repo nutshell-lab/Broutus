@@ -11,7 +11,6 @@ fn main() {
             width: 1920.0,
             height: 1080.0,
             title: String::from("Broutus"),
-            resizable: false,
             ..Default::default()
         })
         .add_plugins(DefaultPlugins)

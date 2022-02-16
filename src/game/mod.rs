@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 use bevy_inspector_egui::WorldInspectorPlugin;
 
-mod mouse_inspector;
 mod tilemap;
 
 pub struct GamePlugin;
@@ -10,8 +9,7 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(WorldInspectorPlugin::new())
             .add_plugin(tilemap::TilemapPlugin)
-            .add_startup_system(startup)
-            .add_plugin(mouse_inspector::MouseInspector);
+            .add_startup_system(startup);
     }
 }
 

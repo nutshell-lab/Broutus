@@ -10,36 +10,36 @@ use bevy::asset::{
 use bevy::reflect::TypeUuid;
 
 #[derive(Default)]
-pub struct TiledMapPlugin;
+pub struct TmxPlugin;
 
-impl Plugin for TiledMapPlugin {
+impl Plugin for TmxPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(AssetCountDiagnosticsPlugin::<TiledMap>::default())
+        app.add_plugin(AssetCountDiagnosticsPlugin::<TmxMap>::default())
             .add_plugin(AssetCountDiagnosticsPlugin::<Image>::default())
-            .add_asset::<TiledMap>()
-            .add_asset_loader(TiledLoader)
+            .add_asset::<TmxMap>()
+            .add_asset_loader(TmxLoader)
             .add_system(process_loaded_tile_maps);
     }
 }
 
 #[derive(TypeUuid)]
 #[uuid = "e51081d0-6168-4881-a1c6-4249b2000d7f"]
-pub struct TiledMap {
+pub struct TmxMap {
     pub map: tiled::Map,
     pub tilesets: HashMap<u32, Handle<Image>>,
 }
 
 #[derive(Default, Bundle)]
-pub struct TiledMapBundle {
-    pub tiled_map: Handle<TiledMap>,
+pub struct TmxMapBundle {
+    pub tiled_map: Handle<TmxMap>,
     pub map: Map,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
 }
 
-pub struct TiledLoader;
+pub struct TmxLoader;
 
-impl AssetLoader for TiledLoader {
+impl AssetLoader for TmxLoader {
     fn load<'a>(
         &'a self,
         bytes: &'a [u8],
@@ -54,6 +54,7 @@ impl AssetLoader for TiledLoader {
                 .map(|v| Path::new(v).join("assets").join(load_context.path()));
             let path = cargo_debug_dir_path.unwrap_or(current_dir_path);
 
+            // Parse the map providing the asset path to support external tilesets
             let root_dir = load_context.path().parent().unwrap();
             let map = tiled::parse_with_path(BufReader::new(bytes), path.as_path())?;
 
@@ -65,6 +66,7 @@ impl AssetLoader for TiledLoader {
                 let asset_path = AssetPath::new(tile_path, None);
                 let texture: Handle<Image> = load_context.get_handle(asset_path.clone());
 
+                // Associate tile id to the right texture (to support multiple tilesets) <TileId, TextureHandle>
                 for i in tileset.first_gid..(tileset.first_gid + tileset.tilecount.unwrap_or(1)) {
                     handles.insert(i, texture.clone());
                 }
@@ -72,7 +74,7 @@ impl AssetLoader for TiledLoader {
                 dependencies.push(asset_path);
             }
 
-            let loaded_asset = LoadedAsset::new(TiledMap {
+            let loaded_asset = LoadedAsset::new(TmxMap {
                 map,
                 tilesets: handles,
             });
@@ -89,15 +91,15 @@ impl AssetLoader for TiledLoader {
 
 pub fn process_loaded_tile_maps(
     mut commands: Commands,
-    mut map_events: EventReader<AssetEvent<TiledMap>>,
-    maps: Res<Assets<TiledMap>>,
+    mut map_events: EventReader<AssetEvent<TmxMap>>,
+    maps: Res<Assets<TmxMap>>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut query: Query<(Entity, &Handle<TiledMap>, &mut Map)>,
-    new_maps: Query<&Handle<TiledMap>, Added<Handle<TiledMap>>>,
+    mut query: Query<(Entity, &Handle<TmxMap>, &mut Map)>,
+    new_maps: Query<&Handle<TmxMap>, Added<Handle<TmxMap>>>,
     layer_query: Query<&Layer>,
     chunk_query: Query<&Chunk>,
 ) {
-    let mut changed_maps = Vec::<Handle<TiledMap>>::default();
+    let mut changed_maps = Vec::<Handle<TmxMap>>::default();
     for event in map_events.iter() {
         match event {
             AssetEvent::Created { handle } => {
@@ -157,7 +159,7 @@ pub fn process_loaded_tile_maps(
 
                 for tileset in tiled_map.map.tilesets.iter() {
                     // Once materials have been created/added we need to then create the layers.
-                    for layer in tiled_map.map.layers.iter() {
+                    for (layer_index, layer) in tiled_map.map.layers.iter().enumerate() {
                         let tile_width = tileset.tile_width as f32;
                         let tile_height = tileset.tile_height as f32;
 
@@ -198,7 +200,7 @@ pub fn process_loaded_tile_maps(
 
                         let layer_entity = LayerBuilder::<TileBundle>::new_batch(
                             &mut commands,
-                            map_settings.clone(),
+                            map_settings,
                             &mut meshes,
                             tiled_map
                                 .tilesets
@@ -206,7 +208,7 @@ pub fn process_loaded_tile_maps(
                                 .unwrap()
                                 .clone_weak(),
                             0u16,
-                            layer.layer_index as u16,
+                            layer_index as u16,
                             move |mut tile_pos| {
                                 if tile_pos.0 >= tiled_map.map.width
                                     || tile_pos.1 >= tiled_map.map.height
@@ -233,6 +235,7 @@ pub fn process_loaded_tile_maps(
                                     return None;
                                 }
 
+                                // Compute the position in the texture (tileset)
                                 let tile_id = map_tile.gid - tileset.first_gid;
 
                                 let tile = Tile {
