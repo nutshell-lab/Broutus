@@ -7,6 +7,9 @@ use super::load::TmxMap;
 #[derive(Default)]
 pub struct MouseMapPosition(pub Option<TilePos>);
 
+#[derive(Default)]
+pub struct PreviousMouseMapPosition(pub Option<TilePos>);
+
 pub fn unproject_iso(pos: Vec2, tile_width: f32, tile_height: f32) -> Vec2 {
     let half_width = tile_width / 2.0;
     let half_height = tile_height / 2.0;
@@ -17,6 +20,7 @@ pub fn unproject_iso(pos: Vec2, tile_width: f32, tile_height: f32) -> Vec2 {
 
 pub fn update_mouse_position(
     mut position: ResMut<MouseMapPosition>,
+    mut previous_position: ResMut<PreviousMouseMapPosition>,
     tmx_map: Res<Assets<TmxMap>>,
     windows: Res<Windows>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
@@ -51,6 +55,8 @@ pub fn update_mouse_position(
                     let tile_position =
                         unproject_iso(mouse_to_map_coords, grid_size.x, grid_size.y);
 
+                    let save = position.0.clone();
+
                     // Check if the tile position is within map borders, otherwise return None, which is needed to handle correctly mouse events
                     position.0 = if tile_position.x >= 0.0
                         && tile_position.x < (tiled_map.width as f32)
@@ -61,33 +67,60 @@ pub fn update_mouse_position(
                     } else {
                         None
                     };
+
+                    if save.ne(&position.0) {
+                        previous_position.0 = save;
+                    }
                 }
             }
         }
     }
 }
 
-// pub fn despawn_tile_at_mouse_position(
-//     position: Res<MouseMapPosition>,
-//     mut map_query: MapQuery,
-//     mut tile_query: Query<&mut Tile>,
-// ) {
-//     if let Ok(tile_entity) = map_query.get_tile_entity(position.0, 0u16, 0u16) {
-//         if let Ok(mut tile) = tile_query.get_mut(tile_entity) {
-//             if tile.visible {
-//                 tile.visible = false;
-//                 map_query.notify_chunk_for_tile(position.0, 0u16, 0u16);
-//             }
-//         }
-//     }
-// }
+pub fn highlight_mouse_tile(
+    position: Res<MouseMapPosition>,
+    previous_position: Res<PreviousMouseMapPosition>,
+    mut map_query: MapQuery,
+    mut tile_query: Query<&mut Tile>,
+) {
+    if position.is_changed() {
+        if let Some(position) = position.0 {
+            if let Ok(tile_entity) = map_query.get_tile_entity(position, 0u16, 0u16) {
+                if let Ok(mut tile) = tile_query.get_mut(tile_entity) {
+                    tile.color = Color::SEA_GREEN;
+                    map_query.notify_chunk_for_tile(position, 0u16, 0u16);
+                }
+            }
+        }
+    }
+
+    if previous_position.is_changed() {
+        if let Some(previous_position) = previous_position.0 {
+            if let Ok(tile_entity) = map_query.get_tile_entity(previous_position, 0u16, 0u16) {
+                if let Ok(mut tile) = tile_query.get_mut(tile_entity) {
+                    tile.color = Color::WHITE;
+                    map_query.notify_chunk_for_tile(previous_position, 0u16, 0u16);
+                }
+            }
+        }
+    }
+}
 
 pub fn debug_ui_mouse_position(
     position: Res<MouseMapPosition>,
+    previous_position: Res<PreviousMouseMapPosition>,
     mut egui_context: ResMut<EguiContext>,
 ) {
     egui::Window::new("Mouse Map Position").show(egui_context.ctx_mut(), |ui| {
         if let Some(TilePos(x, y)) = position.0 {
+            ui.label(format!("{}, {}", x, y));
+        } else {
+            ui.label("#, #");
+        }
+    });
+
+    egui::Window::new("Mouse Map Previous Position").show(egui_context.ctx_mut(), |ui| {
+        if let Some(TilePos(x, y)) = previous_position.0 {
             ui.label(format!("{}, {}", x, y));
         } else {
             ui.label("#, #");
