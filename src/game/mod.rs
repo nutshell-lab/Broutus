@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_inspector_egui::WorldInspectorPlugin;
 
 mod map;
+mod character;
 
 pub struct GamePlugin;
 
@@ -9,6 +10,7 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(WorldInspectorPlugin::new())
             .add_plugin(map::MapPlugin)
+            .add_plugin(character::CharacterPlugin)
             .add_startup_system(startup);
     }
 }

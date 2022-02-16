@@ -107,10 +107,27 @@ pub fn highlight_mouse_tile(
 }
 
 pub fn debug_ui_mouse_position(
+    windows: Res<Windows>,
+    camera_query: Query<(&Camera, &GlobalTransform)>,
     position: Res<MouseMapPosition>,
     previous_position: Res<PreviousMouseMapPosition>,
     mut egui_context: ResMut<EguiContext>,
 ) {
+    let primary_window = windows.get_primary().unwrap();
+
+    egui::Window::new("Mouse Position").show(egui_context.ctx_mut(), |ui| {
+        for (camera, camera_transform) in camera_query.iter() {
+            let offset = camera.world_to_screen(&windows, camera_transform, Vec3::ZERO).unwrap_or(Vec2::ZERO);
+            if let Some(position) = primary_window.cursor_position() {
+                ui.label(format!("Screen: {}, {}", position.x, position.y));
+                ui.label(format!("World: {}, {}", position.x - offset.x, position.y - offset.y));
+            } else {
+                ui.label("Screen: #, #");
+                ui.label("World: #, #");
+            }
+        }
+    });
+
     egui::Window::new("Mouse Map Position").show(egui_context.ctx_mut(), |ui| {
         if let Some(TilePos(x, y)) = position.0 {
             ui.label(format!("{}, {}", x, y));
