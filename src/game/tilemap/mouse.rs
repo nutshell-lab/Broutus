@@ -59,20 +59,20 @@ pub fn update_mouse_position(
     }
 }
 
-pub fn despawn_tile_at_mouse_position(
-    position: Res<MouseMapPosition>,
-    mut map_query: MapQuery,
-    mut tile_query: Query<&mut Tile>,
-) {
-    if let Ok(tile_entity) = map_query.get_tile_entity(position.0, 0u16, 0u16) {
-        if let Ok(mut tile) = tile_query.get_mut(tile_entity) {
-            if tile.visible {
-                tile.visible = false;
-                map_query.notify_chunk_for_tile(position.0, 0u16, 0u16);
-            }
-        }
-    }
-}
+// pub fn despawn_tile_at_mouse_position(
+//     position: Res<MouseMapPosition>,
+//     mut map_query: MapQuery,
+//     mut tile_query: Query<&mut Tile>,
+// ) {
+//     if let Ok(tile_entity) = map_query.get_tile_entity(position.0, 0u16, 0u16) {
+//         if let Ok(mut tile) = tile_query.get_mut(tile_entity) {
+//             if tile.visible {
+//                 tile.visible = false;
+//                 map_query.notify_chunk_for_tile(position.0, 0u16, 0u16);
+//             }
+//         }
+//     }
+// }
 
 pub fn debug_ui_mouse_position(
     position: Res<MouseMapPosition>,
