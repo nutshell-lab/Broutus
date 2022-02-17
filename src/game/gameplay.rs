@@ -7,6 +7,10 @@ pub struct TeamA;
 #[derive(Default, Component)]
 pub struct TeamB;
 
+pub struct TurnStart(pub Entity);
+
+pub struct TurnEnd(pub Entity);
+
 #[derive(Default)]
 pub struct Turn {
     /// Current turn, is incremented the order has been consumed
@@ -48,6 +52,8 @@ impl Turn {
 /// Display all infos about the ruen system in a dedicated window
 pub fn debug_ui_turn(
     mut turn: ResMut<Turn>,
+    mut ev_turn_started: EventWriter<TurnStart>,
+    mut ev_turn_ended: EventWriter<TurnEnd>,
     mut egui_context: ResMut<EguiContext>,
     character_query: Query<&Name, With<super::character::Character>>,
 ) {
@@ -77,7 +83,9 @@ pub fn debug_ui_turn(
         }
 
         if ui.button("Next").clicked() {
+            ev_turn_ended.send(TurnEnd(turn.get_current_character_entity().unwrap()));
             turn.set_next();
+            ev_turn_started.send(TurnStart(turn.get_current_character_entity().unwrap()));
         }
     });
 }

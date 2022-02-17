@@ -13,11 +13,11 @@ pub use bevy_ecs_tilemap::MapQuery;
 pub use bevy_ecs_tilemap::Tile;
 pub use bevy_ecs_tilemap::TilePos;
 pub use bevy_ecs_tilemap::TileSize;
+pub use events::*;
 pub use load::TmxMap;
 pub use mouse::MouseMapPosition;
 pub use mouse::PreviousMouseMapPosition;
 pub use position::*;
-pub use events::*;
 
 pub struct MapPlugin;
 

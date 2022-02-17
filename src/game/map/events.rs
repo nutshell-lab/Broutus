@@ -2,7 +2,7 @@ use super::mouse::MouseMapPosition;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 
-pub struct TileClickedEvent(TilePos);
+pub struct TileClickedEvent(pub TilePos);
 
 pub fn detect_tile_clicked_events(
     mut ev_clicked: EventWriter<TileClickedEvent>,

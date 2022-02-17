@@ -11,12 +11,16 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(WorldInspectorPlugin::new())
             .add_plugin(map::MapPlugin)
+            .add_event::<gameplay::TurnStart>()
+            .add_event::<gameplay::TurnEnd>()
             .add_startup_system(setup_camera)
             .add_startup_system(setup_gameplay)
             .add_system(character::animate_sprite)
             .add_system(character::snap_to_map)
             .add_system(gameplay::debug_ui_turn)
             .add_system(unhighlight_all_tiles.before("tile_highlighting"))
+            .add_system(reset_start_on_turn_end)
+            .add_system(handle_map_click)
             .add_system_set(
                 SystemSet::new()
                     .label("tile_highlighting")
@@ -24,7 +28,9 @@ impl Plugin for GamePlugin {
                     .with_system(compute_and_highlight_path)
                     .with_system(highlight_characters_tile),
             )
-            .register_type::<character::AnimationTimer>();
+            .register_type::<character::AnimationTimer>()
+            .register_type::<character::ActionPoints>()
+            .register_type::<character::MovementPoints>();
     }
 }
 
@@ -158,7 +164,7 @@ fn compute_and_highlight_path(
     tmx_query: Query<&Handle<map::TmxMap>, With<map::Map>>,
     mut map_query: map::MapQuery,
     mut tile_query: Query<&mut map::Tile>,
-    character_query: Query<&map::TilePos, With<character::Character>>
+    character_query: Query<(&map::TilePos, &character::MovementPoints), With<character::Character>>,
 ) {
     if tmx_query.is_empty() {
         return;
@@ -171,7 +177,7 @@ fn compute_and_highlight_path(
         .get_current_character_entity()
         .and_then(|e| character_query.get(e).ok());
 
-    if let Some(character_position) = character_position {
+    if let Some((character_position, movement_points)) = character_position {
         if let Some(tmx_map) = tmx_map {
             if mouse_position.is_changed() {
                 if let Some(mouse_position) = mouse_position.0 {
@@ -182,9 +188,9 @@ fn compute_and_highlight_path(
                         tmx_map.map.width,
                         tmx_map.map.height,
                     );
-    
+
                     if let Some((path, _cost)) = path {
-                        for position in path.iter().skip(1).rev() {
+                        for position in path.iter().take(movement_points.0 as usize + 1) {
                             map::highlight_tile(
                                 &mut map_query,
                                 &mut tile_query,
@@ -192,6 +198,66 @@ fn compute_and_highlight_path(
                                 Color::GREEN,
                             );
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Reset character action & movement points at the end of their turn
+fn reset_start_on_turn_end(
+    mut ev_turn_ended: EventReader<gameplay::TurnEnd>,
+    mut q: Query<
+        (&mut character::ActionPoints, &mut character::MovementPoints),
+        With<character::Character>,
+    >,
+) {
+    for ev in ev_turn_ended.iter() {
+        let (mut ap, mut mp) = q.get_mut(ev.0).unwrap();
+        ap.reset();
+        mp.reset();
+    }
+}
+
+/// Move the character on click if he can afford the cost of the path in movement points
+fn handle_map_click(
+    mut ev_clicked: EventReader<map::TileClickedEvent>,
+    turn: Res<gameplay::Turn>,
+    tmx_map: Res<Assets<map::TmxMap>>,
+    tmx_query: Query<&Handle<map::TmxMap>, With<map::Map>>,
+    mut map_query: map::MapQuery,
+    mut character_query: Query<
+        (&mut map::TilePos, &mut character::MovementPoints),
+        With<character::Character>,
+    >,
+) {
+    if tmx_query.is_empty() {
+        return;
+    }
+
+    let tmx_handle = tmx_query.single();
+    let tmx_map = &tmx_map.get(tmx_handle);
+
+    for ev in ev_clicked.iter() {
+        let character_entity = turn.get_current_character_entity().unwrap();
+        if let Ok((mut character_position, mut movement_points)) =
+            character_query.get_mut(character_entity)
+        {
+            if let Some(tmx_map) = tmx_map {
+                let path = map::path(
+                    &mut map_query,
+                    *character_position,
+                    ev.0,
+                    tmx_map.map.width,
+                    tmx_map.map.height,
+                );
+
+                if let Some((_path, cost)) = path {
+                    if cost <= movement_points.0 {
+                        character_position.0 = ev.0 .0;
+                        character_position.1 = ev.0 .1;
+                        movement_points.0 -= cost;
                     }
                 }
             }

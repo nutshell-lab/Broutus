@@ -4,14 +4,36 @@ use bevy::prelude::*;
 #[derive(Default, Component)]
 pub struct Character;
 
+#[derive(Reflect, Component, Default)]
+#[reflect(Component)]
+pub struct ActionPoints(pub u32, u32);
+
+#[derive(Reflect, Component, Default)]
+#[reflect(Component)]
+pub struct MovementPoints(pub u32, u32);
+
+impl ActionPoints {
+    pub fn reset(&mut self) {
+        self.0 = self.1;
+    }
+}
+
+impl MovementPoints {
+    pub fn reset(&mut self) {
+        self.0 = self.1;
+    }
+}
+
 #[derive(Default, Bundle)]
 pub struct CharacterBundle {
     _c: Character,
     name: Name,
-    animation_timer: AnimationTimer,
     position: TilePos,
+    action_points: ActionPoints,
+    movement_points: MovementPoints,
     #[bundle]
     sprite: SpriteSheetBundle,
+    animation_timer: AnimationTimer,
 }
 
 impl CharacterBundle {
@@ -23,8 +45,10 @@ impl CharacterBundle {
     ) -> Self {
         CharacterBundle {
             name: Name::new(name),
-            animation_timer: AnimationTimer(Timer::from_seconds(0.15, true)),
             position,
+            action_points: ActionPoints(6, 6),
+            movement_points: MovementPoints(5, 5),
+            animation_timer: AnimationTimer(Timer::from_seconds(0.15, true)),
             sprite: SpriteSheetBundle {
                 texture_atlas: texture_atlas_handle.clone(),
                 transform: Transform::from_translation(Vec3::new(0.0, 0.0, 2.0))
