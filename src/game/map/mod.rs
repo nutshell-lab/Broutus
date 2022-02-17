@@ -63,3 +63,5 @@ pub fn is_obstacle(map_query: &mut MapQuery, position: TilePos) -> bool {
         .get_tile_entity(position, 0u16, 1u16)
         .is_ok()
 }
+
+// TODO https://crates.io/crates/pathfinding
