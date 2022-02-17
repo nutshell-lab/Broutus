@@ -1,15 +1,6 @@
 use bevy::prelude::*;
 
-pub struct CharacterPlugin;
-
-impl Plugin for CharacterPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_startup_system(startup)
-            .add_system(animate_sprite);
-    }
-}
-
-fn startup(
+pub fn spawn_character<const X: i32, const Y: i32, const SCALE: i32>(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
@@ -21,24 +12,17 @@ fn startup(
     commands
         .spawn_bundle(SpriteSheetBundle {
             texture_atlas: texture_atlas_handle.clone(),
-            transform: Transform::from_translation(Vec3::new(770.0, -890.0, 2.0)).with_scale(Vec3::new(-2.0, 2.5, 1.0)),
-            ..Default::default()
-        })
-        .insert(AnimationTimer(Timer::from_seconds(0.1, true)));
-
-    commands
-        .spawn_bundle(SpriteSheetBundle {
-            texture_atlas: texture_atlas_handle.clone(),
-            transform: Transform::from_translation(Vec3::new(-190.0, -410.0, 2.0)).with_scale(Vec3::new(2.0, 2.5, 1.0)),
+            transform: Transform::from_translation(Vec3::new(X as f32, Y as f32, 2.0)).with_scale(Vec3::new(2.0 * SCALE as f32, 2.5, 1.0)),
             ..Default::default()
         })
         .insert(AnimationTimer(Timer::from_seconds(0.1, true)));
 }
 
-#[derive(Component)]
-struct AnimationTimer(Timer);
+#[derive(Reflect, Component, Default)]
+#[reflect(Component)]
+pub struct AnimationTimer(Timer);
 
-fn animate_sprite(
+pub fn animate_sprite(
     time: Res<Time>,
     texture_atlases: Res<Assets<TextureAtlas>>,
     mut query: Query<(

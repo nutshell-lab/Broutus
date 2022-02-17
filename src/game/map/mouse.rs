@@ -23,7 +23,7 @@ pub fn update_mouse_position(
     mut previous_position: ResMut<PreviousMouseMapPosition>,
     tmx_map: Res<Assets<TmxMap>>,
     windows: Res<Windows>,
-    camera_query: Query<(&Camera, &GlobalTransform)>,
+    camera_query: Query<(&Transform, Option<&OrthographicProjection>), With<Camera>>,
     map_query: Query<(&GlobalTransform, &Handle<TmxMap>), With<Map>>,
     layer_query: Query<&Layer>,
 ) {
@@ -32,75 +32,56 @@ pub fn update_mouse_position(
     }
 
     let primary_window = windows.get_primary().unwrap();
-    let layer = layer_query.iter().next().unwrap();
-    let grid_size = layer.settings.grid_size;
-    let tile_size = layer.settings.tile_size;
-
+    
     if let Some(mouse) = primary_window.cursor_position() {
-        for (camera, camera_transform) in camera_query.iter() {
-            for (map_transform, tmx_handle) in map_query.iter() {
-                if let Some(map_screen_coords) =
-                    camera.world_to_screen(&windows, camera_transform, map_transform.translation)
-                {
-                    // Get mous coords relative to the map coords
-                    let mouse_to_map_coords = Vec2::new(
-                        mouse.x - map_screen_coords.x,
-                        // In our case, tileset tile height is greater than the map tile height to be able to display obstacles, we need to adjust to that
-                        mouse.y - map_screen_coords.y + (tile_size.1 - grid_size.y / 2.0),
-                    );
+        let layer = layer_query.iter().next().unwrap();
+        let grid_size = layer.settings.grid_size;
+        let tile_size = layer.settings.tile_size;
+        
+        for (map_transform, tmx_handle) in map_query.iter() {
+            // get the size of the window
+            let window_size = Vec2::new(primary_window.width() as f32, primary_window.height() as f32);
+            // the default orthographic projection is in pixels from the center;
+            // just undo the translation
+            let p = mouse - window_size / 2.0;
 
-                    // Get tmx data to get map size in tiles
-                    let tiled_map = &tmx_map.get(tmx_handle).unwrap().map;
+            // assuming there is exactly one main camera entity, so this is OK
+            let (camera_transform, ortho_projection) = camera_query.single();
 
-                    let tile_position =
-                        unproject_iso(mouse_to_map_coords, grid_size.x, grid_size.y);
-
-                    let save = position.0.clone();
-
-                    // Check if the tile position is within map borders, otherwise return None, which is needed to handle correctly mouse events
-                    position.0 = if tile_position.x >= 0.0
-                        && tile_position.x < (tiled_map.width as f32)
-                        && tile_position.y >= 0.0
-                        && tile_position.y < (tiled_map.height as f32)
-                    {
-                        Some(TilePos(tile_position.x as u32, tile_position.y as u32))
-                    } else {
-                        None
-                    };
-
-                    if save.ne(&position.0) {
-                        previous_position.0 = save;
-                    }
-                }
+            let mut scale = 1.0;
+            if let Some(ortho_projection) = ortho_projection {
+                scale /= ortho_projection.scale;
             }
-        }
-    }
-}
 
-pub fn highlight_mouse_tile(
-    position: Res<MouseMapPosition>,
-    previous_position: Res<PreviousMouseMapPosition>,
-    mut map_query: MapQuery,
-    mut tile_query: Query<&mut Tile>,
-) {
-    if position.is_changed() {
-        if let Some(position) = position.0 {
-            if let Ok(tile_entity) = map_query.get_tile_entity(position, 0u16, 0u16) {
-                if let Ok(mut tile) = tile_query.get_mut(tile_entity) {
-                    tile.color = Color::SEA_GREEN;
-                    map_query.notify_chunk_for_tile(position, 0u16, 0u16);
-                }
-            }
-        }
-    }
+            // undo orthographic scale and apply the camera transform
+            let mouse_in_world = camera_transform.compute_matrix() * p.extend(0.0).extend(scale);
+            let mouse_in_map = Vec2::new(
+                mouse_in_world.x - map_transform.translation.x,
+                // In our case, tileset tile height is greater than the map tile height to be able to display obstacles, we need to adjust to that
+                mouse_in_world.y - map_transform.translation.y + (tile_size.1 - grid_size.y / 2.0 - 6.0),
+            );
 
-    if previous_position.is_changed() {
-        if let Some(previous_position) = previous_position.0 {
-            if let Ok(tile_entity) = map_query.get_tile_entity(previous_position, 0u16, 0u16) {
-                if let Ok(mut tile) = tile_query.get_mut(tile_entity) {
-                    tile.color = Color::WHITE;
-                    map_query.notify_chunk_for_tile(previous_position, 0u16, 0u16);
-                }
+            // Get tmx data to get map size in tiles
+            let tiled_map = &tmx_map.get(tmx_handle).unwrap().map;
+
+            let tile_position =
+                unproject_iso(mouse_in_map, grid_size.x, grid_size.y);
+
+            let save = position.0.clone();
+
+            // Check if the tile position is within map borders, otherwise return None, which is needed to handle correctly mouse events
+            position.0 = if tile_position.x >= 0.0
+                && tile_position.x < (tiled_map.width as f32)
+                && tile_position.y >= 0.0
+                && tile_position.y < (tiled_map.height as f32)
+            {
+                Some(TilePos(tile_position.x as u32, tile_position.y as u32))
+            } else {
+                None
+            };
+
+            if save.ne(&position.0) {
+                previous_position.0 = save;
             }
         }
     }
