@@ -62,7 +62,7 @@ impl CharacterBundle {
 
 #[derive(Reflect, Component, Default)]
 #[reflect(Component)]
-pub struct AnimationTimer(Timer);
+pub struct AnimationTimer(Timer); // TODO maybe improve this thing to support multiple animations (idle, run, attack...)
 
 /// Animate the sprite based on the AnimationTimer
 pub fn animate_sprite(

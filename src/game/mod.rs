@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_inspector_egui::WorldInspectorPlugin;
 
+// TODO merge character and gameplay into a single module, clean modules exposed API
 mod character;
 mod gameplay;
 mod map;
@@ -253,6 +254,9 @@ fn handle_map_click(
                     tmx_map.map.height,
                 );
 
+                // TODO Replace the current sprite sheets by another one containing all 4 directions
+                // TODO Animate character movement along the path
+                // TODO Change character orientation when it changes direction
                 if let Some((_path, cost)) = path {
                     if cost <= movement_points.0 {
                         character_position.0 = ev.0 .0;
