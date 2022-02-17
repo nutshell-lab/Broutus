@@ -47,6 +47,7 @@ fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
         });
 }
 
+/// Apply a highlight color to a tile at the given position
 pub fn highlight_tile(map_query: &mut MapQuery, tile_query: &mut Query<&mut Tile>, position: TilePos, color: Color) {
     if let Ok(tile_entity) = map_query.get_tile_entity(position, 0u16, 0u16) {
         if let Ok(mut tile) = tile_query.get_mut(tile_entity) {
@@ -56,6 +57,7 @@ pub fn highlight_tile(map_query: &mut MapQuery, tile_query: &mut Query<&mut Tile
     }
 }
 
+/// Return true if a tile exists at the given position in the obstacle layer
 pub fn is_obstacle(map_query: &mut MapQuery, position: TilePos) -> bool {
     map_query
         .get_tile_entity(position, 0u16, 1u16)

@@ -1,5 +1,8 @@
 use bevy::prelude::*;
 
+#[derive(Component)]
+pub struct Character;
+
 pub fn spawn_character<const X: i32, const Y: i32, const SCALE: i32>(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -15,7 +18,8 @@ pub fn spawn_character<const X: i32, const Y: i32, const SCALE: i32>(
             transform: Transform::from_translation(Vec3::new(X as f32, Y as f32, 2.0)).with_scale(Vec3::new(2.0 * SCALE as f32, 2.5, 1.0)),
             ..Default::default()
         })
-        .insert(AnimationTimer(Timer::from_seconds(0.1, true)));
+        .insert(AnimationTimer(Timer::from_seconds(0.1, true)))
+        .insert(Character);
 }
 
 #[derive(Reflect, Component, Default)]

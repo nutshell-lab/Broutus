@@ -3,6 +3,7 @@ use bevy_inspector_egui::WorldInspectorPlugin;
 
 mod map;
 mod character;
+mod gameplay;
 
 pub struct GamePlugin;
 
