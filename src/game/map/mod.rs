@@ -90,11 +90,20 @@ pub fn tile_neightbours(
     map_width: u32,
     map_height: u32,
 ) -> Vec<(TilePos, u32)> {
+    // Allow diagonal movements
+    // #[rustfmt::skip]
+    // let neightbours = vec![
+    //     TilePos(position.0.wrapping_sub(1), position.1.wrapping_add(1)),    TilePos(position.0, position.1.wrapping_add(1)),    TilePos(position.0.wrapping_add(1), position.1.wrapping_add(1)), 
+    //     TilePos(position.0.wrapping_sub(1), position.1),                                                                        TilePos(position.0.wrapping_add(1), position.1), 
+    //     TilePos(position.0.wrapping_sub(1), position.1.wrapping_sub(1)),    TilePos(position.0, position.1.wrapping_sub(1)),    TilePos(position.0.wrapping_add(1), position.1.wrapping_sub(1)), 
+    // ];
+
     #[rustfmt::skip]
     let neightbours = vec![
-        TilePos(position.0.wrapping_sub(1), position.1.wrapping_add(1)),    TilePos(position.0, position.1.wrapping_add(1)),    TilePos(position.0.wrapping_add(1), position.1.wrapping_add(1)), 
-        TilePos(position.0.wrapping_sub(1), position.1),                                                                        TilePos(position.0.wrapping_add(1), position.1), 
-        TilePos(position.0.wrapping_sub(1), position.1.wrapping_sub(1)),    TilePos(position.0, position.1.wrapping_sub(1)),    TilePos(position.0.wrapping_add(1), position.1.wrapping_sub(1)), 
+        TilePos(position.0, position.1.wrapping_add(1)), // Up
+        TilePos(position.0.wrapping_sub(1), position.1), // Left
+        TilePos(position.0.wrapping_add(1), position.1),  // Right
+        TilePos(position.0, position.1.wrapping_sub(1)), // Down
     ];
 
     neightbours
