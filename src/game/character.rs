@@ -1,26 +1,36 @@
 use bevy::prelude::*;
 
-#[derive(Component)]
+#[derive(Default, Component)]
 pub struct Character;
 
-pub fn spawn_character<const X: i32, const Y: i32, const SCALE: i32>(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-) {
-    let texture_handle = asset_server.load("characters/knight_idle.png");
-    let texture_atlas = TextureAtlas::from_grid(texture_handle, Vec2::new(64.0, 64.0), 15, 1);
-    let texture_atlas_handle = texture_atlases.add(texture_atlas);
+#[derive(Default, Bundle)]
+pub struct CharacterBundle {
+    _c: Character,
+    name: Name,
+    animation_timer: AnimationTimer,
+    #[bundle]
+    sprite: SpriteSheetBundle,
+}
 
-    commands
-        .spawn()
-        .insert_bundle(SpriteSheetBundle {
-            texture_atlas: texture_atlas_handle.clone(),
-            transform: Transform::from_translation(Vec3::new(X as f32, Y as f32, 2.0)).with_scale(Vec3::new(2.0 * SCALE as f32, 2.5, 1.0)),
+impl CharacterBundle {
+    pub fn new(
+        name: String,
+        position: Vec2,
+        flip: f32,
+        texture_atlas_handle: &Handle<TextureAtlas>,
+    ) -> Self {
+        CharacterBundle {
+            name: Name::new(name),
+            animation_timer: AnimationTimer(Timer::from_seconds(0.15, true)),
+            sprite: SpriteSheetBundle {
+                texture_atlas: texture_atlas_handle.clone(),
+                transform: Transform::from_translation(Vec3::new(position.x, position.y, 2.0))
+                    .with_scale(Vec3::new(2.0 * flip, 2.5, 1.0)),
+                ..Default::default()
+            },
             ..Default::default()
-        })
-        .insert(AnimationTimer(Timer::from_seconds(0.15, true)))
-        .insert(Character);
+        }
+    }
 }
 
 #[derive(Reflect, Component, Default)]

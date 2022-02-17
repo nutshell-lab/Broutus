@@ -32,15 +32,18 @@ pub fn update_mouse_position(
     }
 
     let primary_window = windows.get_primary().unwrap();
-    
+
     if let Some(mouse) = primary_window.cursor_position() {
         let layer = layer_query.iter().next().unwrap();
         let grid_size = layer.settings.grid_size;
         let tile_size = layer.settings.tile_size;
-        
+
         for (map_transform, tmx_handle) in map_query.iter() {
             // get the size of the window
-            let window_size = Vec2::new(primary_window.width() as f32, primary_window.height() as f32);
+            let window_size = Vec2::new(
+                primary_window.width() as f32,
+                primary_window.height() as f32,
+            );
             // the default orthographic projection is in pixels from the center;
             // just undo the translation
             let p = mouse - window_size / 2.0;
@@ -58,14 +61,14 @@ pub fn update_mouse_position(
             let mouse_in_map = Vec2::new(
                 mouse_in_world.x - map_transform.translation.x,
                 // In our case, tileset tile height is greater than the map tile height to be able to display obstacles, we need to adjust to that
-                mouse_in_world.y - map_transform.translation.y + (tile_size.1 - grid_size.y / 2.0 - 6.0),
+                mouse_in_world.y - map_transform.translation.y
+                    + (tile_size.1 - grid_size.y / 2.0 - 6.0),
             );
 
             // Get tmx data to get map size in tiles
             let tiled_map = &tmx_map.get(tmx_handle).unwrap().map;
 
-            let tile_position =
-                unproject_iso(mouse_in_map, grid_size.x, grid_size.y);
+            let tile_position = unproject_iso(mouse_in_map, grid_size.x, grid_size.y);
 
             let save = position.0.clone();
 
@@ -98,30 +101,32 @@ pub fn debug_ui_mouse_position(
 
     egui::Window::new("Mouse Position").show(egui_context.ctx_mut(), |ui| {
         for (camera, camera_transform) in camera_query.iter() {
-            let offset = camera.world_to_screen(&windows, camera_transform, Vec3::ZERO).unwrap_or(Vec2::ZERO);
+            let offset = camera
+                .world_to_screen(&windows, camera_transform, Vec3::ZERO)
+                .unwrap_or(Vec2::ZERO);
             if let Some(position) = primary_window.cursor_position() {
                 ui.label(format!("Screen: {}, {}", position.x, position.y));
-                ui.label(format!("World: {}, {}", position.x - offset.x, position.y - offset.y));
+                ui.label(format!(
+                    "World: {}, {}",
+                    position.x - offset.x,
+                    position.y - offset.y
+                ));
             } else {
                 ui.label("Screen: #, #");
                 ui.label("World: #, #");
             }
-        }
-    });
 
-    egui::Window::new("Mouse Map Position").show(egui_context.ctx_mut(), |ui| {
-        if let Some(TilePos(x, y)) = position.0 {
-            ui.label(format!("{}, {}", x, y));
-        } else {
-            ui.label("#, #");
-        }
-    });
+            if let Some(TilePos(x, y)) = position.0 {
+                ui.label(format!("Map: {}, {}", x, y));
+            } else {
+                ui.label("Map: #, #");
+            }
 
-    egui::Window::new("Mouse Map Previous Position").show(egui_context.ctx_mut(), |ui| {
-        if let Some(TilePos(x, y)) = previous_position.0 {
-            ui.label(format!("{}, {}", x, y));
-        } else {
-            ui.label("#, #");
+            if let Some(TilePos(x, y)) = previous_position.0 {
+                ui.label(format!("Map (prev): {}, {}", x, y));
+            } else {
+                ui.label("Map (prev): #, #");
+            }
         }
     });
 }

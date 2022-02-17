@@ -3,10 +3,7 @@ use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use std::{collections::HashMap, io::BufReader, path::Path};
 
-use bevy::asset::{
-    diagnostic::AssetCountDiagnosticsPlugin, AssetLoader, AssetPath, BoxedFuture, LoadContext,
-    LoadedAsset,
-};
+use bevy::asset::{AssetLoader, AssetPath, BoxedFuture, LoadContext, LoadedAsset};
 use bevy::reflect::TypeUuid;
 
 #[derive(Default)]
@@ -14,9 +11,7 @@ pub struct TmxPlugin;
 
 impl Plugin for TmxPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(AssetCountDiagnosticsPlugin::<TmxMap>::default())
-            .add_plugin(AssetCountDiagnosticsPlugin::<Image>::default())
-            .add_asset::<TmxMap>()
+        app.add_asset::<TmxMap>()
             .add_asset_loader(TmxLoader)
             .add_system(process_loaded_tile_maps);
     }
