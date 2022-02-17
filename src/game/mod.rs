@@ -34,13 +34,19 @@ fn highlight_mouse_tile(
 ) {
     if position.is_changed() {
         if let Some(position) = position.0 {
-            map::highlight_tile(&mut map_query, &mut tile_query, 0u16, 0u16, position, Color::SEA_GREEN);
+            let color = if map::is_obstacle(&mut map_query, position) {
+                Color::GRAY
+            } else {
+                Color::SEA_GREEN
+            };
+
+            map::highlight_tile(&mut map_query, &mut tile_query, position, color);
         }
     }
 
     if previous_position.is_changed() {
         if let Some(position) = previous_position.0 {
-            map::highlight_tile(&mut map_query, &mut tile_query, 0u16, 0u16, position, Color::WHITE);
+            map::highlight_tile(&mut map_query, &mut tile_query, position, Color::WHITE);
         }
     }
 }

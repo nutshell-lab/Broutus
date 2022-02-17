@@ -47,11 +47,17 @@ fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
         });
 }
 
-pub fn highlight_tile(map_query: &mut MapQuery, tile_query: &mut Query<&mut Tile>, map_id: u16, layer_id: u16, position: TilePos, color: Color) {
-    if let Ok(tile_entity) = map_query.get_tile_entity(position, map_id, layer_id) {
+pub fn highlight_tile(map_query: &mut MapQuery, tile_query: &mut Query<&mut Tile>, position: TilePos, color: Color) {
+    if let Ok(tile_entity) = map_query.get_tile_entity(position, 0u16, 0u16) {
         if let Ok(mut tile) = tile_query.get_mut(tile_entity) {
             tile.color = color;
             map_query.notify_chunk_for_tile(position, 0u16, 0u16);
         }
     }
+}
+
+pub fn is_obstacle(map_query: &mut MapQuery, position: TilePos) -> bool {
+    map_query
+        .get_tile_entity(position, 0u16, 1u16)
+        .is_ok()
 }
