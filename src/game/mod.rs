@@ -11,6 +11,7 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(WorldInspectorPlugin::new())
             .add_plugin(map::MapPlugin)
+            .add_plugin(gameplay::GameplayPlugin)
             .add_startup_system(startup)
             .add_startup_system(character::spawn_character::<770, -890, -1>)
             .add_startup_system(character::spawn_character::<-190, -410, 1>)
