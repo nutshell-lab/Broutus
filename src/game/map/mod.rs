@@ -17,6 +17,7 @@ pub use load::TmxMap;
 pub use mouse::MouseMapPosition;
 pub use mouse::PreviousMouseMapPosition;
 pub use position::*;
+pub use events::*;
 
 pub struct MapPlugin;
 

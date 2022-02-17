@@ -1,11 +1,13 @@
 use bevy::prelude::*;
 
+/// TilePos --> WorldPos
 pub fn project_iso(pos: Vec2, tile_width: f32, tile_height: f32) -> Vec2 {
     let x = (pos.x - pos.y) * tile_width / 2.0;
     let y = (pos.x + pos.y) * tile_height / 2.0;
     return Vec2::new(x, -y);
 }
 
+/// WorldPos --> TilePos
 pub fn unproject_iso(pos: Vec2, tile_width: f32, tile_height: f32) -> Vec2 {
     let half_width = tile_width / 2.0;
     let half_height = tile_height / 2.0;

@@ -40,6 +40,7 @@ impl CharacterBundle {
 #[reflect(Component)]
 pub struct AnimationTimer(Timer);
 
+/// Animate the sprite based on the AnimationTimer
 pub fn animate_sprite(
     time: Res<Time>,
     texture_atlases: Res<Assets<TextureAtlas>>,
@@ -58,6 +59,7 @@ pub fn animate_sprite(
     }
 }
 
+/// Update the character's Transform based on it's TilePos
 pub fn snap_to_map(mut q: Query<(&mut Transform, &TilePos), (With<Character>, Changed<TilePos>)>) {
     for (mut transform, position) in q.iter_mut() {
         let coords =

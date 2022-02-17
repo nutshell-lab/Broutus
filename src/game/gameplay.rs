@@ -20,6 +20,7 @@ pub struct Turn {
 }
 
 impl Turn {
+    /// Move forward in the turn system, select the next character, incrementing the turn count if necessary
     pub fn set_next(&mut self) {
         self.order_index = self.get_next_order_index();
         self.current = if self.order_index == 0 {
@@ -44,6 +45,7 @@ impl Turn {
     }
 }
 
+/// Display all infos about the ruen system in a dedicated window
 pub fn debug_ui_turn(
     mut turn: ResMut<Turn>,
     mut egui_context: ResMut<EguiContext>,
