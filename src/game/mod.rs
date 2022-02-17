@@ -11,21 +11,30 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(WorldInspectorPlugin::new())
             .add_plugin(map::MapPlugin)
-            .add_plugin(gameplay::GameplayPlugin)
-            .add_startup_system(startup)
-            .add_startup_system(character::spawn_character::<770, -890, -1>)
-            .add_startup_system(character::spawn_character::<-190, -410, 1>)
+            .add_startup_system_set(
+                SystemSet::new()
+                    .label("characters")
+                    .with_system(character::spawn_character::<770, -890, -1>)
+                    .with_system(character::spawn_character::<-190, -410, 1>)
+            )
+            .add_startup_system(startup.after("characters"))
             .add_system(character::animate_sprite)
+            .add_system(gameplay::debug_ui_turn)
             .add_system(highlight_mouse_tile)
             .register_type::<character::AnimationTimer>();
     }
 }
 
-fn startup(mut commands: Commands) {
+fn startup(mut commands: Commands, character_query: Query<Entity, With<character::Character>>) {
     commands.spawn_bundle(OrthographicCameraBundle {
         transform: Transform::from_xyz(265.0, -655.0, 1000.0 - 0.1),
         ..OrthographicCameraBundle::new_2d()
     });
+
+    commands.insert_resource(gameplay::Turn {
+        order: character_query.iter().collect(),
+        ..Default::default()
+    })
 }
 
 fn highlight_mouse_tile(

@@ -13,12 +13,13 @@ pub fn spawn_character<const X: i32, const Y: i32, const SCALE: i32>(
     let texture_atlas_handle = texture_atlases.add(texture_atlas);
 
     commands
-        .spawn_bundle(SpriteSheetBundle {
+        .spawn()
+        .insert_bundle(SpriteSheetBundle {
             texture_atlas: texture_atlas_handle.clone(),
             transform: Transform::from_translation(Vec3::new(X as f32, Y as f32, 2.0)).with_scale(Vec3::new(2.0 * SCALE as f32, 2.5, 1.0)),
             ..Default::default()
         })
-        .insert(AnimationTimer(Timer::from_seconds(0.1, true)))
+        .insert(AnimationTimer(Timer::from_seconds(0.15, true)))
         .insert(Character);
 }
 
