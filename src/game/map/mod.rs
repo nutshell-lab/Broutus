@@ -12,6 +12,7 @@ pub use bevy_ecs_tilemap::MapQuery;
 pub use bevy_ecs_tilemap::Tile;
 pub use bevy_ecs_tilemap::TilePos;
 pub use bevy_ecs_tilemap::TileSize;
+pub use load::TmxMap;
 pub use mouse::MouseMapPosition;
 pub use mouse::PreviousMouseMapPosition;
 
@@ -67,4 +68,45 @@ pub fn is_obstacle(map_query: &mut MapQuery, position: TilePos) -> bool {
     map_query.get_tile_entity(position, 0u16, 1u16).is_ok()
 }
 
-// TODO https://crates.io/crates/pathfinding
+pub fn path(
+    mut map_query: &mut MapQuery,
+    start: TilePos,
+    end: TilePos,
+    map_width: u32,
+    map_height: u32,
+) -> Option<(Vec<TilePos>, u32)> {
+    pathfinding::prelude::astar(
+        &start,
+        |position| tile_neightbours(&mut map_query, &position, map_width, map_height),
+        |current| tile_distance(current, &end),
+        |position| position.eq(&end),
+    )
+}
+
+/// Get the list of tile neightbours at the given position
+pub fn tile_neightbours(
+    mut map_query: &mut MapQuery,
+    position: &TilePos,
+    map_width: u32,
+    map_height: u32,
+) -> Vec<(TilePos, u32)> {
+    #[rustfmt::skip]
+    let neightbours = vec![
+        TilePos(position.0.wrapping_sub(1), position.1.wrapping_add(1)),    TilePos(position.0, position.1.wrapping_add(1)),    TilePos(position.0.wrapping_add(1), position.1.wrapping_add(1)), 
+        TilePos(position.0.wrapping_sub(1), position.1),                                                                        TilePos(position.0.wrapping_add(1), position.1), 
+        TilePos(position.0.wrapping_sub(1), position.1.wrapping_sub(1)),    TilePos(position.0, position.1.wrapping_sub(1)),    TilePos(position.0.wrapping_add(1), position.1.wrapping_sub(1)), 
+    ];
+
+    neightbours
+        .iter()
+        .filter(|&position| position.0 < map_width && position.1 < map_height)
+        .filter(|&position| !is_obstacle(&mut map_query, position.clone()))
+        .map(|&position| (position.clone(), 1))
+        .collect()
+}
+
+/// Get the list of tile neightbours at the given position
+pub fn tile_distance(start: &TilePos, end: &TilePos) -> u32 {
+    (pathfinding::prelude::absdiff(start.0, end.0) + pathfinding::prelude::absdiff(start.1, end.1))
+        as u32
+}

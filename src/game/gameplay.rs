@@ -1,6 +1,12 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext};
 
+#[derive(Default, Component)]
+pub struct TeamA;
+
+#[derive(Default, Component)]
+pub struct TeamB;
+
 #[derive(Default)]
 pub struct Turn {
     /// Current turn, is incremented the order has been consumed
@@ -32,14 +38,16 @@ impl Turn {
     }
 
     pub fn get_next_character_entity(&self) -> Option<Entity> {
-        self.order.get(self.get_next_order_index()).map(|e| e.clone())
+        self.order
+            .get(self.get_next_order_index())
+            .map(|e| e.clone())
     }
 }
 
 pub fn debug_ui_turn(
     turn: Res<Turn>,
     mut egui_context: ResMut<EguiContext>,
-    character_query: Query<&Name, With<super::character::Character>>
+    character_query: Query<&Name, With<super::character::Character>>,
 ) {
     egui::Window::new("Turn").show(egui_context.ctx_mut(), |ui| {
         ui.label(format!("Current turn: {}", turn.current));
