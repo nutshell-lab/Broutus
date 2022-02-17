@@ -45,13 +45,21 @@ impl Turn {
 }
 
 pub fn debug_ui_turn(
-    turn: Res<Turn>,
+    mut turn: ResMut<Turn>,
     mut egui_context: ResMut<EguiContext>,
     character_query: Query<&Name, With<super::character::Character>>,
 ) {
     egui::Window::new("Turn").show(egui_context.ctx_mut(), |ui| {
+        let order: Vec<&str> = turn
+            .order
+            .iter()
+            .map(|&entity| character_query.get(entity))
+            .filter(|name| name.is_ok())
+            .map(|name| name.unwrap().as_str())
+            .collect();
+
         ui.label(format!("Current turn: {}", turn.current));
-        ui.label(format!("Current turn order: {:?}", turn.order));
+        ui.label(format!("Current turn order: {:#?}", order));
         ui.label(format!("Current turn order index: {}", turn.order_index));
 
         if let Some(entity) = turn.get_current_character_entity() {
@@ -64,6 +72,10 @@ pub fn debug_ui_turn(
             if let Ok(name) = character_query.get(entity) {
                 ui.label(format!("Next character: {}", name.as_str()));
             }
+        }
+
+        if ui.button("Next").clicked() {
+            turn.set_next();
         }
     });
 }

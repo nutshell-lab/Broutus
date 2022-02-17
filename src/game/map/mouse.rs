@@ -10,14 +10,6 @@ pub struct MouseMapPosition(pub Option<TilePos>);
 #[derive(Default)]
 pub struct PreviousMouseMapPosition(pub Option<TilePos>);
 
-pub fn unproject_iso(pos: Vec2, tile_width: f32, tile_height: f32) -> Vec2 {
-    let half_width = tile_width / 2.0;
-    let half_height = tile_height / 2.0;
-    let x = ((pos.x / half_width) + (-(pos.y) / half_height)) / 2.0;
-    let y = ((-(pos.y) / half_height) - (pos.x / half_width)) / 2.0;
-    Vec2::new(x.round(), y.round())
-}
-
 pub fn update_mouse_position(
     mut position: ResMut<MouseMapPosition>,
     mut previous_position: ResMut<PreviousMouseMapPosition>,
@@ -68,7 +60,8 @@ pub fn update_mouse_position(
             // Get tmx data to get map size in tiles
             let tiled_map = &tmx_map.get(tmx_handle).unwrap().map;
 
-            let tile_position = unproject_iso(mouse_in_map, grid_size.x, grid_size.y);
+            let tile_position =
+                super::position::unproject_iso(mouse_in_map, grid_size.x, grid_size.y);
 
             let save = position.0.clone();
 

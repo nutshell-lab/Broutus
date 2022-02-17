@@ -1,3 +1,4 @@
+use super::map::TilePos;
 use bevy::prelude::*;
 
 #[derive(Default, Component)]
@@ -8,6 +9,7 @@ pub struct CharacterBundle {
     _c: Character,
     name: Name,
     animation_timer: AnimationTimer,
+    position: TilePos,
     #[bundle]
     sprite: SpriteSheetBundle,
 }
@@ -15,16 +17,17 @@ pub struct CharacterBundle {
 impl CharacterBundle {
     pub fn new(
         name: String,
-        position: Vec2,
+        position: TilePos,
         flip: f32,
         texture_atlas_handle: &Handle<TextureAtlas>,
     ) -> Self {
         CharacterBundle {
             name: Name::new(name),
             animation_timer: AnimationTimer(Timer::from_seconds(0.15, true)),
+            position,
             sprite: SpriteSheetBundle {
                 texture_atlas: texture_atlas_handle.clone(),
-                transform: Transform::from_translation(Vec3::new(position.x, position.y, 2.0))
+                transform: Transform::from_translation(Vec3::new(0.0, 0.0, 2.0))
                     .with_scale(Vec3::new(2.0 * flip, 2.5, 1.0)),
                 ..Default::default()
             },
@@ -52,5 +55,14 @@ pub fn animate_sprite(
             let texture_atlas = texture_atlases.get(texture_atlas_handle).unwrap();
             sprite.index = (sprite.index + 1) % texture_atlas.textures.len();
         }
+    }
+}
+
+pub fn snap_to_map(mut q: Query<(&mut Transform, &TilePos), (With<Character>, Changed<TilePos>)>) {
+    for (mut transform, position) in q.iter_mut() {
+        let coords =
+            super::map::project_iso(Vec2::new(position.0 as f32, position.1 as f32), 128.0, 64.0); // TODO unhardcode this
+        transform.translation.x = coords.x;
+        transform.translation.y = coords.y - (256.0 - 64.0 / 2.0 - 64.0 / 2.0); // - (tile_height - grid_height / 2 - character_height / 2)
     }
 }

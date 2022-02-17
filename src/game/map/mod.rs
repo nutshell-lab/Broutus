@@ -3,6 +3,7 @@ use bevy::prelude::*;
 mod events;
 mod load;
 mod mouse;
+mod position;
 mod texture;
 
 pub use bevy_ecs_tilemap::Chunk;
@@ -15,6 +16,7 @@ pub use bevy_ecs_tilemap::TileSize;
 pub use load::TmxMap;
 pub use mouse::MouseMapPosition;
 pub use mouse::PreviousMouseMapPosition;
+pub use position::*;
 
 pub struct MapPlugin;
 
@@ -93,9 +95,9 @@ pub fn tile_neightbours(
     // Allow diagonal movements
     // #[rustfmt::skip]
     // let neightbours = vec![
-    //     TilePos(position.0.wrapping_sub(1), position.1.wrapping_add(1)),    TilePos(position.0, position.1.wrapping_add(1)),    TilePos(position.0.wrapping_add(1), position.1.wrapping_add(1)), 
-    //     TilePos(position.0.wrapping_sub(1), position.1),                                                                        TilePos(position.0.wrapping_add(1), position.1), 
-    //     TilePos(position.0.wrapping_sub(1), position.1.wrapping_sub(1)),    TilePos(position.0, position.1.wrapping_sub(1)),    TilePos(position.0.wrapping_add(1), position.1.wrapping_sub(1)), 
+    //     TilePos(position.0.wrapping_sub(1), position.1.wrapping_add(1)),    TilePos(position.0, position.1.wrapping_add(1)),    TilePos(position.0.wrapping_add(1), position.1.wrapping_add(1)),
+    //     TilePos(position.0.wrapping_sub(1), position.1),                                                                        TilePos(position.0.wrapping_add(1), position.1),
+    //     TilePos(position.0.wrapping_sub(1), position.1.wrapping_sub(1)),    TilePos(position.0, position.1.wrapping_sub(1)),    TilePos(position.0.wrapping_add(1), position.1.wrapping_sub(1)),
     // ];
 
     #[rustfmt::skip]

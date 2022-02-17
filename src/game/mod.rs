@@ -14,10 +14,16 @@ impl Plugin for GamePlugin {
             .add_startup_system(setup_camera)
             .add_startup_system(setup_gameplay)
             .add_system(character::animate_sprite)
+            .add_system(character::snap_to_map)
             .add_system(gameplay::debug_ui_turn)
-            .add_system(unhighlight_all_tiles.label("reset_highlight"))
-            .add_system(highlight_mouse_tile.after("reset_highlight"))
-            .add_system(compute_and_highlight_path.after("reset_highlight"))
+            .add_system(unhighlight_all_tiles.before("tile_highlighting"))
+            .add_system_set(
+                SystemSet::new()
+                    .label("tile_highlighting")
+                    .with_system(highlight_mouse_tile)
+                    .with_system(compute_and_highlight_path)
+                    .with_system(highlight_characters_tile),
+            )
             .register_type::<character::AnimationTimer>();
     }
 }
@@ -41,16 +47,27 @@ fn setup_gameplay(
     let knight_blue = commands
         .spawn_bundle(character::CharacterBundle::new(
             "Knight Blue".to_string(),
-            Vec2::new(770.0, -890.0),
+            map::TilePos(17, 5),
             -1.0,
             &texture_atlas_handle,
         ))
         .insert(gameplay::TeamA)
         .id();
+
     let knight_red = commands
         .spawn_bundle(character::CharacterBundle::new(
             "Knight Red".to_string(),
-            Vec2::new(-190.0, -410.0),
+            map::TilePos(2, 5),
+            1.0,
+            &texture_atlas_handle,
+        ))
+        .insert(gameplay::TeamB)
+        .id();
+
+    let knight_purple = commands
+        .spawn_bundle(character::CharacterBundle::new(
+            "Knight Purple".to_string(),
+            map::TilePos(2, 7),
             1.0,
             &texture_atlas_handle,
         ))
@@ -58,7 +75,7 @@ fn setup_gameplay(
         .id();
 
     commands.insert_resource(gameplay::Turn {
-        order: vec![knight_blue, knight_red],
+        order: vec![knight_blue, knight_red, knight_purple],
         ..Default::default()
     })
 }
@@ -78,6 +95,23 @@ fn highlight_mouse_tile(
 
             map::highlight_tile(&mut map_query, &mut tile_query, position, color);
         }
+    }
+}
+
+fn highlight_characters_tile(
+    mut characters_queryset: QuerySet<(
+        QueryState<&map::TilePos, With<gameplay::TeamA>>,
+        QueryState<&map::TilePos, With<gameplay::TeamB>>,
+    )>,
+    mut map_query: map::MapQuery,
+    mut tile_query: Query<&mut map::Tile>,
+) {
+    for position in characters_queryset.q0().iter() {
+        map::highlight_tile(&mut map_query, &mut tile_query, *position, Color::BLUE);
+    }
+
+    for position in characters_queryset.q1().iter() {
+        map::highlight_tile(&mut map_query, &mut tile_query, *position, Color::RED);
     }
 }
 
@@ -134,11 +168,11 @@ fn compute_and_highlight_path(
                 );
 
                 if let Some((path, _cost)) = path {
-                    for position in path {
+                    for position in path.iter().skip(1).rev() {
                         map::highlight_tile(
                             &mut map_query,
                             &mut tile_query,
-                            position,
+                            *position,
                             Color::GREEN,
                         );
                     }
