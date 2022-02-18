@@ -4,7 +4,9 @@ use bevy_inspector_egui::WorldInspectorPlugin;
 // TODO merge character and gameplay into a single module, clean modules exposed API
 mod character;
 mod gameplay;
+mod health;
 mod map;
+mod weapon;
 
 pub struct GamePlugin;
 

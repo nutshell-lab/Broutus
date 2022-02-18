@@ -1,4 +1,6 @@
+use super::health::Health;
 use super::map::TilePos;
+use super::weapon::{EffectType, Weapon};
 use bevy::prelude::*;
 
 #[derive(Default, Component)]
@@ -29,6 +31,8 @@ pub struct CharacterBundle {
     _c: Character,
     name: Name,
     position: TilePos,
+    life: Health,
+    weapon: Weapon,
     action_points: ActionPoints,
     movement_points: MovementPoints,
     #[bundle]
@@ -46,6 +50,7 @@ impl CharacterBundle {
         CharacterBundle {
             name: Name::new(name),
             position,
+            weapon: Weapon::new(String::from("Dague du bandit"), EffectType::Attack(50)),
             action_points: ActionPoints(6, 6),
             movement_points: MovementPoints(5, 5),
             animation_timer: AnimationTimer(Timer::from_seconds(0.15, true)),
