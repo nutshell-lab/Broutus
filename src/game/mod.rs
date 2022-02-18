@@ -128,15 +128,15 @@ fn highlight_characters_tile(
     mut tile_query: Query<&mut map::Tile>,
 ) {
     let current = turn.get_current_character_entity();
-    let alpha = ((time.seconds_since_startup() * 3.0).sin().add(1.0) / 2.0) as f32;
+    let alpha = ((time.seconds_since_startup() * 3.0).sin().add(1.0) / 3.0) as f32;
 
     let mut team_a_color = Color::MIDNIGHT_BLUE;
     let mut team_b_color = Color::ORANGE_RED;
 
     for (entity, position) in characters_queryset.q0().iter() {
         let alpha = current
-            .map(|e| if e.eq(&entity) { alpha } else { 1.00 })
-            .unwrap_or(1.00);
+            .map(|e| if e.eq(&entity) { alpha } else { 0.7 })
+            .unwrap_or(0.7);
 
         map::highlight_tile(
             &mut map_query,
@@ -148,8 +148,8 @@ fn highlight_characters_tile(
 
     for (entity, position) in characters_queryset.q1().iter() {
         let alpha = current
-            .map(|e| if e.eq(&entity) { alpha } else { 1.00 })
-            .unwrap_or(1.00);
+            .map(|e| if e.eq(&entity) { alpha } else { 0.7 })
+            .unwrap_or(0.7);
 
         map::highlight_tile(
             &mut map_query,
@@ -174,6 +174,8 @@ fn unhighlight_all_tiles(
     let tmx_handle = tmx_query.single();
     let tmx_map = &tmx_map.get(tmx_handle);
 
+    let clear_color = Color::rgba(0.0, 0.0, 0.0, 0.0);
+
     if let Some(tmx_map) = tmx_map {
         for x in 0..tmx_map.map.width {
             for y in 0..tmx_map.map.height {
@@ -181,7 +183,7 @@ fn unhighlight_all_tiles(
                     &mut map_query,
                     &mut tile_query,
                     map::TilePos(x, y),
-                    Color::WHITE,
+                    clear_color,
                 );
             }
         }
@@ -235,7 +237,7 @@ fn compute_and_highlight_path(
                                     &mut map_query,
                                     &mut tile_query,
                                     *position,
-                                    Color::SEA_GREEN,
+                                    Color::rgba(0.18, 0.55, 0.34, 0.7),
                                 );
                             }
                         }

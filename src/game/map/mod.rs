@@ -58,10 +58,10 @@ pub fn highlight_tile(
     position: TilePos,
     color: Color,
 ) {
-    if let Ok(tile_entity) = map_query.get_tile_entity(position, 0u16, 0u16) {
+    if let Ok(tile_entity) = map_query.get_tile_entity(position, 0u16, 1u16) {
         if let Ok(mut tile) = tile_query.get_mut(tile_entity) {
             tile.color = color;
-            map_query.notify_chunk_for_tile(position, 0u16, 0u16);
+            map_query.notify_chunk_for_tile(position, 0u16, 1u16);
         }
     }
 }
@@ -120,5 +120,5 @@ pub fn tile_distance(start: &TilePos, end: &TilePos) -> u32 {
 
 /// Return true if a tile exists at the given position in the obstacle layer
 pub fn is_obstacle(map_query: &mut MapQuery, position: TilePos) -> bool {
-    map_query.get_tile_entity(position, 0u16, 1u16).is_ok()
+    map_query.get_tile_entity(position, 0u16, 2u16).is_ok()
 }
