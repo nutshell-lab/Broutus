@@ -66,11 +66,6 @@ pub fn highlight_tile(
     }
 }
 
-/// Return true if a tile exists at the given position in the obstacle layer
-pub fn is_obstacle(map_query: &mut MapQuery, position: TilePos) -> bool {
-    map_query.get_tile_entity(position, 0u16, 1u16).is_ok()
-}
-
 pub fn path(
     mut map_query: &mut MapQuery,
     start: TilePos,
@@ -121,4 +116,9 @@ pub fn tile_neightbours(
 pub fn tile_distance(start: &TilePos, end: &TilePos) -> u32 {
     (pathfinding::prelude::absdiff(start.0, end.0) + pathfinding::prelude::absdiff(start.1, end.1))
         as u32
+}
+
+/// Return true if a tile exists at the given position in the obstacle layer
+pub fn is_obstacle(map_query: &mut MapQuery, position: TilePos) -> bool {
+    map_query.get_tile_entity(position, 0u16, 1u16).is_ok()
 }

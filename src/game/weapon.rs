@@ -1,4 +1,4 @@
-use super::health::Health;
+use super::attributes::Health;
 use bevy::prelude::*;
 
 #[derive(Component, Default)]

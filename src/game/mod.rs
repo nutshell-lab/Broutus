@@ -1,10 +1,12 @@
+use std::ops::Add;
+
 use bevy::prelude::*;
 use bevy_inspector_egui::WorldInspectorPlugin;
 
 // TODO merge character and gameplay into a single module, clean modules exposed API
+mod attributes;
 mod character;
 mod gameplay;
-mod health;
 mod map;
 mod weapon;
 
@@ -27,13 +29,14 @@ impl Plugin for GamePlugin {
             .add_system_set(
                 SystemSet::new()
                     .label("tile_highlighting")
-                    .with_system(highlight_mouse_tile)
+                    // .with_system(highlight_mouse_tile)
                     .with_system(compute_and_highlight_path)
                     .with_system(highlight_characters_tile),
             )
             .register_type::<character::AnimationTimer>()
-            .register_type::<character::ActionPoints>()
-            .register_type::<character::MovementPoints>();
+            .register_type::<attributes::Health>()
+            .register_type::<attributes::ActionPoints>()
+            .register_type::<attributes::MovementPoints>();
     }
 }
 
@@ -95,39 +98,65 @@ fn setup_gameplay(
 }
 
 /// Highlight the tile hovered by the mouse
-fn highlight_mouse_tile(
-    position: Res<map::MouseMapPosition>,
-    mut map_query: map::MapQuery,
-    mut tile_query: Query<&mut map::Tile>,
-) {
-    if position.is_changed() {
-        if let Some(position) = position.0 {
-            let color = if map::is_obstacle(&mut map_query, position) {
-                Color::GRAY
-            } else {
-                Color::SEA_GREEN
-            };
+// fn highlight_mouse_tile(
+//     position: Res<map::MouseMapPosition>,
+//     mut map_query: map::MapQuery,
+//     mut tile_query: Query<&mut map::Tile>,
+// ) {
+//     if position.is_changed() {
+//         if let Some(position) = position.0 {
+//             let color = if map::is_obstacle(&mut map_query, position) {
+//                 Color::GRAY
+//             } else {
+//                 Color::WHITE
+//             };
 
-            map::highlight_tile(&mut map_query, &mut tile_query, position, color);
-        }
-    }
-}
+//             map::highlight_tile(&mut map_query, &mut tile_query, position, color);
+//         }
+//     }
+// }
 
 /// Highlight the character tile based on their team
 fn highlight_characters_tile(
+    time: Res<Time>,
+    turn: Res<gameplay::Turn>,
     mut characters_queryset: QuerySet<(
-        QueryState<&map::TilePos, With<gameplay::TeamA>>,
-        QueryState<&map::TilePos, With<gameplay::TeamB>>,
+        QueryState<(Entity, &map::TilePos), With<gameplay::TeamA>>,
+        QueryState<(Entity, &map::TilePos), With<gameplay::TeamB>>,
     )>,
     mut map_query: map::MapQuery,
     mut tile_query: Query<&mut map::Tile>,
 ) {
-    for position in characters_queryset.q0().iter() {
-        map::highlight_tile(&mut map_query, &mut tile_query, *position, Color::BLUE);
+    let current = turn.get_current_character_entity();
+    let alpha = ((time.seconds_since_startup() * 3.0).sin().add(1.0) / 2.0) as f32;
+
+    let mut team_a_color = Color::MIDNIGHT_BLUE;
+    let mut team_b_color = Color::ORANGE_RED;
+
+    for (entity, position) in characters_queryset.q0().iter() {
+        let alpha = current
+            .map(|e| if e.eq(&entity) { alpha } else { 1.00 })
+            .unwrap_or(1.00);
+
+        map::highlight_tile(
+            &mut map_query,
+            &mut tile_query,
+            *position,
+            team_a_color.set_a(alpha).as_rgba(),
+        );
     }
 
-    for position in characters_queryset.q1().iter() {
-        map::highlight_tile(&mut map_query, &mut tile_query, *position, Color::RED);
+    for (entity, position) in characters_queryset.q1().iter() {
+        let alpha = current
+            .map(|e| if e.eq(&entity) { alpha } else { 1.00 })
+            .unwrap_or(1.00);
+
+        map::highlight_tile(
+            &mut map_query,
+            &mut tile_query,
+            *position,
+            team_b_color.set_a(alpha).as_rgba(),
+        );
     }
 }
 
@@ -167,7 +196,10 @@ fn compute_and_highlight_path(
     tmx_query: Query<&Handle<map::TmxMap>, With<map::Map>>,
     mut map_query: map::MapQuery,
     mut tile_query: Query<&mut map::Tile>,
-    character_query: Query<(&map::TilePos, &character::MovementPoints), With<character::Character>>,
+    character_query: Query<
+        (&map::TilePos, &attributes::MovementPoints),
+        With<character::Character>,
+    >,
 ) {
     if tmx_query.is_empty() {
         return;
@@ -192,14 +224,20 @@ fn compute_and_highlight_path(
                         tmx_map.map.height,
                     );
 
-                    if let Some((path, _cost)) = path {
-                        for position in path.iter().take(movement_points.0 as usize + 1) {
-                            map::highlight_tile(
-                                &mut map_query,
-                                &mut tile_query,
-                                *position,
-                                Color::GREEN,
-                            );
+                    if let Some((path, cost)) = path {
+                        if cost <= movement_points.0.value {
+                            for position in path
+                                .iter()
+                                .skip(1)
+                                .take(movement_points.0.value as usize + 1)
+                            {
+                                map::highlight_tile(
+                                    &mut map_query,
+                                    &mut tile_query,
+                                    *position,
+                                    Color::SEA_GREEN,
+                                );
+                            }
                         }
                     }
                 }
@@ -212,14 +250,17 @@ fn compute_and_highlight_path(
 fn reset_start_on_turn_end(
     mut ev_turn_ended: EventReader<gameplay::TurnEnd>,
     mut q: Query<
-        (&mut character::ActionPoints, &mut character::MovementPoints),
+        (
+            &mut attributes::ActionPoints,
+            &mut attributes::MovementPoints,
+        ),
         With<character::Character>,
     >,
 ) {
     for ev in ev_turn_ended.iter() {
         let (mut ap, mut mp) = q.get_mut(ev.0).unwrap();
-        ap.reset();
-        mp.reset();
+        ap.0.reset();
+        mp.0.reset();
     }
 }
 
@@ -231,7 +272,7 @@ fn handle_map_click(
     tmx_query: Query<&Handle<map::TmxMap>, With<map::Map>>,
     mut map_query: map::MapQuery,
     mut character_query: Query<
-        (&mut map::TilePos, &mut character::MovementPoints),
+        (&mut map::TilePos, &mut attributes::MovementPoints),
         With<character::Character>,
     >,
 ) {
@@ -260,10 +301,10 @@ fn handle_map_click(
                 // TODO Animate character movement along the path
                 // TODO Change character orientation when it changes direction
                 if let Some((_path, cost)) = path {
-                    if cost <= movement_points.0 {
+                    if cost <= movement_points.0.value {
                         character_position.0 = ev.0 .0;
                         character_position.1 = ev.0 .1;
-                        movement_points.0 -= cost;
+                        movement_points.0.value -= cost;
                     }
                 }
             }

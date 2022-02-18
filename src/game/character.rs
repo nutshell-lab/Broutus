@@ -1,4 +1,4 @@
-use super::health::Health;
+use super::attributes::*;
 use super::map::TilePos;
 use super::weapon::{EffectType, Weapon};
 use bevy::prelude::*;
@@ -6,32 +6,12 @@ use bevy::prelude::*;
 #[derive(Default, Component)]
 pub struct Character;
 
-#[derive(Reflect, Component, Default)]
-#[reflect(Component)]
-pub struct ActionPoints(pub u32, u32);
-
-#[derive(Reflect, Component, Default)]
-#[reflect(Component)]
-pub struct MovementPoints(pub u32, u32);
-
-impl ActionPoints {
-    pub fn reset(&mut self) {
-        self.0 = self.1;
-    }
-}
-
-impl MovementPoints {
-    pub fn reset(&mut self) {
-        self.0 = self.1;
-    }
-}
-
 #[derive(Default, Bundle)]
 pub struct CharacterBundle {
     _c: Character,
     name: Name,
     position: TilePos,
-    life: Health,
+    health: Health,
     weapon: Weapon,
     action_points: ActionPoints,
     movement_points: MovementPoints,
@@ -50,9 +30,10 @@ impl CharacterBundle {
         CharacterBundle {
             name: Name::new(name),
             position,
+            health: Health(Attribute { value: 50, max: 50 }),
+            action_points: ActionPoints(Attribute { value: 6, max: 6 }),
+            movement_points: MovementPoints(Attribute { value: 5, max: 5 }),
             weapon: Weapon::new(String::from("Dague du bandit"), EffectType::Attack(50)),
-            action_points: ActionPoints(6, 6),
-            movement_points: MovementPoints(5, 5),
             animation_timer: AnimationTimer(Timer::from_seconds(0.15, true)),
             sprite: SpriteSheetBundle {
                 texture_atlas: texture_atlas_handle.clone(),
@@ -67,7 +48,7 @@ impl CharacterBundle {
 
 #[derive(Reflect, Component, Default)]
 #[reflect(Component)]
-pub struct AnimationTimer(Timer); // TODO maybe improve this thing to support multiple animations (idle, run, attack...)
+pub struct AnimationTimer(pub Timer); // TODO maybe improve this thing to support multiple animations (idle, run, attack...)
 
 /// Animate the sprite based on the AnimationTimer
 pub fn animate_sprite(
