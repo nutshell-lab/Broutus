@@ -38,7 +38,7 @@ impl Plugin for MapPlugin {
 }
 
 fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let handle: Handle<load::TmxMap> = asset_server.load("maps/arena.tmx");
+    let handle: Handle<load::TmxMap> = asset_server.load("maps/simple.tmx");
     let map_entity = commands.spawn().id();
 
     commands

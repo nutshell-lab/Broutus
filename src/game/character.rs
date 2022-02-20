@@ -1,7 +1,9 @@
 use super::attributes::*;
 use super::map::TilePos;
 use super::weapon::{EffectType, Weapon};
+use bevy::math::Vec2Swizzles;
 use bevy::prelude::*;
+use bevy_ecs_tilemap::MapQuery;
 
 #[derive(Default, Component)]
 pub struct Character;
@@ -70,11 +72,27 @@ pub fn animate_sprite(
 }
 
 /// Update the character's Transform based on it's TilePos
-pub fn snap_to_map(mut q: Query<(&mut Transform, &TilePos), (With<Character>, Changed<TilePos>)>) {
+pub fn snap_to_map(
+    mut q: Query<(&mut Transform, &TilePos), (With<Character>, Changed<TilePos>)>,
+    mut map_query: MapQuery,
+) {
+    let obstacle_layer_id = 2u16;
+
     for (mut transform, position) in q.iter_mut() {
         let coords =
             super::map::project_iso(Vec2::new(position.0 as f32, position.1 as f32), 128.0, 64.0); // TODO unhardcode this
         transform.translation.x = coords.x;
-        transform.translation.y = coords.y - (256.0 - 64.0 / 2.0 - 64.0 / 2.0); // - (tile_height - grid_height / 2 - character_height / 2)
+        transform.translation.y = coords.y;
+
+        // Fix sprite rendering to align the feets to the center of the tile
+        // - (tile_height - grid_height / 2 - character_height / 2)
+        transform.translation.y -= 64.0;
+
+        // Feets coords are sprite position - sprite height / 2
+        let feets = Vec3::new(coords.x, coords.y - 32.0, obstacle_layer_id as f32);
+        transform.translation.z =
+            map_query.get_zindex_for_pixel_pos(feets, 0u16, obstacle_layer_id);
+        
+        println!("{:#?} -> {:#?} -> z: {}", position, feets, transform.translation.z);
     }
 }
