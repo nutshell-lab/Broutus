@@ -5,18 +5,25 @@ use bevy::prelude::*;
 pub struct Weapon {
     name: String,
     texture: String,
-    base_effect: EffectType,
+    base_effect: Effect,
 }
 
-#[derive(Component)]
+#[derive(Component, Default)]
+pub struct Effect {
+    amount: u32,
+    range: (u32, u32),
+    cost: u32,
+    effect_type: EffectType,
+}
+
 pub enum EffectType {
-    Attack(u32),
-    Heal(u32),
+    Attack(),
+    Heal(),
     Ineffective,
 }
 
 impl Weapon {
-    pub fn new(name: String, base_effect: EffectType) -> Weapon {
+    pub fn new(name: String, base_effect: Effect) -> Weapon {
         Weapon {
             name,
             base_effect,
@@ -24,10 +31,21 @@ impl Weapon {
         }
     }
     pub fn use_on(&self, target: &mut Health) {
-        match self.base_effect {
-            EffectType::Attack(damages) => target.hurt(damages),
-            EffectType::Heal(amount) => target.heal(amount),
+        match self.base_effect.effect_type {
+            EffectType::Attack() => target.hurt(self.base_effect.amount),
+            EffectType::Heal() => target.heal(self.base_effect.amount),
             EffectType::Ineffective => (),
+        }
+    }
+}
+
+impl Effect {
+    pub fn new(amount: u32, range: (u32, u32), cost: u32, effect_type: EffectType) -> Effect {
+        Effect {
+            amount,
+            range,
+            cost,
+            effect_type,
         }
     }
 }

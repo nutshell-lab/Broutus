@@ -26,6 +26,7 @@ impl Plugin for GamePlugin {
             .add_system(unhighlight_all_tiles.before("tile_highlighting"))
             .add_system(reset_start_on_turn_end)
             .add_system(handle_map_click)
+            .add_system(handle_map_right_click)
             .add_system_set(
                 SystemSet::new()
                     .label("tile_highlighting")
@@ -310,6 +311,32 @@ fn handle_map_click(
                     }
                 }
             }
+        }
+    }
+}
+
+fn handle_map_right_click(
+    mut ev_clicked: EventReader<map::TileRightClickedEvent>,
+    turn: Res<gameplay::Turn>,
+    mut character_query: Query<(
+        &map::TilePos,
+        &character::Character,
+        &weapon::Weapon,
+        &mut attributes::Health,
+    )>,
+) {
+    let character_entity = turn.get_current_character_entity().unwrap();
+    let (_pos, _character, weapon, _h) = character_query.get(character_entity).unwrap();
+
+    if let Some(target_location) = ev_clicked.iter().next() {
+        for (_, _, _, mut health) in
+            character_query
+                .iter_mut()
+                .filter(|(&character_position, _c, _weapon, _h)| {
+                    character_position == target_location.0
+                })
+        {
+            weapon.use_on(&mut health);
         }
     }
 }

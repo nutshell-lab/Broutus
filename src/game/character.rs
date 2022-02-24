@@ -1,6 +1,6 @@
 use super::attributes::*;
 use super::map::TilePos;
-use super::weapon::{EffectType, Weapon};
+use super::weapon::{Effect, EffectType, Weapon};
 use bevy::math::Vec2Swizzles;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::MapQuery;
@@ -35,7 +35,10 @@ impl CharacterBundle {
             health: Health(Attribute { value: 50, max: 50 }),
             action_points: ActionPoints(Attribute { value: 6, max: 6 }),
             movement_points: MovementPoints(Attribute { value: 5, max: 5 }),
-            weapon: Weapon::new(String::from("Dague du bandit"), EffectType::Attack(50)),
+            weapon: Weapon::new(
+                String::from("Dague du bandit"),
+                Effect::new(10, (0, 1), 3, EffectType::Attack()),
+            ),
             animation_timer: AnimationTimer(Timer::from_seconds(0.15, true)),
             sprite: SpriteSheetBundle {
                 texture_atlas: texture_atlas_handle.clone(),
@@ -92,7 +95,10 @@ pub fn snap_to_map(
         let feets = Vec3::new(coords.x, coords.y - 32.0, obstacle_layer_id as f32);
         transform.translation.z =
             map_query.get_zindex_for_pixel_pos(feets, 0u16, obstacle_layer_id);
-        
-        println!("{:#?} -> {:#?} -> z: {}", position, feets, transform.translation.z);
+
+        println!(
+            "{:#?} -> {:#?} -> z: {}",
+            position, feets, transform.translation.z
+        );
     }
 }

@@ -26,6 +26,7 @@ impl Plugin for MapPlugin {
         app.init_resource::<mouse::MouseMapPosition>()
             .init_resource::<mouse::PreviousMouseMapPosition>()
             .add_event::<events::TileClickedEvent>()
+            .add_event::<events::TileRightClickedEvent>()
             .add_plugin(bevy_ecs_tilemap::TilemapPlugin)
             .add_plugin(load::TmxPlugin)
             .add_startup_system(startup)
