@@ -6,6 +6,9 @@ mod mouse;
 mod position;
 mod texture;
 
+// wip
+mod new;
+
 pub use bevy_ecs_tilemap::Chunk;
 pub use bevy_ecs_tilemap::Layer;
 pub use bevy_ecs_tilemap::Map;

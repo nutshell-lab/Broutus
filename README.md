@@ -2,12 +2,23 @@
 
 The soon-extraordinary game by Nutshell
 
-# Gameplay
+## Getting started
 
-- Create a team
-    - Player has teams
-    - Team has characters
-    - Team has a maximum customization points limit
+First, install [rustup](https://rustup.rs/).
+
+Next install rust 1.58.0.
+```sh
+rustup install 1.58.0
+```
+
+Next follow [bevy's setup instructions](https://bevyengine.org/learn/book/getting-started/setup/).
+
+## Gameplay
+
+- Start a game
+    - Select characters to create a team
+    - Characters are avalable through a predefined list
+    - Customize character equipments (but not stats, nor abilities)
     - Character has stats
         - Strength (damages)
         - Agility (dodge)
@@ -47,7 +58,7 @@ The soon-extraordinary game by Nutshell
     - Character has actions given by his items
     - Combined stuff provide more actions (item1 + item2 = action3 unlocked)
 
-# Prototyping
+## Prototyping
 Create a team:
 1. Add a basic HUD
 2. Show a list of items

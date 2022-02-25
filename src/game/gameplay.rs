@@ -49,7 +49,7 @@ impl Turn {
     }
 }
 
-/// Display all infos about the ruen system in a dedicated window
+/// Display all infos about the turn system in a dedicated window
 pub fn debug_ui_turn(
     mut turn: ResMut<Turn>,
     mut ev_turn_started: EventWriter<TurnStart>,
