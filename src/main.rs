@@ -2,6 +2,7 @@ use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
 
 mod game;
+mod new_map_implem;
 
 fn main() {
     App::new()
@@ -14,6 +15,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         // .add_plugin(LogDiagnosticsPlugin::default())
         // .add_plugin(FrameTimeDiagnosticsPlugin::default())
-        .add_plugin(game::GamePlugin)
+        // .add_plugin(game::GamePlugin)
+        .add_plugin(new_map_implem::GamePlugin)
         .run();
 }

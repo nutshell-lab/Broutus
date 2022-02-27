@@ -92,7 +92,7 @@ pub fn snap_to_map(
         // Feets coords are sprite position - sprite height / 2
         // let feets = Vec3::new(coords.x, coords.y - 32.0, obstacle_layer_id as f32);
         transform.translation.z = 3.0;
-            // map_query.get_zindex_for_pixel_pos(feets, 0u16, obstacle_layer_id);
+        // map_query.get_zindex_for_pixel_pos(feets, 0u16, obstacle_layer_id);
 
         // println!(
         //     "{:#?} -> {:#?} -> z: {}",
