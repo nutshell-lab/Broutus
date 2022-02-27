@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext};
 use bevy_inspector_egui::egui::{
     widgets::{Label, ProgressBar, Separator},
-    Button, RichText,
+    RichText,
 };
 
 use super::attributes::Health;

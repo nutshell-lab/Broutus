@@ -12,11 +12,6 @@ pub struct Tiledmap {
     pub id: u32,
     pub inner: tiled::Map,
     pub tileset: Handle<Image>,
-    pub ground_layer: u16,
-    pub highlight_layer: u16,
-    pub obstacle_layer: u16,
-    pub spawn_team_a_layer: u16,
-    pub spawn_team_b_layer: u16,
 }
 
 #[derive(Reflect, Component, Default)]
@@ -24,6 +19,11 @@ pub struct Tiledmap {
 pub struct Map {
     pub id: u32,
     pub layers: HashMap<u32, Entity>,
+    pub ground_layer: u32,
+    pub highlight_layer: u32,
+    pub obstacle_layer: u32,
+    pub spawn_team_a_layer: u32,
+    pub spawn_team_b_layer: u32,
 }
 
 #[derive(Default, Bundle)]
@@ -67,7 +67,7 @@ pub struct TileBundle {
     pub visibility: Visibility,
 }
 
-#[derive(Reflect, Component, Default, Clone, Copy, PartialEq)]
+#[derive(Reflect, Component, Default, Clone, Copy, Hash, Eq, PartialEq)]
 #[reflect(Component)]
 pub struct MapPosition {
     pub x: u32,
@@ -114,11 +114,6 @@ impl AssetLoader for TiledmapLoader {
                 id: 0,
                 inner: map,
                 tileset: texture,
-                ground_layer: 0,
-                highlight_layer: 1,
-                obstacle_layer: 2,
-                spawn_team_a_layer: 3,
-                spawn_team_b_layer: 4,
             });
             load_context.set_default_asset(loaded_asset.with_dependencies(dependencies));
             Ok(())
@@ -170,10 +165,11 @@ pub fn process_loaded_tiledmaps(
                 );
                 let texture_atlas_handle = texture_atlases.add(texture_atlas);
 
-                for layer in tiledmap.inner.layers.iter() {
+                for (layer_index, layer) in tiledmap.inner.layers.iter().enumerate() {
                     let mut tile_entities = HashMap::default();
+                    let layer_index = layer_index as u32;
                     let layer_entity = commands.spawn().insert(Name::new("layer")).id();
-                    layer_entities.insert(layer.layer_index, layer_entity);
+                    layer_entities.insert(layer_index, layer_entity);
                     commands.entity(map_entity).add_child(layer_entity);
 
                     if let tiled::LayerData::Finite(tiles_y) = &layer.tiles {
@@ -232,9 +228,9 @@ pub fn process_loaded_tiledmaps(
                     }
 
                     commands.entity(layer_entity).insert_bundle(LayerBundle {
-                        transform: Transform::from_xyz(0.0, 0.0, layer.layer_index as f32),
+                        transform: Transform::from_xyz(0.0, 0.0, layer_index as f32),
                         layer: Layer {
-                            id: layer.layer_index,
+                            id: layer_index,
                             tiles: tile_entities,
                         },
                         ..Default::default()

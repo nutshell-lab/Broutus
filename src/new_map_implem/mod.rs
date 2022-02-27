@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 use bevy_inspector_egui::WorldInspectorPlugin;
 
-mod map;
 mod gameplay;
+mod map;
 
 pub struct GamePlugin;
 

@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 mod events;
 mod mouse;
+mod query;
 mod tiledmap;
 
 use events::detect_tile_clicked_events;
@@ -15,6 +16,7 @@ pub use events::TileClickedEvent;
 pub use events::TileRightClickedEvent;
 pub use mouse::MouseMapPosition;
 pub use mouse::PreviousMouseMapPosition;
+pub use query::MapQuery;
 pub use tiledmap::Layer;
 pub use tiledmap::Map;
 pub use tiledmap::MapPosition;
@@ -52,6 +54,14 @@ fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
         .insert_bundle(MapBundle {
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
             tiledmap: handle,
+            map: Map {
+                ground_layer: 0,
+                highlight_layer: 1,
+                obstacle_layer: 2,
+                spawn_team_a_layer: 3,
+                spawn_team_b_layer: 4,
+                ..Default::default()
+            },
             ..Default::default()
         });
 }
@@ -81,4 +91,10 @@ pub fn unproject_iso(
     } else {
         None
     }
+}
+
+/// Get the list of tile neightbours at the given position
+pub fn tile_distance(start: &MapPosition, end: &MapPosition) -> u32 {
+    (pathfinding::prelude::absdiff(start.x, end.x) + pathfinding::prelude::absdiff(start.x, end.x))
+        as u32
 }
