@@ -1,9 +1,9 @@
-use super::mouse::MouseMapPosition;
+use super::MapPosition;
+use super::MouseMapPosition;
 use bevy::prelude::*;
-use bevy_ecs_tilemap::prelude::*;
 
-pub struct TileClickedEvent(pub TilePos);
-pub struct TileRightClickedEvent(pub TilePos);
+pub struct TileClickedEvent(pub MapPosition);
+pub struct TileRightClickedEvent(pub MapPosition);
 
 pub fn detect_tile_clicked_events(
     mut ev_left_clicked: EventWriter<TileClickedEvent>,
@@ -21,11 +21,3 @@ pub fn detect_tile_clicked_events(
         }
     }
 }
-
-// pub fn debug_tile_clicked_events(
-//     mut ev_clicked: EventReader<TileClickedEvent>,
-// ) {
-//     for ev in ev_clicked.iter() {
-//         eprintln!("Tile {:?} clicked!", ev.0);
-//     }
-// }

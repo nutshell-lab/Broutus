@@ -1,83 +1,82 @@
 use bevy::prelude::*;
-use bevy_ecs_tilemap::prelude::*;
 use bevy_egui::{egui, EguiContext};
 
-use super::load::TmxMap;
+use super::Map;
+use super::MapPosition;
+use super::Tiledmap;
 
 #[derive(Default)]
-pub struct MouseMapPosition(pub Option<TilePos>);
+pub struct MouseMapPosition(pub Option<MapPosition>);
 
 #[derive(Default)]
-pub struct PreviousMouseMapPosition(pub Option<TilePos>);
+pub struct PreviousMouseMapPosition(pub Option<MapPosition>);
 
 pub fn update_mouse_position(
     mut position: ResMut<MouseMapPosition>,
     mut previous_position: ResMut<PreviousMouseMapPosition>,
-    tmx_map: Res<Assets<TmxMap>>,
+    tmx_map: Res<Assets<Tiledmap>>,
     windows: Res<Windows>,
     camera_query: Query<(&Transform, Option<&OrthographicProjection>), With<Camera>>,
-    map_query: Query<(&GlobalTransform, &Handle<TmxMap>), With<Map>>,
-    layer_query: Query<&Layer>,
+    map_query: Query<(&GlobalTransform, &Handle<Tiledmap>), With<Map>>,
 ) {
-    if layer_query.is_empty() {
+    if map_query.is_empty() {
         return;
     }
 
     let primary_window = windows.get_primary().unwrap();
 
     if let Some(mouse) = primary_window.cursor_position() {
-        let layer = layer_query.iter().next().unwrap();
-        let grid_size = layer.settings.grid_size;
-        let tile_size = layer.settings.tile_size;
-
         for (map_transform, tmx_handle) in map_query.iter() {
-            // get the size of the window
-            let window_size = Vec2::new(
-                primary_window.width() as f32,
-                primary_window.height() as f32,
-            );
-            // the default orthographic projection is in pixels from the center;
-            // just undo the translation
-            let p = mouse - window_size / 2.0;
+            if let Some(tiledmap) = &tmx_map.get(tmx_handle) {
+                // Get tmx data to get map size in tiles
+                let tileset = tiledmap.inner.tilesets.first().unwrap();
 
-            // assuming there is exactly one main camera entity, so this is OK
-            let (camera_transform, ortho_projection) = camera_query.single();
+                // let grid_size = Vec2::new(tileset.tile_width as f32, tileset.tile_height as f32);
+                let tile_size = Vec2::new(
+                    tiledmap.inner.tile_width as f32,
+                    tiledmap.inner.tile_height as f32,
+                );
 
-            let mut scale = 1.0;
-            if let Some(ortho_projection) = ortho_projection {
-                scale /= ortho_projection.scale;
-            }
+                // get the size of the window
+                let window_size = Vec2::new(
+                    primary_window.width() as f32,
+                    primary_window.height() as f32,
+                );
+                // the default orthographic projection is in pixels from the center;
+                // just undo the translation
+                let p = mouse - window_size / 2.0;
 
-            // undo orthographic scale and apply the camera transform
-            let mouse_in_world = camera_transform.compute_matrix() * p.extend(0.0).extend(scale);
-            let mouse_in_map = Vec2::new(
-                mouse_in_world.x - map_transform.translation.x,
-                // In our case, tileset tile height is greater than the map tile height to be able to display obstacles, we need to adjust to that
-                mouse_in_world.y - map_transform.translation.y
-                    + (tile_size.1 - grid_size.y / 2.0 - 6.0),
-            );
+                // assuming there is exactly one main camera entity, so this is OK
+                let (camera_transform, ortho_projection) = camera_query.single();
 
-            // Get tmx data to get map size in tiles
-            let tiled_map = &tmx_map.get(tmx_handle).unwrap().map;
+                let mut scale = 1.0;
+                if let Some(ortho_projection) = ortho_projection {
+                    scale /= ortho_projection.scale;
+                }
 
-            let tile_position =
-                super::position::unproject_iso(mouse_in_map, grid_size.x, grid_size.y);
+                // undo orthographic scale and apply the camera transform
+                let mouse_in_world =
+                    camera_transform.compute_matrix() * p.extend(0.0).extend(scale);
+                let mouse_in_map = Vec2::new(
+                    mouse_in_world.x - map_transform.translation.x,
+                    // In our case, tileset tile height is greater than the map tile height to be able to display obstacles, we need to adjust to that
+                    mouse_in_world.y - map_transform.translation.y + (tile_size.y / 2.0),
+                );
 
-            let save = position.0.clone();
+                let tile_position = super::unproject_iso(
+                    mouse_in_map,
+                    tile_size.x,
+                    tile_size.y,
+                    tiledmap.inner.width,
+                    tiledmap.inner.height,
+                );
 
-            // Check if the tile position is within map borders, otherwise return None, which is needed to handle correctly mouse events
-            position.0 = if tile_position.x >= 0.0
-                && tile_position.x < (tiled_map.width as f32)
-                && tile_position.y >= 0.0
-                && tile_position.y < (tiled_map.height as f32)
-            {
-                Some(TilePos(tile_position.x as u32, tile_position.y as u32))
-            } else {
-                None
-            };
+                let save = position.0.clone();
+                position.0 = tile_position;
 
-            if save.ne(&position.0) {
-                previous_position.0 = save;
+                if save.ne(&position.0) {
+                    previous_position.0 = save;
+                }
             }
         }
     }
@@ -109,13 +108,13 @@ pub fn debug_ui_mouse_position(
                 ui.label("World: #, #");
             }
 
-            if let Some(TilePos(x, y)) = position.0 {
+            if let Some(MapPosition { x, y }) = position.0 {
                 ui.label(format!("Map: {}, {}", x, y));
             } else {
                 ui.label("Map: #, #");
             }
 
-            if let Some(TilePos(x, y)) = previous_position.0 {
+            if let Some(MapPosition { x, y }) = previous_position.0 {
                 ui.label(format!("Map (prev): {}, {}", x, y));
             } else {
                 ui.label("Map (prev): #, #");

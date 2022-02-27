@@ -192,7 +192,7 @@ pub fn process_loaded_tiledmaps(
                                     .id();
 
                                 let world_position = super::project_iso(
-                                    MapPosition::new(x, y),
+                                    &MapPosition::new(x, y),
                                     tiledmap.inner.tile_width as f32,
                                     tiledmap.inner.tile_height as f32,
                                 );

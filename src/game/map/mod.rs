@@ -1,125 +1,100 @@
 use bevy::prelude::*;
 
 mod events;
-mod load;
 mod mouse;
-mod position;
-mod texture;
+mod query;
+mod tiledmap;
 
-pub use bevy_ecs_tilemap::Chunk;
-pub use bevy_ecs_tilemap::Layer;
-pub use bevy_ecs_tilemap::Map;
-pub use bevy_ecs_tilemap::MapQuery;
-pub use bevy_ecs_tilemap::Tile;
-pub use bevy_ecs_tilemap::TilePos;
-pub use bevy_ecs_tilemap::TileSize;
-pub use events::*;
-pub use load::TmxMap;
+use events::detect_tile_clicked_events;
+use mouse::debug_ui_mouse_position;
+use mouse::update_mouse_position;
+use tiledmap::process_loaded_tiledmaps;
+use tiledmap::MapBundle;
+use tiledmap::TiledmapLoader;
+
+pub use events::TileClickedEvent;
+pub use events::TileRightClickedEvent;
 pub use mouse::MouseMapPosition;
 pub use mouse::PreviousMouseMapPosition;
-pub use position::*;
+pub use query::MapQuery;
+pub use tiledmap::Layer;
+pub use tiledmap::Map;
+pub use tiledmap::MapPosition;
+pub use tiledmap::Tile;
+pub use tiledmap::Tiledmap;
 
-pub struct MapPlugin;
+pub struct TiledmapPlugin;
 
-impl Plugin for MapPlugin {
+impl Plugin for TiledmapPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<mouse::MouseMapPosition>()
-            .init_resource::<mouse::PreviousMouseMapPosition>()
-            .add_event::<events::TileClickedEvent>()
-            .add_event::<events::TileRightClickedEvent>()
-            .add_plugin(bevy_ecs_tilemap::TilemapPlugin)
-            .add_plugin(load::TmxPlugin)
+        app.register_type::<MapPosition>()
+            .register_type::<Map>()
+            .register_type::<Layer>()
+            .register_type::<Tile>()
+            .init_resource::<MouseMapPosition>()
+            .init_resource::<PreviousMouseMapPosition>()
+            .add_event::<TileClickedEvent>()
+            .add_event::<TileRightClickedEvent>()
+            .add_asset::<Tiledmap>()
+            .add_asset_loader(TiledmapLoader)
             .add_startup_system(startup)
-            .add_system(texture::set_texture_filters_to_nearest)
-            .add_system(mouse::update_mouse_position)
-            .add_system(mouse::debug_ui_mouse_position)
-            .add_system(events::detect_tile_clicked_events);
-        // .add_system(events::debug_tile_clicked_events);
+            .add_system(process_loaded_tiledmaps)
+            .add_system(update_mouse_position)
+            .add_system(detect_tile_clicked_events)
+            .add_system(debug_ui_mouse_position);
     }
 }
 
 fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let handle: Handle<load::TmxMap> = asset_server.load("maps/simple.tmx");
+    let handle: Handle<Tiledmap> = asset_server.load("maps/simple.tmx");
     let map_entity = commands.spawn().id();
-
     commands
         .entity(map_entity)
-        .insert_bundle(load::TmxMapBundle {
-            tiled_map: handle,
-            map: bevy_ecs_tilemap::Map::new(0u16, map_entity),
+        .insert(Name::new("map"))
+        .insert_bundle(MapBundle {
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
+            tiledmap: handle,
+            map: Map {
+                ground_layer: 0,
+                highlight_layer: 1,
+                obstacle_layer: 2,
+                spawn_team_a_layer: 3,
+                spawn_team_b_layer: 4,
+                ..Default::default()
+            },
             ..Default::default()
         });
 }
 
-/// Apply a highlight color to a tile at the given position
-pub fn highlight_tile(
-    map_query: &mut MapQuery,
-    tile_query: &mut Query<&mut Tile>,
-    position: TilePos,
-    color: Color,
-) {
-    if let Ok(tile_entity) = map_query.get_tile_entity(position, 0u16, 1u16) {
-        if let Ok(mut tile) = tile_query.get_mut(tile_entity) {
-            tile.color = color;
-            map_query.notify_chunk_for_tile(position, 0u16, 1u16);
-        }
+/// TilePos --> WorldPos
+pub fn project_iso(pos: &MapPosition, tile_width: f32, tile_height: f32) -> Vec2 {
+    let x = (pos.x as f32 - pos.y as f32) * tile_width / 2.0;
+    let y = (pos.x as f32 + pos.y as f32) * tile_height / 2.0;
+    return Vec2::new(x, -y);
+}
+
+/// WorldPos --> TilePos
+pub fn unproject_iso(
+    pos: Vec2,
+    tile_width: f32,
+    tile_height: f32,
+    map_width: u32,
+    map_height: u32,
+) -> Option<MapPosition> {
+    let half_width = tile_width / 2.0;
+    let half_height = tile_height / 2.0;
+    let x = (((pos.x / half_width) + (-(pos.y) / half_height)) / 2.0).round();
+    let y = (((-(pos.y) / half_height) - (pos.x / half_width)) / 2.0).round();
+
+    if x >= 0.0 && y >= 0.0 && x < map_width as f32 && y < map_height as f32 {
+        Some(MapPosition::new(x as u32, y as u32))
+    } else {
+        None
     }
 }
 
-pub fn path(
-    mut map_query: &mut MapQuery,
-    start: TilePos,
-    end: TilePos,
-    map_width: u32,
-    map_height: u32,
-) -> Option<(Vec<TilePos>, u32)> {
-    pathfinding::prelude::astar(
-        &start,
-        |position| tile_neightbours(&mut map_query, &position, map_width, map_height),
-        |current| tile_distance(current, &end),
-        |position| position.eq(&end),
-    )
-}
-
 /// Get the list of tile neightbours at the given position
-pub fn tile_neightbours(
-    mut map_query: &mut MapQuery,
-    position: &TilePos,
-    map_width: u32,
-    map_height: u32,
-) -> Vec<(TilePos, u32)> {
-    // Allow diagonal movements
-    // #[rustfmt::skip]
-    // let neightbours = vec![
-    //     TilePos(position.0.wrapping_sub(1), position.1.wrapping_add(1)),    TilePos(position.0, position.1.wrapping_add(1)),    TilePos(position.0.wrapping_add(1), position.1.wrapping_add(1)),
-    //     TilePos(position.0.wrapping_sub(1), position.1),                                                                        TilePos(position.0.wrapping_add(1), position.1),
-    //     TilePos(position.0.wrapping_sub(1), position.1.wrapping_sub(1)),    TilePos(position.0, position.1.wrapping_sub(1)),    TilePos(position.0.wrapping_add(1), position.1.wrapping_sub(1)),
-    // ];
-
-    #[rustfmt::skip]
-    let neightbours = vec![
-        TilePos(position.0, position.1.wrapping_add(1)), // Up
-        TilePos(position.0.wrapping_sub(1), position.1), // Left
-        TilePos(position.0.wrapping_add(1), position.1),  // Right
-        TilePos(position.0, position.1.wrapping_sub(1)), // Down
-    ];
-
-    neightbours
-        .iter()
-        .filter(|&position| position.0 < map_width && position.1 < map_height)
-        .filter(|&position| !is_obstacle(&mut map_query, position.clone()))
-        .map(|&position| (position.clone(), 1))
-        .collect()
-}
-
-/// Get the list of tile neightbours at the given position
-pub fn tile_distance(start: &TilePos, end: &TilePos) -> u32 {
-    (pathfinding::prelude::absdiff(start.0, end.0) + pathfinding::prelude::absdiff(start.1, end.1))
+pub fn tile_distance(start: &MapPosition, end: &MapPosition) -> u32 {
+    (pathfinding::prelude::absdiff(start.x, end.x) + pathfinding::prelude::absdiff(start.x, end.x))
         as u32
-}
-
-/// Return true if a tile exists at the given position in the obstacle layer
-pub fn is_obstacle(map_query: &mut MapQuery, position: TilePos) -> bool {
-    map_query.get_tile_entity(position, 0u16, 2u16).is_ok()
 }
