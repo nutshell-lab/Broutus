@@ -6,34 +6,6 @@ use bevy::{
 };
 use std::{io::BufReader, path::Path};
 
-pub struct TiledmapPlugin;
-
-impl Plugin for TiledmapPlugin {
-    fn build(&self, app: &mut App) {
-        app.register_type::<MapPosition>()
-            .register_type::<Map>()
-            .register_type::<Layer>()
-            .register_type::<Tile>()
-            .add_asset::<Tiledmap>()
-            .add_asset_loader(TiledmapLoader)
-            .add_startup_system(startup)
-            .add_system(process_loaded_tiledmaps);
-    }
-}
-
-fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let handle: Handle<Tiledmap> = asset_server.load("maps/simple.tmx");
-    let map_entity = commands.spawn().id();
-    commands
-        .entity(map_entity)
-        .insert(Name::new("map"))
-        .insert_bundle(MapBundle {
-            transform: Transform::from_xyz(0.0, 0.0, 0.0),
-            tiledmap: handle,
-            ..Default::default()
-        });
-}
-
 #[derive(TypeUuid)]
 #[uuid = "e51081d0-6168-4881-a1c6-1249b2000d7f"]
 pub struct Tiledmap {
@@ -56,11 +28,11 @@ pub struct Map {
 
 #[derive(Default, Bundle)]
 pub struct MapBundle {
-    map: Map,
-    tiledmap: Handle<Tiledmap>,
-    transform: Transform,
-    global_transform: GlobalTransform,
-    visibility: Visibility,
+    pub map: Map,
+    pub tiledmap: Handle<Tiledmap>,
+    pub transform: Transform,
+    pub global_transform: GlobalTransform,
+    pub visibility: Visibility,
 }
 
 #[derive(Reflect, Component, Default)]
@@ -72,10 +44,10 @@ pub struct Layer {
 
 #[derive(Default, Bundle)]
 pub struct LayerBundle {
-    layer: Layer,
-    transform: Transform,
-    global_transform: GlobalTransform,
-    visibility: Visibility,
+    pub layer: Layer,
+    pub transform: Transform,
+    pub global_transform: GlobalTransform,
+    pub visibility: Visibility,
 }
 
 #[derive(Reflect, Component, Default)]
@@ -88,22 +60,22 @@ pub struct Tile {
 
 #[derive(Default, Bundle)]
 pub struct TileBundle {
-    tile: Tile,
-    position: MapPosition,
-    transform: Transform,
-    global_transform: GlobalTransform,
-    visibility: Visibility,
+    pub tile: Tile,
+    pub position: MapPosition,
+    pub transform: Transform,
+    pub global_transform: GlobalTransform,
+    pub visibility: Visibility,
 }
 
-#[derive(Reflect, Component, Default)]
+#[derive(Reflect, Component, Default, Clone, Copy, PartialEq)]
 #[reflect(Component)]
 pub struct MapPosition {
-    x: u32,
-    y: u32,
+    pub x: u32,
+    pub y: u32,
 }
 
 impl MapPosition {
-    fn new(x: u32, y: u32) -> Self {
+    pub fn new(x: u32, y: u32) -> Self {
         Self { x, y }
     }
 }
@@ -223,7 +195,7 @@ pub fn process_loaded_tiledmaps(
                                     .insert(Name::new(format!("tile ({:02},{:02})", x, y)))
                                     .id();
 
-                                let world_position = project_iso(
+                                let world_position = super::project_iso(
                                     MapPosition::new(x, y),
                                     tiledmap.inner.tile_width as f32,
                                     tiledmap.inner.tile_height as f32,
@@ -274,20 +246,4 @@ pub fn process_loaded_tiledmaps(
             }
         }
     }
-}
-
-/// TilePos --> WorldPos
-pub fn project_iso(pos: MapPosition, tile_width: f32, tile_height: f32) -> Vec2 {
-    let x = (pos.x as f32 - pos.y as f32) * tile_width / 2.0;
-    let y = (pos.x as f32 + pos.y as f32) * tile_height / 2.0;
-    return Vec2::new(x, -y);
-}
-
-/// WorldPos --> TilePos
-pub fn unproject_iso(pos: Vec2, tile_width: f32, tile_height: f32) -> MapPosition {
-    let half_width = tile_width / 2.0;
-    let half_height = tile_height / 2.0;
-    let x = ((pos.x / half_width) + (-(pos.y) / half_height)) / 2.0;
-    let y = ((-(pos.y) / half_height) - (pos.x / half_width)) / 2.0;
-    MapPosition::new(x.round() as u32, y.round() as u32)
 }
