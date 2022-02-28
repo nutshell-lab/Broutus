@@ -72,7 +72,7 @@ fn setup(
     let knight_purple = commands
         .spawn_bundle(WarriorBundle::new(
             "Knight Purple".to_string(),
-            MapPosition::new(2, 7),
+            MapPosition::new(4, 10),
             1.0,
             &texture_atlas_handle,
         ))

@@ -78,6 +78,27 @@ impl MapPosition {
     pub fn new(x: u32, y: u32) -> Self {
         Self { x, y }
     }
+
+    pub fn to_relative_z(&self, map_width: u32, map_height: u32) -> f32 {
+        (self.x + self.y) as f32 / (map_width + map_height) as f32
+    }
+
+    pub fn to_xyz(
+        &self,
+        layer_index: u32,
+        map_width: u32,
+        map_height: u32,
+        tile_width: f32,
+        tile_height: f32,
+    ) -> Vec3 {
+        let coords = super::super::map::project_iso(self, tile_width, tile_height);
+
+        Vec3::new(
+            coords.x,
+            coords.y,
+            self.to_relative_z(map_width, map_height) + layer_index as f32,
+        )
+    }
 }
 
 pub struct TiledmapLoader;
@@ -191,8 +212,9 @@ pub fn process_loaded_tiledmaps(
                                     .insert(Name::new(format!("tile ({:02},{:02})", x, y)))
                                     .id();
 
+                                let map_position = MapPosition::new(x, y);
                                 let world_position = super::project_iso(
-                                    &MapPosition::new(x, y),
+                                    &map_position,
                                     tiledmap.inner.tile_width as f32,
                                     tiledmap.inner.tile_height as f32,
                                 );
@@ -219,7 +241,10 @@ pub fn process_loaded_tiledmaps(
                                         transform: Transform::from_xyz(
                                             world_position.x,
                                             world_position.y,
-                                            (x + y) as f32 / (tiles_x.len() + tiles_y.len()) as f32,
+                                            map_position.to_relative_z(
+                                                tiles_x.len() as u32,
+                                                tiles_y.len() as u32,
+                                            ),
                                         ),
                                         ..Default::default()
                                     });

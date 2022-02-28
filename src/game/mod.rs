@@ -18,9 +18,7 @@ impl Plugin for GamePlugin {
 /// Spawn the main camera
 fn setup_camera(mut commands: Commands) {
     commands.spawn_bundle(OrthographicCameraBundle {
-        transform: Transform::identity()
-            .with_translation(Vec3::new(250.0, -490.0, 1000.0 - 0.1))
-            .with_scale(Vec3::new(1.2, 1.2, 1.0)),
+        transform: Transform::identity().with_translation(Vec3::new(250.0, -490.0, 1000.0 - 0.1)),
         ..OrthographicCameraBundle::new_2d()
     });
 }

@@ -2,7 +2,7 @@ use super::*;
 use bevy::prelude::*;
 
 pub struct MapQuery<'w, 's> {
-    map_queryset: QuerySet<
+    pub map_queryset: QuerySet<
         'w,
         's,
         (
@@ -10,7 +10,7 @@ pub struct MapQuery<'w, 's> {
             QueryState<(Entity, &'static Map, &'static Children)>,
         ),
     >,
-    layer_queryset: QuerySet<
+    pub layer_queryset: QuerySet<
         'w,
         's,
         (
@@ -18,7 +18,7 @@ pub struct MapQuery<'w, 's> {
             QueryState<(Entity, &'static Layer, &'static Children)>,
         ),
     >,
-    tile_queryset: QuerySet<
+    pub tile_queryset: QuerySet<
         'w,
         's,
         (
@@ -36,6 +36,16 @@ impl<'w, 's> MapQuery<'w, 's> {
             }
 
             return Some(entity);
+        }
+        None
+    }
+
+    pub fn get_map(&mut self, map_id: u32) -> Option<&Map> {
+        for (entity, map, _) in self.map_queryset.q1().iter() {
+            if map.id.ne(&map_id) {
+                continue;
+            }
+            return Some(map);
         }
         None
     }
