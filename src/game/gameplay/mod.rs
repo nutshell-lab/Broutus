@@ -1,3 +1,4 @@
+use super::GameState;
 use bevy::prelude::*;
 
 mod attribute;
@@ -18,8 +19,9 @@ use turn::TurnStart;
 use warrior::WarriorBundle;
 
 pub use turn::show_turn_ui;
-pub use warrior::animate_sprite;
-pub use warrior::snap_to_map;
+pub use warrior::animate_warrior_sprite;
+pub use warrior::update_warrior_world_position;
+pub use warrior::WarriorAssets;
 
 pub struct GameplayPlugin;
 
@@ -31,30 +33,24 @@ impl Plugin for GameplayPlugin {
             .register_type::<MovementPoints>()
             .add_event::<TurnStart>()
             .add_event::<TurnEnd>()
-            .add_startup_system(setup)
-            .add_system(show_turn_ui)
-            .add_system(animate_sprite)
-            .add_system(snap_to_map);
+            .add_system_set(SystemSet::on_enter(GameState::ARENA).with_system(spawn_characters))
+            .add_system_set(
+                SystemSet::on_update(GameState::ARENA)
+                    .with_system(animate_warrior_sprite)
+                    .with_system(update_warrior_world_position)
+                    .with_system(show_turn_ui),
+            );
     }
 }
 
-fn setup(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-) {
-    // Load characters animation spritesheet
-    let texture_handle = asset_server.load("characters/knight_idle.png");
-    let texture_atlas = TextureAtlas::from_grid(texture_handle, Vec2::new(64.0, 64.0), 15, 1);
-    let texture_atlas_handle = texture_atlases.add(texture_atlas);
-
+fn spawn_characters(mut commands: Commands, warrior_assets: Res<WarriorAssets>) {
     // Spawn characters
     let knight_blue = commands
         .spawn_bundle(WarriorBundle::new(
             "Knight Blue".to_string(),
             MapPosition::new(17, 5),
             -1.0,
-            &texture_atlas_handle,
+            &warrior_assets.idle,
         ))
         .insert(TeamA)
         .id();
@@ -64,7 +60,7 @@ fn setup(
             "Knight Red".to_string(),
             MapPosition::new(2, 5),
             1.0,
-            &texture_atlas_handle,
+            &warrior_assets.idle,
         ))
         .insert(TeamB)
         .id();
@@ -74,7 +70,7 @@ fn setup(
             "Knight Purple".to_string(),
             MapPosition::new(4, 10),
             1.0,
-            &texture_atlas_handle,
+            &warrior_assets.idle,
         ))
         .insert(TeamB)
         .id();

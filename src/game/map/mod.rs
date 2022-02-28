@@ -1,14 +1,16 @@
+use super::GameState;
 use bevy::prelude::*;
+use bevy_asset_loader::AssetCollection;
 
 mod events;
 mod mouse;
 mod query;
 mod tiledmap;
 
-use events::detect_tile_clicked_events;
-use mouse::debug_ui_mouse_position;
-use mouse::update_mouse_position;
-use tiledmap::process_loaded_tiledmaps;
+use events::trigger_map_mouse_events;
+use mouse::show_debug_mouse_position_ui;
+use mouse::update_map_mouse_position;
+use tiledmap::process_loaded_tiledmap;
 use tiledmap::MapBundle;
 use tiledmap::TiledmapLoader;
 
@@ -37,23 +39,31 @@ impl Plugin for TiledmapPlugin {
             .add_event::<TileRightClickedEvent>()
             .add_asset::<Tiledmap>()
             .add_asset_loader(TiledmapLoader)
-            .add_startup_system(startup)
-            .add_system(process_loaded_tiledmaps)
-            .add_system(update_mouse_position)
-            .add_system(detect_tile_clicked_events)
-            .add_system(debug_ui_mouse_position);
+            .add_system_set(SystemSet::on_enter(GameState::ARENA).with_system(spawn_map))
+            .add_system_set(
+                SystemSet::on_update(GameState::ARENA)
+                    .with_system(process_loaded_tiledmap)
+                    .with_system(update_map_mouse_position)
+                    .with_system(trigger_map_mouse_events)
+                    .with_system(show_debug_mouse_position_ui),
+            );
     }
 }
 
-fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let handle: Handle<Tiledmap> = asset_server.load("maps/simple.tmx");
+#[derive(AssetCollection)]
+pub struct MapsAssets {
+    #[asset(path = "maps/simple.tmx")]
+    simple: Handle<Tiledmap>,
+}
+
+fn spawn_map(mut commands: Commands, maps_assets: Res<MapsAssets>) {
     let map_entity = commands.spawn().id();
     commands
         .entity(map_entity)
         .insert(Name::new("map"))
         .insert_bundle(MapBundle {
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
-            tiledmap: handle,
+            tiledmap: maps_assets.simple.clone(),
             map: Map {
                 ground_layer: 0,
                 highlight_layer: 1,

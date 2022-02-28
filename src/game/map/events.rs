@@ -5,7 +5,7 @@ use bevy::prelude::*;
 pub struct TileClickedEvent(pub MapPosition);
 pub struct TileRightClickedEvent(pub MapPosition);
 
-pub fn detect_tile_clicked_events(
+pub fn trigger_map_mouse_events(
     mut ev_left_clicked: EventWriter<TileClickedEvent>,
     mut ev_right_clicked: EventWriter<TileRightClickedEvent>,
     position: Res<MouseMapPosition>,

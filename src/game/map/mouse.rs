@@ -11,7 +11,7 @@ pub struct MouseMapPosition(pub Option<MapPosition>);
 #[derive(Default)]
 pub struct PreviousMouseMapPosition(pub Option<MapPosition>);
 
-pub fn update_mouse_position(
+pub fn update_map_mouse_position(
     mut position: ResMut<MouseMapPosition>,
     mut previous_position: ResMut<PreviousMouseMapPosition>,
     tmx_map: Res<Assets<Tiledmap>>,
@@ -82,7 +82,7 @@ pub fn update_mouse_position(
     }
 }
 
-pub fn debug_ui_mouse_position(
+pub fn show_debug_mouse_position_ui(
     windows: Res<Windows>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
     position: Res<MouseMapPosition>,

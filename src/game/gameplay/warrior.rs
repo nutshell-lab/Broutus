@@ -1,8 +1,10 @@
+use super::super::map::Map;
 use super::super::map::MapPosition;
-use super::super::map::MapQuery;
+use super::super::map::Tiledmap;
 use super::attribute::*;
 use super::weapon::{Effect, EffectType, Weapon};
 use bevy::prelude::*;
+use bevy_asset_loader::AssetCollection;
 
 #[derive(Default, Component)]
 pub struct Warrior;
@@ -50,12 +52,19 @@ impl WarriorBundle {
     }
 }
 
+#[derive(AssetCollection)]
+pub struct WarriorAssets {
+    #[asset(texture_atlas(tile_size_x = 64., tile_size_y = 64., columns = 15, rows = 1))]
+    #[asset(path = "warriors/knight_idle.png")]
+    pub idle: Handle<TextureAtlas>,
+}
+
 #[derive(Reflect, Component, Default)]
 #[reflect(Component)]
 pub struct AnimationTimer(pub Timer); // TODO maybe improve this thing to support multiple animations (idle, run, attack...)
 
 /// Animate the sprite based on the AnimationTimer
-pub fn animate_sprite(
+pub fn animate_warrior_sprite(
     time: Res<Time>,
     texture_atlases: Res<Assets<TextureAtlas>>,
     mut query: Query<(
@@ -74,13 +83,36 @@ pub fn animate_sprite(
 }
 
 /// Update the warrior's Transform based on it's TilePos
-pub fn snap_to_map(
-    mut q: Query<(&mut Transform, &MapPosition), (With<Warrior>, Changed<MapPosition>)>,
-    // map_query: &MapQuery,
+pub fn update_warrior_world_position(
+    tiledmaps: Res<Assets<Tiledmap>>,
+    map_query: Query<(Entity, &Map, &Handle<Tiledmap>)>,
+    mut warrior_query: Query<(&mut Transform, &MapPosition), (With<Warrior>, Changed<MapPosition>)>,
 ) {
-    let obstacle_layer_id = 2u32;
+    if map_query.is_empty() {
+        return;
+    }
+    if warrior_query.is_empty() {
+        return;
+    }
 
-    for (mut transform, position) in q.iter_mut() {
-        transform.translation = position.to_xyz(obstacle_layer_id, 11, 19, 128.0, 64.0);
+    let (_, map, tiledmap_handle) = map_query.single();
+    let tiledmap = tiledmaps.get(tiledmap_handle);
+
+    if let Some(tiledmap) = tiledmap {
+        let obstacle_layer_id = map.obstacle_layer;
+        let map_width = tiledmap.inner.width;
+        let map_height = tiledmap.inner.height;
+        let tile_width = tiledmap.inner.tile_width as f32;
+        let tile_height = tiledmap.inner.tile_height as f32;
+
+        for (mut transform, position) in warrior_query.iter_mut() {
+            transform.translation = position.to_xyz(
+                obstacle_layer_id,
+                map_width,
+                map_height,
+                tile_width,
+                tile_height,
+            );
+        }
     }
 }

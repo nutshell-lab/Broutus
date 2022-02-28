@@ -80,7 +80,7 @@ impl MapPosition {
     }
 
     pub fn to_relative_z(&self, map_width: u32, map_height: u32) -> f32 {
-        (self.x + self.y) as f32 / (map_width + map_height) as f32
+        (self.x + self.y) as f32 / (map_width - 1 + map_height - 1) as f32
     }
 
     pub fn to_xyz(
@@ -147,7 +147,7 @@ impl AssetLoader for TiledmapLoader {
     }
 }
 
-pub fn process_loaded_tiledmaps(
+pub fn process_loaded_tiledmap(
     mut commands: Commands,
     mut map_events: EventReader<AssetEvent<Tiledmap>>,
     tiledmaps: Res<Assets<Tiledmap>>,
@@ -242,8 +242,8 @@ pub fn process_loaded_tiledmaps(
                                             world_position.x,
                                             world_position.y,
                                             map_position.to_relative_z(
-                                                tiles_x.len() as u32,
-                                                tiles_y.len() as u32,
+                                                tiles_x.len() as u32 + 1,
+                                                tiles_y.len() as u32 + 1,
                                             ),
                                         ),
                                         ..Default::default()
