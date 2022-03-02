@@ -5,7 +5,9 @@ use bevy_inspector_egui::egui::{
     RichText,
 };
 
+use super::attribute::ActionPoints;
 use super::attribute::Health;
+use super::attribute::MovementPoints;
 
 #[derive(Default, Component)]
 pub struct TeamA;
@@ -55,7 +57,10 @@ pub fn show_turn_ui(
     mut ev_turn_started: EventWriter<TurnStart>,
     mut ev_turn_ended: EventWriter<TurnEnd>,
     mut egui_context: ResMut<EguiContext>,
-    warrior_query: Query<(&Name, &Health), With<super::warrior::Warrior>>,
+    warrior_query: Query<
+        (&Name, &Health, &ActionPoints, &MovementPoints),
+        With<super::warrior::Warrior>,
+    >,
 ) {
     egui::containers::Area::new("turn_order")
         .anchor(egui::Align2::RIGHT_TOP, [-20.0, 20.0])
@@ -79,7 +84,7 @@ pub fn show_turn_ui(
 
                 let offset = if index == 0 { turn.order_index } else { 0 };
                 for &entity in turn.order.iter().skip(offset).take(display_slots) {
-                    let (name, health) = warrior_query.get(entity).unwrap();
+                    let (name, health, _, _) = warrior_query.get(entity).unwrap();
                     let color = if display_slots == 8 {
                         egui::Color32::LIGHT_GREEN
                     } else {
@@ -106,12 +111,30 @@ pub fn show_turn_ui(
         .show(egui_context.ctx_mut(), |ui| {
             let mut style = ui.style_mut();
             style.spacing.button_padding = [15.0, 15.0].into();
-            let text = RichText::new("End turn")
+
+            let warrior_entity = turn.get_current_warrior_entity().unwrap();
+            let (_, _, ap, mp) = warrior_query.get(warrior_entity).unwrap();
+
+            let ap_text = RichText::new(ap.0.value.to_string())
+                .strong()
+                .heading()
+                .color(egui::Color32::BLACK);
+
+            ui.add(egui::Button::new(ap_text).fill(egui::Color32::from_rgb(101, 88, 245)));
+
+            let mp_text = RichText::new(mp.0.value.to_string())
+                .strong()
+                .heading()
+                .color(egui::Color32::BLACK);
+
+            ui.add(egui::Button::new(mp_text).fill(egui::Color32::from_rgb(26, 174, 159)));
+
+            let end_turn_text = RichText::new("End turn")
                 .strong()
                 .heading()
                 .color(egui::Color32::BLACK);
             if ui
-                .add(egui::Button::new(text).fill(egui::Color32::from_rgb(247, 195, 37)))
+                .add(egui::Button::new(end_turn_text).fill(egui::Color32::from_rgb(247, 195, 37)))
                 .clicked()
             {
                 ev_turn_ended.send(TurnEnd(turn.get_current_warrior_entity().unwrap()));

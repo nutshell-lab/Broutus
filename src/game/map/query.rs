@@ -1,6 +1,7 @@
 use super::*;
-use bevy::prelude::*;
+use bevy::ecs::system::SystemParam;
 
+#[derive(SystemParam)]
 pub struct MapQuery<'w, 's> {
     pub map_queryset: QuerySet<
         'w,
@@ -22,8 +23,24 @@ pub struct MapQuery<'w, 's> {
         'w,
         's,
         (
-            QueryState<(Entity, &'static mut Tile, &'static MapPosition)>,
-            QueryState<(Entity, &'static Tile, &'static MapPosition)>,
+            QueryState<
+                (
+                    Entity,
+                    &'static MapPosition,
+                    &'static mut TextureAtlasSprite,
+                    &'static mut Visibility,
+                ),
+                With<Tile>,
+            >,
+            QueryState<
+                (
+                    Entity,
+                    &'static MapPosition,
+                    &'static TextureAtlasSprite,
+                    &'static Visibility,
+                ),
+                With<Tile>,
+            >,
         ),
     >,
 }
@@ -57,10 +74,10 @@ impl<'w, 's> MapQuery<'w, 's> {
             }
 
             for (layer_entity, layer, _) in self.layer_queryset.q1().iter() {
-                if !layers.contains(&layer_entity) {
+                if layer.id.ne(&layer_id) {
                     continue;
                 }
-                if layer.id.ne(&layer_id) {
+                if !layers.contains(&layer_entity) {
                     continue;
                 }
 
@@ -83,14 +100,78 @@ impl<'w, 's> MapQuery<'w, 's> {
             }
 
             for (layer_entity, layer, tiles) in self.layer_queryset.q1().iter() {
-                if !layers.contains(&layer_entity) {
-                    continue;
-                }
                 if layer.id.ne(&layer_id) {
                     continue;
                 }
+                if !layers.contains(&layer_entity) {
+                    continue;
+                }
 
-                for (tile_entity, _, tile_position) in self.tile_queryset.q1().iter() {
+                for (tile_entity, tile_position, _, _) in self.tile_queryset.q1().iter() {
+                    if position.ne(tile_position) {
+                        continue;
+                    }
+                    if !tiles.contains(&tile_entity) {
+                        continue;
+                    }
+
+                    return Some(tile_entity);
+                }
+            }
+        }
+        None
+    }
+
+    /// Get the tile Entity at the given position for the given map_id and layer_id
+    pub fn hide_all_tiles(&mut self, map_id: u32, layer_id: u32) -> () {
+        for (_, map, layers) in self.map_queryset.q1().iter() {
+            if map.id.ne(&map_id) {
+                continue;
+            }
+
+            for (layer_entity, layer, tiles) in self.layer_queryset.q1().iter() {
+                if layer.id.ne(&layer_id) {
+                    continue;
+                }
+                if !layers.contains(&layer_entity) {
+                    continue;
+                }
+
+                for (tile_entity, _, _, mut visibility) in self.tile_queryset.q0().iter_mut() {
+                    if !tiles.contains(&tile_entity) {
+                        continue;
+                    }
+
+                    visibility.is_visible = false;
+                }
+            }
+        }
+    }
+
+    /// Get the tile Entity at the given position for the given map_id and layer_id
+    pub fn update_tile_sprite_color(
+        &mut self,
+        map_id: u32,
+        layer_id: u32,
+        position: &MapPosition,
+        color: Color,
+    ) -> Option<Entity> {
+        for (_, map, layers) in self.map_queryset.q1().iter() {
+            if map.id.ne(&map_id) {
+                continue;
+            }
+
+            for (layer_entity, layer, tiles) in self.layer_queryset.q1().iter() {
+                if layer.id.ne(&layer_id) {
+                    continue;
+                }
+                if !layers.contains(&layer_entity) {
+                    continue;
+                }
+
+                for (tile_entity, tile_position, mut sprite, mut visibility) in
+                    self.tile_queryset.q0().iter_mut()
+                {
                     if !tiles.contains(&tile_entity) {
                         continue;
                     }
@@ -98,6 +179,8 @@ impl<'w, 's> MapQuery<'w, 's> {
                         continue;
                     }
 
+                    sprite.color = color;
+                    visibility.is_visible = true;
                     return Some(tile_entity);
                 }
             }
@@ -148,8 +231,8 @@ impl<'w, 's> MapQuery<'w, 's> {
     pub fn pathfinding(
         &mut self,
         map_id: u32,
-        start: MapPosition,
-        end: MapPosition,
+        start: &MapPosition,
+        end: &MapPosition,
         map_width: u32,
         map_height: u32,
     ) -> Option<(Vec<MapPosition>, u32)> {

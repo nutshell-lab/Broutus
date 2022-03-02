@@ -14,7 +14,7 @@ use tiledmap::process_loaded_tiledmap;
 use tiledmap::MapBundle;
 use tiledmap::TiledmapLoader;
 
-pub use events::TileClickedEvent;
+pub use events::TileLeftClickedEvent;
 pub use events::TileRightClickedEvent;
 pub use mouse::MouseMapPosition;
 pub use mouse::PreviousMouseMapPosition;
@@ -35,7 +35,7 @@ impl Plugin for TiledmapPlugin {
             .register_type::<Tile>()
             .init_resource::<MouseMapPosition>()
             .init_resource::<PreviousMouseMapPosition>()
-            .add_event::<TileClickedEvent>()
+            .add_event::<TileLeftClickedEvent>()
             .add_event::<TileRightClickedEvent>()
             .add_asset::<Tiledmap>()
             .add_asset_loader(TiledmapLoader)

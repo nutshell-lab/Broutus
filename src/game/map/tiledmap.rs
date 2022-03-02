@@ -52,11 +52,7 @@ pub struct LayerBundle {
 
 #[derive(Reflect, Component, Default)]
 #[reflect(Component)]
-pub struct Tile {
-    pub id: u32,
-    pub sprite_index: usize,
-    pub in_tileset: u32,
-}
+pub struct Tile;
 
 #[derive(Default, Bundle)]
 pub struct TileBundle {
@@ -67,7 +63,7 @@ pub struct TileBundle {
     pub visibility: Visibility,
 }
 
-#[derive(Reflect, Component, Default, Clone, Copy, Hash, Eq, PartialEq)]
+#[derive(Reflect, Component, Default, Debug, Clone, Copy, Hash, Eq, PartialEq)]
 #[reflect(Component)]
 pub struct MapPosition {
     pub x: u32,
@@ -199,13 +195,6 @@ pub fn process_loaded_tiledmap(
                                 if tile.gid == 0 {
                                     continue;
                                 }
-                                let tileset = tiledmap
-                                    .inner
-                                    .tilesets
-                                    .iter()
-                                    .filter(|tileset| tileset.first_gid <= tile.gid)
-                                    .last()
-                                    .unwrap();
                                 let (x, y) = (tile_x as u32, tile_y as u32);
                                 let tile_entity = commands
                                     .spawn()
@@ -225,11 +214,7 @@ pub fn process_loaded_tiledmap(
                                     .entity(tile_entity)
                                     .insert_bundle(TileBundle {
                                         position: MapPosition { x, y },
-                                        tile: Tile {
-                                            id: tile.gid,
-                                            sprite_index: (tile.gid - tileset.first_gid) as usize,
-                                            in_tileset: tileset.first_gid,
-                                        },
+                                        tile: Tile,
                                         ..Default::default()
                                     })
                                     .insert_bundle(SpriteSheetBundle {
