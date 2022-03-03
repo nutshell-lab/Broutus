@@ -26,6 +26,14 @@ impl Health {
     pub fn heal(&mut self, amount: u32) {
         self.0.rise(amount);
     }
+
+    pub fn as_percentage(&self) -> f32 {
+        self.0.value as f32 / self.0.max as f32
+    }
+
+    pub fn as_text(&self) -> String {
+        format!("{} / {}", self.0.value, self.0.max)
+    }
 }
 
 impl ActionPoints {

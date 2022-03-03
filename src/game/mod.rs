@@ -40,6 +40,7 @@ impl Plugin for GamePlugin {
             .add_system_set(
                 SystemSet::on_update(GameState::Arena)
                     .with_system(ui::show_turn_ui)
+                    .with_system(ui::show_health_bar_ui)
                     .with_system(ui::show_action_bar_ui)
                     .with_system(ui::show_battlelog_ui)
                     .with_system(ui::show_warrior_ui),

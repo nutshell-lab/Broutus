@@ -72,12 +72,11 @@ pub fn show_turn_ui(
                         .stroke(stroke)
                         .fill(color::DEFAULT_BG.into())
                         .show(ui, |ui| {
-                            ui.add(Label::new(
-                                RichText::new(name.as_str()).color(color).strong(),
-                            ));
+                            ui.label(egui::RichText::new(name.as_str()).color(color).strong());
                             ui.add(
-                                ProgressBar::new(health.0.value as f32 / health.0.max as f32)
-                                    .text(format!("{} / {} hp", health.0.value, health.0.max)),
+                                ProgressBar::new(health.as_percentage()).text(
+                                    egui::RichText::new(health.as_text()).color(color::BG_TEXT),
+                                ),
                             );
                         });
 
@@ -142,6 +141,35 @@ pub fn show_turn_ui(
         });
 }
 
+pub fn show_health_bar_ui(
+    mut egui_context: ResMut<EguiContext>,
+    turn: Res<Turn>,
+    warrior_query: Query<&Health, With<Warrior>>,
+) {
+    egui::containers::Window::new("HealthBar")
+        .anchor(egui::Align2::CENTER_BOTTOM, [0.0, -100.0])
+        .collapsible(false)
+        .resizable(false)
+        .title_bar(false)
+        .frame(
+            egui::containers::Frame::default()
+                .margin((10.0, 10.0))
+                .fill(egui::Color32::from_white_alpha(0))
+                .stroke(egui::Stroke::none())
+                .corner_radius(5.0),
+        )
+        .show(egui_context.ctx_mut(), |ui| {
+            let entity = turn.get_current_warrior_entity().unwrap();
+            let health = warrior_query.get(entity).unwrap();
+
+            ui.visuals_mut().selection.bg_fill = color::HEALTH.into();
+            ui.add(
+                ProgressBar::new(health.as_percentage())
+                    .text(egui::RichText::new(health.as_text()).color(color::BG_TEXT)),
+            );
+        });
+}
+
 pub fn show_action_bar_ui(mut egui_context: ResMut<EguiContext>, images: Res<ActionsAssets>) {
     egui_context.set_egui_texture(0, images.sword.clone_weak());
 
@@ -158,7 +186,7 @@ pub fn show_action_bar_ui(mut egui_context: ResMut<EguiContext>, images: Res<Act
                 .corner_radius(5.0),
         )
         .show(egui_context.ctx_mut(), |ui| {
-            egui::Grid::new("some_unique_id")
+            egui::Grid::new("ActionBarGrid")
                 .spacing((5.0, 5.0))
                 .show(ui, |ui| {
                     // TODO show real actions
@@ -172,7 +200,18 @@ pub fn show_action_bar_ui(mut egui_context: ResMut<EguiContext>, images: Res<Act
 
                         if ui.add(button).hovered() {
                             egui::show_tooltip(ui.ctx(), egui::Id::new("ActionTooltip"), |ui| {
-                                ui.label("Sword 3AP");
+                                egui::Grid::new(format!("ActionBarGrid{}", index)).show(ui, |ui| {
+                                    ui.label(egui::RichText::new("Sword").heading());
+                                    ui.label(
+                                        egui::RichText::new("★ 3")
+                                            .heading()
+                                            .color(color::ACTION_POINTS),
+                                    );
+                                    ui.end_row();
+                                    ui.label(
+                                        egui::RichText::new("15 dmg").strong().color(color::HEALTH),
+                                    );
+                                })
                             });
                         }
                     }
@@ -297,20 +336,18 @@ pub fn show_warrior_ui(
                     ))
                     .frame(
                         egui::containers::Frame::default()
-                            .fill(egui::Color32::from_rgb(19, 26, 38))
-                            .stroke(egui::Stroke::new(
-                                2.0,
-                                egui::Color32::from_rgb(207, 209, 211),
-                            ))
-                            .margin((5.0, 5.0))
+                            .fill(color::DEFAULT_BG.into())
+                            .stroke(egui::Stroke::new(2.0, color::HIGHLIGHT_BORDER))
+                            .margin((8.0, 8.0))
                             .corner_radius(5.0),
                     )
                     .show(egui_context.ctx_mut(), |ui| {
                         ui.label(egui::RichText::new(name.as_str()).color(color).heading());
+                        ui.visuals_mut().selection.bg_fill = color::HEALTH.into();
                         ui.add(
-                            egui::ProgressBar::new(health.0.value as f32 / health.0.max as f32)
-                                .text(format!("{} / {} hp", health.0.value, health.0.max)),
-                        )
+                            ProgressBar::new(health.as_percentage())
+                                .text(egui::RichText::new(health.as_text()).color(color::BG_TEXT)),
+                        );
                     });
             }
         }
