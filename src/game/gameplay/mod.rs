@@ -6,6 +6,7 @@ mod turn;
 mod warrior;
 mod weapon;
 
+use super::color;
 use super::map::Map;
 use super::map::MapPosition;
 use super::map::MapQuery;
@@ -20,7 +21,6 @@ use attribute::Health;
 use attribute::MovementPoints;
 use turn::TeamA;
 use turn::TeamB;
-use turn::ToColor;
 use turn::Turn;
 use turn::TurnEnd;
 use turn::TurnStart;
@@ -172,27 +172,29 @@ fn highlight_warriors_tile(
 
     for (entity, position) in warriors_queryset.q0().iter() {
         let alpha = current
-            .map(|e| if e.eq(&entity) { alpha } else { 0.7 })
-            .unwrap_or(0.7);
+            .map(|e| if e.eq(&entity) { alpha } else { 0.8 })
+            .unwrap_or(0.8);
+        let mut color: bevy::prelude::Color = color::TEAM_A_COLOR.into();
 
         map_query.update_tile_sprite_color(
             map_id,
             layer_id,
             position,
-            TeamA::to_color().clone().set_a(alpha).as_rgba(),
+            color.set_a(alpha).as_rgba(),
         );
     }
 
     for (entity, position) in warriors_queryset.q1().iter() {
         let alpha = current
-            .map(|e| if e.eq(&entity) { alpha } else { 0.7 })
-            .unwrap_or(0.7);
+            .map(|e| if e.eq(&entity) { alpha } else { 0.8 })
+            .unwrap_or(0.8);
+        let mut color: bevy::prelude::Color = color::TEAM_B_COLOR.into();
 
         map_query.update_tile_sprite_color(
             map_id,
             layer_id,
             position,
-            TeamB::to_color().clone().set_a(alpha).as_rgba(),
+            color.set_a(alpha).as_rgba(),
         );
     }
 }

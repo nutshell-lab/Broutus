@@ -4,6 +4,7 @@ use bevy_inspector_egui::WorldInspectorPlugin;
 
 mod gameplay;
 mod map;
+mod color;
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub enum GameState {

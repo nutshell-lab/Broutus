@@ -1,12 +1,12 @@
 use super::attribute::*;
 use super::turn::TeamA;
 use super::turn::TeamB;
-use super::turn::ToColor32;
 use super::weapon::Weapon;
 use super::Map;
 use super::MapPosition;
 use super::MouseMapPosition;
 use super::Tiledmap;
+use super::color;
 use bevy::prelude::*;
 use bevy_asset_loader::AssetCollection;
 use bevy_egui::{egui, EguiContext};
@@ -167,9 +167,9 @@ pub fn show_warrior_bubble_on_hover(
                     let is_team_b = team_query.q1().get(entity).is_ok();
 
                     if is_team_a {
-                        TeamA::to_color32()
+                        color::TEAM_A_COLOR.into()
                     } else if is_team_b {
-                        TeamB::to_color32()
+                        color::TEAM_B_COLOR.into()
                     } else {
                         egui::Color32::LIGHT_GREEN
                     }

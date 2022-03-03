@@ -1,10 +1,11 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext};
 use bevy_inspector_egui::egui::{
-    widgets::{Label, ProgressBar, Separator},
+    widgets::{Label, ProgressBar},
     RichText,
 };
 
+use super::super::color;
 use super::attribute::ActionPoints;
 use super::attribute::Health;
 use super::attribute::MovementPoints;
@@ -14,43 +15,6 @@ pub struct TeamA;
 
 #[derive(Default, Component)]
 pub struct TeamB;
-
-pub const TEAM_A_COLOR: Color = Color::rgb(23.0 / 255.0, 169.0 / 255.0, 250.0 / 255.0);
-pub const TEAM_B_COLOR: Color = Color::rgb(250.0 / 255.0, 104.0 / 255.0, 23.0 / 255.0);
-pub const TEAM_A_COLOR32: egui::Color32 = egui::Color32::from_rgb(23, 169, 250);
-pub const TEAM_B_COLOR32: egui::Color32 = egui::Color32::from_rgb(250, 104, 23);
-
-pub trait ToColor {
-    fn to_color() -> Color;
-}
-
-pub trait ToColor32 {
-    fn to_color32() -> egui::Color32;
-}
-
-impl ToColor for TeamA {
-    fn to_color() -> Color {
-        TEAM_A_COLOR
-    }
-}
-
-impl ToColor for TeamB {
-    fn to_color() -> Color {
-        TEAM_B_COLOR
-    }
-}
-
-impl ToColor32 for TeamA {
-    fn to_color32() -> egui::Color32 {
-        TEAM_A_COLOR32
-    }
-}
-
-impl ToColor32 for TeamB {
-    fn to_color32() -> egui::Color32 {
-        TEAM_B_COLOR32
-    }
-}
 
 pub struct TurnStart(pub Entity);
 
@@ -107,9 +71,18 @@ pub fn show_turn_ui(
         QueryState<Entity, With<TeamB>>,
     )>,
 ) {
-    egui::containers::Area::new("turn_order")
+    egui::containers::Window::new("TurnOrder")
         .anchor(egui::Align2::RIGHT_TOP, [-20.0, 20.0])
-        .movable(false)
+        .collapsible(false)
+        .resizable(false)
+        .title_bar(false)
+        .frame(
+            egui::containers::Frame::default()
+                .margin((10.0, 10.0))
+                .fill(egui::Color32::from_white_alpha(0))
+                .stroke(egui::Stroke::none())
+                .corner_radius(5.0),
+        )
         .show(egui_context.ctx_mut(), |ui| {
             let mut display_slots = 8;
             let mut index = 0;
@@ -118,16 +91,6 @@ pub fn show_turn_ui(
             ui.visuals_mut().selection.bg_fill = egui::Color32::from_rgb(231, 76, 60);
 
             while display_slots > 0 {
-                if index == 0 {
-                    ui.add(Label::new(
-                        RichText::new(format!("Turn {}", turn.current + index))
-                            .strong()
-                            .heading(),
-                    ));
-                } else {
-                    ui.add(Separator::default().horizontal());
-                }
-
                 let offset = if index == 0 { turn.order_index } else { 0 };
                 for &entity in turn.order.iter().skip(offset).take(display_slots) {
                     let (name, health, _, _) = warrior_query.get(entity).unwrap();
@@ -136,21 +99,34 @@ pub fn show_turn_ui(
                         let is_team_b = team_query.q1().get(entity).is_ok();
 
                         if is_team_a {
-                            TeamA::to_color32()
+                            color::TEAM_A_COLOR
                         } else if is_team_b {
-                            TeamB::to_color32()
+                            color::TEAM_B_COLOR
                         } else {
-                            egui::Color32::LIGHT_GREEN
+                            color::TEAM_SPEC_COLOR
                         }
                     };
 
-                    ui.add(Label::new(
-                        RichText::new(name.as_str()).color(color).strong(),
-                    ));
-                    ui.add(
-                        ProgressBar::new(health.0.value as f32 / health.0.max as f32)
-                            .text(format!("{} / {} hp", health.0.value, health.0.max)),
-                    );
+                    let stroke = if index == 0 && display_slots == 8 {
+                        egui::Stroke::new(2.0, egui::Color32::from_rgb(138, 7, 70))
+                    } else {
+                        egui::Stroke::none()
+                    };
+
+                    egui::containers::Frame::default()
+                        .corner_radius(5.0)
+                        .margin((8.0, 8.0))
+                        .stroke(stroke)
+                        .fill(egui::Color32::from_rgb(44, 47, 51))
+                        .show(ui, |ui| {
+                            ui.add(Label::new(
+                                RichText::new(name.as_str()).color(color).strong(),
+                            ));
+                            ui.add(
+                                ProgressBar::new(health.0.value as f32 / health.0.max as f32)
+                                    .text(format!("{} / {} hp", health.0.value, health.0.max)),
+                            );
+                        });
 
                     display_slots -= 1;
                 }
@@ -170,7 +146,7 @@ pub fn show_turn_ui(
 
             egui::containers::Frame::default()
                 .corner_radius(2.0)
-                .fill(egui::Color32::from_rgb(101, 88, 245))
+                .fill(color::ACTION_POINTS.into())
                 .margin((34.0, 15.0))
                 .show(ui, |ui| {
                     let ap_text = RichText::new(format!("★ {}", ap.0.value))
@@ -183,7 +159,7 @@ pub fn show_turn_ui(
 
             egui::containers::Frame::default()
                 .corner_radius(2.0)
-                .fill(egui::Color32::from_rgb(26, 174, 159))
+                .fill(color::MOVEMENT_POINTS.into())
                 .margin((33.0, 15.0))
                 .show(ui, |ui| {
                     let mp_text = RichText::new(format!("🎠 {}", mp.0.value))
@@ -199,7 +175,7 @@ pub fn show_turn_ui(
                 .heading()
                 .color(egui::Color32::BLACK);
             if ui
-                .add(egui::Button::new(end_turn_text).fill(egui::Color32::from_rgb(247, 195, 37)))
+                .add(egui::Button::new(end_turn_text).fill(color::END_TURN))
                 .clicked()
             {
                 ev_turn_ended.send(TurnEnd(turn.get_current_warrior_entity().unwrap()));

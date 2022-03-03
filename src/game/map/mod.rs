@@ -44,8 +44,8 @@ impl Plugin for TiledmapPlugin {
                 SystemSet::on_update(GameState::ARENA)
                     .with_system(process_loaded_tiledmap)
                     .with_system(update_map_mouse_position)
-                    .with_system(trigger_map_mouse_events)
-                    .with_system(show_debug_mouse_position_ui),
+                    .with_system(trigger_map_mouse_events),
+                    // .with_system(show_debug_mouse_position_ui),
             );
     }
 }
