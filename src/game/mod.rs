@@ -2,14 +2,15 @@ use bevy::prelude::*;
 use bevy_asset_loader::AssetLoader;
 use bevy_inspector_egui::WorldInspectorPlugin;
 
+mod color;
 mod gameplay;
 mod map;
-mod color;
+mod ui;
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub enum GameState {
     /// Load all game assets
-    LOADING,
+    Loading,
 
     // /// Show main menu
     // MENU,
@@ -17,24 +18,32 @@ pub enum GameState {
     // /// Prepare your team
     // PREPARE,
     /// Fight !
-    ARENA,
+    Arena,
 }
 
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
-    fn build(&self, mut app: &mut App) {
-        AssetLoader::new(GameState::LOADING)
+    fn build(&self, app: &mut App) {
+        AssetLoader::new(GameState::Loading)
             .with_collection::<map::MapsAssets>()
             .with_collection::<gameplay::WarriorAssets>()
-            .continue_to_state(GameState::ARENA)
-            .build(&mut app);
+            .with_collection::<ui::ActionsAssets>()
+            .continue_to_state(GameState::Arena)
+            .build(app);
 
-        app.add_state(GameState::LOADING)
+        app.add_state(GameState::Loading)
             .add_plugin(WorldInspectorPlugin::new())
             .add_plugin(map::TiledmapPlugin)
             .add_plugin(gameplay::GameplayPlugin)
-            .add_startup_system(setup_camera);
+            .add_startup_system(setup_camera)
+            .add_system_set(
+                SystemSet::on_update(GameState::Arena)
+                    .with_system(ui::show_turn_ui)
+                    .with_system(ui::show_action_bar_ui)
+                    .with_system(ui::show_battlelog_ui)
+                    .with_system(ui::show_warrior_ui),
+            );
     }
 }
 

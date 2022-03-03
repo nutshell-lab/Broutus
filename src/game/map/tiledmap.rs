@@ -75,19 +75,19 @@ impl MapPosition {
         Self { x, y }
     }
 
-    pub fn to_relative_z(&self, map_width: u32, map_height: u32) -> f32 {
+    pub fn to_relative_z(self, map_width: u32, map_height: u32) -> f32 {
         (self.x + self.y) as f32 / (map_width - 1 + map_height - 1) as f32
     }
 
     pub fn to_xyz(
-        &self,
+        self,
         layer_index: u32,
         map_width: u32,
         map_height: u32,
         tile_width: f32,
         tile_height: f32,
     ) -> Vec3 {
-        let coords = super::super::map::project_iso(self, tile_width, tile_height);
+        let coords = super::super::map::project_iso(&self, tile_width, tile_height);
 
         Vec3::new(
             coords.x,
@@ -152,11 +152,8 @@ pub fn process_loaded_tiledmap(
 ) {
     let mut changed_tiledmaps = Vec::<Handle<Tiledmap>>::default();
     for event in map_events.iter() {
-        match event {
-            AssetEvent::Created { handle } => {
-                changed_tiledmaps.push(handle.clone());
-            }
-            _ => {}
+        if let AssetEvent::Created { handle } = event {
+            changed_tiledmaps.push(handle.clone());
         }
     }
 

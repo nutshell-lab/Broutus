@@ -62,7 +62,7 @@ impl Attribute {
     }
 
     pub fn drop(&mut self, amount: u32) {
-        self.value = self.value.checked_sub(amount).unwrap_or(0);
+        self.value = self.value.saturating_sub(amount);
     }
 
     pub fn rise(&mut self, amount: u32) {

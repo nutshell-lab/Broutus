@@ -1,3 +1,4 @@
+use super::color;
 use super::GameState;
 use bevy::prelude::*;
 
@@ -6,35 +7,31 @@ mod turn;
 mod warrior;
 mod weapon;
 
-use super::color;
-use super::map::Map;
-use super::map::MapPosition;
-use super::map::MapQuery;
-use super::map::MouseMapPosition;
-use super::map::Tile;
-use super::map::TileLeftClickedEvent;
-use super::map::TileRightClickedEvent;
-use super::map::Tiledmap;
-use attribute::ActionPoints;
-use attribute::Attribute;
-use attribute::Health;
-use attribute::MovementPoints;
-use turn::TeamA;
-use turn::TeamB;
-use turn::Turn;
-use turn::TurnEnd;
-use turn::TurnStart;
-use warrior::Warrior;
-use warrior::WarriorBundle;
-use weapon::Weapon;
-use weapon::HEAL_WAND;
-use weapon::THUG_KNIFE;
-
-pub use turn::show_turn_ui;
+pub use super::map::Map;
+pub use super::map::MapPosition;
+pub use super::map::MapQuery;
+pub use super::map::MouseMapPosition;
+pub use super::map::Tile;
+pub use super::map::TileLeftClickedEvent;
+pub use super::map::TileRightClickedEvent;
+pub use super::map::Tiledmap;
+pub use attribute::ActionPoints;
+pub use attribute::Attribute;
+pub use attribute::Health;
+pub use attribute::MovementPoints;
+pub use turn::TeamA;
+pub use turn::TeamB;
+pub use turn::Turn;
+pub use turn::TurnEnd;
+pub use turn::TurnStart;
 pub use warrior::animate_warrior_sprite;
-pub use warrior::show_warrior_bubble_on_hover;
 pub use warrior::update_warrior_world_position;
+pub use warrior::Warrior;
 pub use warrior::WarriorAssets;
+pub use warrior::WarriorBundle;
+pub use weapon::Weapon;
+pub use weapon::HEAL_WAND;
+pub use weapon::THUG_KNIFE;
 
 pub struct GameplayPlugin;
 
@@ -46,25 +43,23 @@ impl Plugin for GameplayPlugin {
             .register_type::<MovementPoints>()
             .add_event::<TurnStart>()
             .add_event::<TurnEnd>()
-            .add_system_set(SystemSet::on_enter(GameState::ARENA).with_system(spawn_warriors))
+            .add_system_set(SystemSet::on_enter(GameState::Arena).with_system(spawn_warriors))
             .add_system_set(
-                SystemSet::on_update(GameState::ARENA)
+                SystemSet::on_update(GameState::Arena)
                     .with_system(animate_warrior_sprite)
                     .with_system(update_warrior_world_position)
                     .with_system(reset_warrior_attributes_on_turn_end)
                     .with_system(handle_warrior_movement_on_click)
                     .with_system(handle_warrior_attack_on_click)
-                    .with_system(despawn_warrior_on_death)
-                    .with_system(show_warrior_bubble_on_hover)
-                    .with_system(show_turn_ui),
+                    .with_system(despawn_warrior_on_death),
             )
             .add_system_set(
-                SystemSet::on_update(GameState::ARENA)
+                SystemSet::on_update(GameState::Arena)
                     .label("clean_highlithing")
                     .with_system(unhighlight_all_tiles),
             )
             .add_system_set(
-                SystemSet::on_update(GameState::ARENA)
+                SystemSet::on_update(GameState::Arena)
                     .after("clean_highlithing")
                     .with_system(highlight_warriors_tile)
                     .with_system(compute_and_highlight_path),
@@ -333,7 +328,7 @@ fn handle_warrior_attack_on_click(
         if action_points.can_spend(weapon.effect.ap_cost) {
             action_points.spend(weapon.effect.ap_cost);
 
-            let weapon = weapon.clone(); // Cannot get both queries as mutable at the same time :(
+            let weapon = *weapon; // Cannot get both queries as mutable at the same time :(
             for (position, mut health) in warrior_query.q1().iter_mut() {
                 if click_event.0.eq(position) {
                     weapon.use_on(&mut health);
@@ -355,7 +350,7 @@ fn despawn_warrior_on_death(
             if let Some(turn_index) = turn_index {
                 turn.order.remove(turn_index);
                 turn.order_index = if turn.order_index >= turn_index {
-                    turn.order_index.checked_sub(1).unwrap_or(0)
+                    turn.order_index.saturating_sub(1)
                 } else {
                     turn.order_index
                 }

@@ -46,46 +46,46 @@ pub struct MapQuery<'w, 's> {
 }
 
 impl<'w, 's> MapQuery<'w, 's> {
-    pub fn get_map_entity(&mut self, map_id: u32) -> Option<Entity> {
-        for (entity, map, _) in self.map_queryset.q1().iter() {
-            if map.id.ne(&map_id) {
-                continue;
-            }
+    // pub fn get_map_entity(&mut self, map_id: u32) -> Option<Entity> {
+    //     for (entity, map, _) in self.map_queryset.q1().iter() {
+    //         if map.id.ne(&map_id) {
+    //             continue;
+    //         }
 
-            return Some(entity);
-        }
-        None
-    }
+    //         return Some(entity);
+    //     }
+    //     None
+    // }
 
-    pub fn get_map(&mut self, map_id: u32) -> Option<&Map> {
-        for (entity, map, _) in self.map_queryset.q1().iter() {
-            if map.id.ne(&map_id) {
-                continue;
-            }
-            return Some(map);
-        }
-        None
-    }
+    // pub fn get_map(&mut self, map_id: u32) -> Option<&Map> {
+    //     for (entity, map, _) in self.map_queryset.q1().iter() {
+    //         if map.id.ne(&map_id) {
+    //             continue;
+    //         }
+    //         return Some(map);
+    //     }
+    //     None
+    // }
 
-    pub fn get_layer_entity(&mut self, map_id: u32, layer_id: u32) -> Option<Entity> {
-        for (_, map, layers) in self.map_queryset.q1().iter() {
-            if map.id.ne(&map_id) {
-                continue;
-            }
+    // pub fn get_layer_entity(&mut self, map_id: u32, layer_id: u32) -> Option<Entity> {
+    //     for (_, map, layers) in self.map_queryset.q1().iter() {
+    //         if map.id.ne(&map_id) {
+    //             continue;
+    //         }
 
-            for (layer_entity, layer, _) in self.layer_queryset.q1().iter() {
-                if layer.id.ne(&layer_id) {
-                    continue;
-                }
-                if !layers.contains(&layer_entity) {
-                    continue;
-                }
+    //         for (layer_entity, layer, _) in self.layer_queryset.q1().iter() {
+    //             if layer.id.ne(&layer_id) {
+    //                 continue;
+    //             }
+    //             if !layers.contains(&layer_entity) {
+    //                 continue;
+    //             }
 
-                return Some(layer_entity);
-            }
-        }
-        None
-    }
+    //             return Some(layer_entity);
+    //         }
+    //     }
+    //     None
+    // }
 
     /// Get the tile Entity at the given position for the given map_id and layer_id
     pub fn get_tile_entity_at(
@@ -123,7 +123,7 @@ impl<'w, 's> MapQuery<'w, 's> {
     }
 
     /// Get the tile Entity at the given position for the given map_id and layer_id
-    pub fn hide_all_tiles(&mut self, map_id: u32, layer_id: u32) -> () {
+    pub fn hide_all_tiles(&mut self, map_id: u32, layer_id: u32) {
         for (_, map, layers) in self.map_queryset.q1().iter() {
             if map.id.ne(&map_id) {
                 continue;
@@ -223,7 +223,7 @@ impl<'w, 's> MapQuery<'w, 's> {
             .iter()
             .filter(|&position| position.x < map_width && position.y < map_height)
             .filter(|&position| !self.is_obstacle(map_id, position))
-            .map(|&position| (position.clone(), 1))
+            .map(|&position| (position, 1))
             .collect()
     }
 
@@ -237,10 +237,10 @@ impl<'w, 's> MapQuery<'w, 's> {
         map_height: u32,
     ) -> Option<(Vec<MapPosition>, u32)> {
         pathfinding::prelude::astar(
-            &start,
-            |position| self.non_obstacle_tile_neightbours(map_id, &position, map_width, map_height),
-            |current| tile_distance(current, &end),
-            |position| position.eq(&end),
+            start,
+            |position| self.non_obstacle_tile_neightbours(map_id, position, map_width, map_height),
+            |current| tile_distance(current, end),
+            |position| position.eq(end),
         )
     }
 }

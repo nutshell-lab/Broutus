@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy_egui::{egui, EguiContext};
 
 use super::Map;
 use super::MapPosition;
@@ -68,7 +67,7 @@ pub fn update_map_mouse_position(
                     tiledmap.inner.height,
                 );
 
-                let save = position.0.clone();
+                let save = position.0;
                 position.0 = tile_position;
 
                 if save.ne(&position.0) {
@@ -79,43 +78,43 @@ pub fn update_map_mouse_position(
     }
 }
 
-pub fn show_debug_mouse_position_ui(
-    windows: Res<Windows>,
-    camera_query: Query<(&Camera, &GlobalTransform)>,
-    position: Res<MouseMapPosition>,
-    previous_position: Res<PreviousMouseMapPosition>,
-    mut egui_context: ResMut<EguiContext>,
-) {
-    let primary_window = windows.get_primary().unwrap();
+// pub fn show_debug_mouse_position_ui(
+//     windows: Res<Windows>,
+//     camera_query: Query<(&Camera, &GlobalTransform)>,
+//     position: Res<MouseMapPosition>,
+//     previous_position: Res<PreviousMouseMapPosition>,
+//     mut egui_context: ResMut<EguiContext>,
+// ) {
+//     let primary_window = windows.get_primary().unwrap();
 
-    egui::Window::new("Mouse Position").show(egui_context.ctx_mut(), |ui| {
-        for (camera, camera_transform) in camera_query.iter() {
-            let offset = camera
-                .world_to_screen(&windows, camera_transform, Vec3::ZERO)
-                .unwrap_or(Vec2::ZERO);
-            if let Some(position) = primary_window.cursor_position() {
-                ui.label(format!("Screen: {}, {}", position.x, position.y));
-                ui.label(format!(
-                    "World: {}, {}",
-                    position.x - offset.x,
-                    position.y - offset.y
-                ));
-            } else {
-                ui.label("Screen: #, #");
-                ui.label("World: #, #");
-            }
+//     egui::Window::new("Mouse Position").show(egui_context.ctx_mut(), |ui| {
+//         for (camera, camera_transform) in camera_query.iter() {
+//             let offset = camera
+//                 .world_to_screen(&windows, camera_transform, Vec3::ZERO)
+//                 .unwrap_or(Vec2::ZERO);
+//             if let Some(position) = primary_window.cursor_position() {
+//                 ui.label(format!("Screen: {}, {}", position.x, position.y));
+//                 ui.label(format!(
+//                     "World: {}, {}",
+//                     position.x - offset.x,
+//                     position.y - offset.y
+//                 ));
+//             } else {
+//                 ui.label("Screen: #, #");
+//                 ui.label("World: #, #");
+//             }
 
-            if let Some(MapPosition { x, y }) = position.0 {
-                ui.label(format!("Map: {}, {}", x, y));
-            } else {
-                ui.label("Map: #, #");
-            }
+//             if let Some(MapPosition { x, y }) = position.0 {
+//                 ui.label(format!("Map: {}, {}", x, y));
+//             } else {
+//                 ui.label("Map: #, #");
+//             }
 
-            if let Some(MapPosition { x, y }) = previous_position.0 {
-                ui.label(format!("Map (prev): {}, {}", x, y));
-            } else {
-                ui.label("Map (prev): #, #");
-            }
-        }
-    });
-}
+//             if let Some(MapPosition { x, y }) = previous_position.0 {
+//                 ui.label(format!("Map (prev): {}, {}", x, y));
+//             } else {
+//                 ui.label("Map (prev): #, #");
+//             }
+//         }
+//     });
+// }

@@ -8,7 +8,6 @@ mod query;
 mod tiledmap;
 
 use events::trigger_map_mouse_events;
-use mouse::show_debug_mouse_position_ui;
 use mouse::update_map_mouse_position;
 use tiledmap::process_loaded_tiledmap;
 use tiledmap::MapBundle;
@@ -39,13 +38,12 @@ impl Plugin for TiledmapPlugin {
             .add_event::<TileRightClickedEvent>()
             .add_asset::<Tiledmap>()
             .add_asset_loader(TiledmapLoader)
-            .add_system_set(SystemSet::on_enter(GameState::ARENA).with_system(spawn_map))
+            .add_system_set(SystemSet::on_enter(GameState::Arena).with_system(spawn_map))
             .add_system_set(
-                SystemSet::on_update(GameState::ARENA)
+                SystemSet::on_update(GameState::Arena)
                     .with_system(process_loaded_tiledmap)
                     .with_system(update_map_mouse_position)
                     .with_system(trigger_map_mouse_events),
-                    // .with_system(show_debug_mouse_position_ui),
             );
     }
 }
@@ -80,7 +78,7 @@ fn spawn_map(mut commands: Commands, maps_assets: Res<MapsAssets>) {
 pub fn project_iso(pos: &MapPosition, tile_width: f32, tile_height: f32) -> Vec2 {
     let x = (pos.x as f32 - pos.y as f32) * tile_width / 2.0;
     let y = (pos.x as f32 + pos.y as f32) * tile_height / 2.0;
-    return Vec2::new(x, -y);
+    Vec2::new(x, -y)
 }
 
 /// WorldPos --> TilePos
