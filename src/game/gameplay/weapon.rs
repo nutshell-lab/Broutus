@@ -1,4 +1,4 @@
-use super::attribute::Health;
+use super::attribute::{ActionPoints, Health};
 use bevy::prelude::*;
 
 pub const THUG_KNIFE: Weapon = Weapon {
@@ -21,15 +21,15 @@ pub const HEAL_WAND: Weapon = Weapon {
 
 #[derive(Component, Default, Copy, Clone)]
 pub struct Weapon {
-    name: &'static str,
-    effect: WeaponEffect,
+    pub name: &'static str,
+    pub effect: WeaponEffect,
 }
 
 #[derive(Default, Copy, Clone)]
 pub struct WeaponEffect {
-    to_health: HealthEffect,
-    ap_cost: u32,
-    range: (u32, u32),
+    pub to_health: HealthEffect,
+    pub ap_cost: u32,
+    pub range: (u32, u32),
 }
 
 #[derive(Copy, Clone)]
@@ -40,10 +40,10 @@ pub enum HealthEffect {
 }
 
 impl Weapon {
-    pub fn use_on(&self, target: &mut Health) {
+    pub fn use_on(&self, target_health: &mut Health) {
         match self.effect.to_health {
-            HealthEffect::Damage(amount) => target.hurt(amount),
-            HealthEffect::Heal(amount) => target.heal(amount),
+            HealthEffect::Damage(amount) => target_health.hurt(amount),
+            HealthEffect::Heal(amount) => target_health.heal(amount),
             HealthEffect::Ineffective => (),
         }
     }

@@ -1,5 +1,6 @@
 use super::GameState;
 use bevy::prelude::*;
+use bevy::utils::tracing::span::Entered;
 
 mod attribute;
 mod turn;
@@ -54,6 +55,7 @@ impl Plugin for GameplayPlugin {
                     .with_system(reset_warrior_attributes_on_turn_end)
                     .with_system(handle_warrior_movement_on_click)
                     .with_system(handle_warrior_attack_on_click)
+                    .with_system(despawn_warrior_on_death)
                     .with_system(show_warrior_bubble_on_hover)
                     .with_system(show_turn_ui),
             )
@@ -260,8 +262,8 @@ fn reset_warrior_attributes_on_turn_end(
 ) {
     for ev in ev_turn_ended.iter() {
         let (mut ap, mut mp) = q.get_mut(ev.0).unwrap();
-        ap.0.reset();
-        mp.0.reset();
+        ap.reset();
+        mp.reset();
     }
 }
 
@@ -303,10 +305,10 @@ fn handle_warrior_movement_on_click(
                 // TODO Animate warrior movement along the path
                 // TODO Change warrior orientation when it changes direction
                 if let Some((_path, cost)) = path {
-                    if cost <= movement_points.0.value {
+                    if movement_points.can_spend(cost) {
                         warrior_position.x = ev.0.x;
                         warrior_position.y = ev.0.y;
-                        movement_points.0.value -= cost;
+                        movement_points.spend(cost);
                     }
                 }
             }
@@ -317,17 +319,48 @@ fn handle_warrior_movement_on_click(
 fn handle_warrior_attack_on_click(
     mut ev_clicked: EventReader<TileRightClickedEvent>,
     turn: Res<Turn>,
-    mut warrior_query: Query<(&MapPosition, &Warrior, &Weapon, &mut Health)>,
+    mut warrior_query: QuerySet<(
+        QueryState<(&Weapon, &mut ActionPoints), With<Warrior>>,
+        QueryState<(&MapPosition, &mut Health), With<Warrior>>,
+    )>,
 ) {
-    let warrior_entity = turn.get_current_warrior_entity().unwrap();
-    let (_pos, _warrior, weapon, _h) = warrior_query.get(warrior_entity).unwrap();
+    if let Some(target_position) = ev_clicked.iter().next() {
+        let warrior_entity = turn.get_current_warrior_entity().unwrap();
+        let mut attacker_query = warrior_query.q0();
+        let (weapon, mut action_points) = attacker_query.get_mut(warrior_entity).unwrap();
 
-    if let Some(target_location) = ev_clicked.iter().next() {
-        for (_, _, _, mut health) in warrior_query
-            .iter_mut()
-            .filter(|(&warrior_position, _c, _weapon, _h)| warrior_position == target_location.0)
-        {
-            weapon.use_on(&mut health);
+        if action_points.can_spend(weapon.effect.ap_cost) {
+            action_points.spend(weapon.effect.ap_cost);
+
+            let weapon = weapon.clone();
+            for (position, mut health) in warrior_query.q1().iter_mut() {
+                if target_position.0.eq(position) {
+                    weapon.use_on(&mut health);
+                }
+            }
+        }
+    }
+}
+
+fn despawn_warrior_on_death(
+    mut commands: Commands,
+    mut turn: ResMut<Turn>,
+    warrior_query: Query<(Entity, &Health), (With<Warrior>, Changed<Health>)>,
+) {
+    for (entity, health) in warrior_query.iter() {
+        if health.0.value == 0 {
+            let turn_index = turn.get_entity_index(entity);
+
+            if let Some(turn_index) = turn_index {
+                turn.order.remove(turn_index);
+                turn.order_index = if turn.order_index >= turn_index {
+                    turn.order_index.checked_sub(1).unwrap_or(0)
+                } else {
+                    turn.order_index
+                }
+            }
+
+            commands.entity(entity).despawn_recursive();
         }
     }
 }

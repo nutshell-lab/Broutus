@@ -86,6 +86,10 @@ impl Turn {
     pub fn get_current_warrior_entity(&self) -> Option<Entity> {
         self.order.get(self.order_index).map(|e| e.clone())
     }
+
+    pub fn get_entity_index(&self, entity: Entity) -> Option<usize> {
+        self.order.iter().position(|e| e.eq(&entity))
+    }
 }
 
 /// Display all infos about the turn system in a dedicated window
