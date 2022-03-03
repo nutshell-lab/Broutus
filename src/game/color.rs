@@ -1,6 +1,8 @@
 use bevy_egui::egui::Color32;
 use bevy::prelude::Color as ColorBevy;
 
+// https://coolors.co/c8122c-f7b538-388057-4e4187-5bd17d
+
 pub struct Color(u8, u8, u8);
 
 impl Into<Color32> for Color {
