@@ -26,10 +26,10 @@ impl Attribute {
 
 impl Health {
     pub fn hurt(&mut self, amount: u32) {
-        self.0.value -= amount;
+        self.0.value = self.0.value.checked_sub(amount).unwrap_or(0);
     }
 
     pub fn heal(&mut self, amount: u32) {
-        self.0.value += amount;
+        self.0.value = self.0.value.checked_add(amount).unwrap_or(u32::MAX);
     }
 }

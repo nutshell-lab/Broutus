@@ -15,6 +15,9 @@ pub struct TeamA;
 #[derive(Default, Component)]
 pub struct TeamB;
 
+pub const TEAM_A_COLOR: Color = Color::rgb(23.0 / 255.0, 169.0 / 255.0, 250.0 / 255.0);
+pub const TEAM_B_COLOR: Color = Color::rgb(250.0 / 255.0, 104.0 / 255.0, 23.0 / 255.0);
+
 pub struct TurnStart(pub Entity);
 
 pub struct TurnEnd(pub Entity);
@@ -59,8 +62,12 @@ pub fn show_turn_ui(
     mut egui_context: ResMut<EguiContext>,
     warrior_query: Query<
         (&Name, &Health, &ActionPoints, &MovementPoints),
-        With<super::warrior::Warrior>,
+        (With<super::warrior::Warrior>),
     >,
+    mut team_query: QuerySet<(
+        QueryState<Entity, With<TeamA>>,
+        QueryState<Entity, With<TeamB>>,
+    )>,
 ) {
     egui::containers::Area::new("turn_order")
         .anchor(egui::Align2::RIGHT_TOP, [-20.0, 20.0])
@@ -70,6 +77,7 @@ pub fn show_turn_ui(
             let mut index = 0;
 
             ui.set_max_size([200.0, 1200.0].into());
+            ui.visuals_mut().selection.bg_fill = egui::Color32::from_rgb(231, 76, 60);
 
             while display_slots > 0 {
                 if index == 0 {
@@ -85,10 +93,25 @@ pub fn show_turn_ui(
                 let offset = if index == 0 { turn.order_index } else { 0 };
                 for &entity in turn.order.iter().skip(offset).take(display_slots) {
                     let (name, health, _, _) = warrior_query.get(entity).unwrap();
-                    let color = if display_slots == 8 {
-                        egui::Color32::LIGHT_GREEN
-                    } else {
-                        egui::Color32::WHITE
+                    let color = {
+                        let is_team_a = team_query.q0().get(entity).is_ok();
+                        let is_team_b = team_query.q1().get(entity).is_ok();
+
+                        if is_team_a {
+                            egui::Color32::from_rgb(
+                                (TEAM_A_COLOR.r() * 255.0).round() as u8,
+                                (TEAM_A_COLOR.g() * 255.0).round() as u8,
+                                (TEAM_A_COLOR.b() * 255.0).round() as u8,
+                            )
+                        } else if is_team_b {
+                            egui::Color32::from_rgb(
+                                (TEAM_B_COLOR.r() * 255.0).round() as u8,
+                                (TEAM_B_COLOR.g() * 255.0).round() as u8,
+                                (TEAM_B_COLOR.b() * 255.0).round() as u8,
+                            )
+                        } else {
+                            egui::Color32::LIGHT_GREEN
+                        }
                     };
 
                     ui.add(Label::new(
@@ -115,19 +138,31 @@ pub fn show_turn_ui(
             let warrior_entity = turn.get_current_warrior_entity().unwrap();
             let (_, _, ap, mp) = warrior_query.get(warrior_entity).unwrap();
 
-            let ap_text = RichText::new(ap.0.value.to_string())
-                .strong()
-                .heading()
-                .color(egui::Color32::BLACK);
+            egui::containers::Frame::default()
+                .corner_radius(2.0)
+                .fill(egui::Color32::from_rgb(101, 88, 245))
+                .margin((34.0, 15.0))
+                .show(ui, |ui| {
+                    let ap_text = RichText::new(format!("★ {}", ap.0.value))
+                        .strong()
+                        .heading()
+                        .color(egui::Color32::BLACK);
 
-            ui.add(egui::Button::new(ap_text).fill(egui::Color32::from_rgb(101, 88, 245)));
+                    ui.add(Label::new(ap_text));
+                });
 
-            let mp_text = RichText::new(mp.0.value.to_string())
-                .strong()
-                .heading()
-                .color(egui::Color32::BLACK);
+            egui::containers::Frame::default()
+                .corner_radius(2.0)
+                .fill(egui::Color32::from_rgb(26, 174, 159))
+                .margin((33.0, 15.0))
+                .show(ui, |ui| {
+                    let mp_text = RichText::new(format!("🎠 {}", mp.0.value))
+                        .strong()
+                        .heading()
+                        .color(egui::Color32::BLACK);
 
-            ui.add(egui::Button::new(mp_text).fill(egui::Color32::from_rgb(26, 174, 159)));
+                    ui.add(Label::new(mp_text));
+                });
 
             let end_turn_text = RichText::new("End turn")
                 .strong()

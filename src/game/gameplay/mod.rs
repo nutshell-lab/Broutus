@@ -23,6 +23,8 @@ use turn::TeamB;
 use turn::Turn;
 use turn::TurnEnd;
 use turn::TurnStart;
+use turn::TEAM_A_COLOR;
+use turn::TEAM_B_COLOR;
 use warrior::Warrior;
 use warrior::WarriorBundle;
 use weapon::Weapon;
@@ -128,9 +130,6 @@ fn highlight_warriors_tile(
     let current = turn.get_current_warrior_entity();
     let alpha = (((time.seconds_since_startup() * 4.0).sin() + 1.0) / 2.85) as f32;
 
-    let mut team_a_color = Color::MIDNIGHT_BLUE;
-    let mut team_b_color = Color::ORANGE_RED;
-
     for (entity, position) in warriors_queryset.q0().iter() {
         let alpha = current
             .map(|e| if e.eq(&entity) { alpha } else { 0.7 })
@@ -140,7 +139,7 @@ fn highlight_warriors_tile(
             map_id,
             layer_id,
             position,
-            team_a_color.set_a(alpha).as_rgba(),
+            TEAM_A_COLOR.clone().set_a(alpha).as_rgba(),
         );
     }
 
@@ -153,7 +152,7 @@ fn highlight_warriors_tile(
             map_id,
             layer_id,
             position,
-            team_b_color.set_a(alpha).as_rgba(),
+            TEAM_B_COLOR.clone().set_a(alpha).as_rgba(),
         );
     }
 }
@@ -204,7 +203,7 @@ fn compute_and_highlight_path(
                                     map_id,
                                     layer_id,
                                     position,
-                                    Color::rgba(0.18, 0.55, 0.34, 0.7),
+                                    Color::rgba(26. / 255., 174. / 255., 159. / 255., 0.7),
                                 );
                             }
                         }
