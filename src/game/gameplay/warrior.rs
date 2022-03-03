@@ -2,7 +2,7 @@ use super::attribute::*;
 use super::turn::TeamA;
 use super::turn::TeamB;
 use super::turn::ToColor32;
-use super::weapon::{Effect, EffectType, Weapon};
+use super::weapon::Weapon;
 use super::Map;
 use super::MapPosition;
 use super::MouseMapPosition;
@@ -32,6 +32,7 @@ impl WarriorBundle {
     pub fn new(
         name: String,
         position: MapPosition,
+        weapon: &Weapon,
         flip: f32,
         texture_atlas_handle: &Handle<TextureAtlas>,
     ) -> Self {
@@ -41,10 +42,7 @@ impl WarriorBundle {
             health: Health(Attribute { value: 50, max: 50 }),
             action_points: ActionPoints(Attribute { value: 6, max: 6 }),
             movement_points: MovementPoints(Attribute { value: 5, max: 5 }),
-            weapon: Weapon::new(
-                String::from("Dague du bandit"),
-                Effect::new(10, (0, 1), 3, EffectType::Attack),
-            ),
+            weapon: weapon.clone(),
             animation_timer: AnimationTimer(Timer::from_seconds(0.15, true)),
             sprite: SpriteSheetBundle {
                 texture_atlas: texture_atlas_handle.clone(),
@@ -185,7 +183,7 @@ pub fn show_warrior_bubble_on_hover(
                     .fixed_size((150.0, 80.0))
                     .fixed_pos((
                         hover_position.x - 75.0,
-                        (hover_position.y - main_window.height()) * -1.0 - 108.0,
+                        (hover_position.y - main_window.height()) * -1.0 - 108.0, // egui coordinates system has not the same 0.0 as bevy (top left vs bottom left)
                     ))
                     .frame(
                         egui::containers::Frame::default()

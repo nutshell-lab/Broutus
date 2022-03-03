@@ -1,57 +1,56 @@
 use super::attribute::Health;
 use bevy::prelude::*;
 
-#[derive(Component, Default)]
+pub const THUG_KNIFE: Weapon = Weapon {
+    name: "Dague du bandit",
+    effect: WeaponEffect {
+        to_health: HealthEffect::Damage(15),
+        ap_cost: 3u32,
+        range: (1u32, 1u32),
+    },
+};
+
+pub const HEAL_WAND: Weapon = Weapon {
+    name: "Baguette curative",
+    effect: WeaponEffect {
+        to_health: HealthEffect::Heal(8),
+        ap_cost: 4u32,
+        range: (2u32, 5u32),
+    },
+};
+
+#[derive(Component, Default, Copy, Clone)]
 pub struct Weapon {
-    name: String,
-    texture: String,
-    base_effect: Effect,
+    name: &'static str,
+    effect: WeaponEffect,
 }
 
-#[derive(Component, Default)]
-pub struct Effect {
-    amount: u32,
+#[derive(Default, Copy, Clone)]
+pub struct WeaponEffect {
+    to_health: HealthEffect,
+    ap_cost: u32,
     range: (u32, u32),
-    cost: u32,
-    effect_type: EffectType,
 }
 
-pub enum EffectType {
-    Attack,
-    Heal,
+#[derive(Copy, Clone)]
+pub enum HealthEffect {
+    Damage(u32),
+    Heal(u32),
     Ineffective,
 }
 
 impl Weapon {
-    pub fn new(name: String, base_effect: Effect) -> Weapon {
-        Weapon {
-            name,
-            base_effect,
-            texture: String::from("path/to/file.png"),
-        }
-    }
     pub fn use_on(&self, target: &mut Health) {
-        match self.base_effect.effect_type {
-            EffectType::Attack => target.hurt(self.base_effect.amount),
-            EffectType::Heal => target.heal(self.base_effect.amount),
-            EffectType::Ineffective => (),
+        match self.effect.to_health {
+            HealthEffect::Damage(amount) => target.hurt(amount),
+            HealthEffect::Heal(amount) => target.heal(amount),
+            HealthEffect::Ineffective => (),
         }
     }
 }
 
-impl Effect {
-    pub fn new(amount: u32, range: (u32, u32), cost: u32, effect_type: EffectType) -> Effect {
-        Effect {
-            amount,
-            range,
-            cost,
-            effect_type,
-        }
-    }
-}
-
-impl Default for EffectType {
+impl Default for HealthEffect {
     fn default() -> Self {
-        EffectType::Ineffective
+        HealthEffect::Ineffective
     }
 }

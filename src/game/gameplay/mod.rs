@@ -27,6 +27,8 @@ use turn::TurnStart;
 use warrior::Warrior;
 use warrior::WarriorBundle;
 use weapon::Weapon;
+use weapon::HEAL_WAND;
+use weapon::THUG_KNIFE;
 
 pub use turn::show_turn_ui;
 pub use warrior::animate_warrior_sprite;
@@ -75,6 +77,7 @@ fn spawn_warriors(mut commands: Commands, warrior_assets: Res<WarriorAssets>) {
         .spawn_bundle(WarriorBundle::new(
             "Brundal".to_string(),
             MapPosition::new(17, 5),
+            &THUG_KNIFE,
             -1.0,
             &warrior_assets.idle,
         ))
@@ -85,6 +88,7 @@ fn spawn_warriors(mut commands: Commands, warrior_assets: Res<WarriorAssets>) {
         .spawn_bundle(WarriorBundle::new(
             "Brandy".to_string(),
             MapPosition::new(17, 10),
+            &HEAL_WAND,
             -1.0,
             &warrior_assets.idle,
         ))
@@ -95,6 +99,7 @@ fn spawn_warriors(mut commands: Commands, warrior_assets: Res<WarriorAssets>) {
         .spawn_bundle(WarriorBundle::new(
             "Brando".to_string(),
             MapPosition::new(17, 2),
+            &THUG_KNIFE,
             -1.0,
             &warrior_assets.idle,
         ))
@@ -105,6 +110,7 @@ fn spawn_warriors(mut commands: Commands, warrior_assets: Res<WarriorAssets>) {
         .spawn_bundle(WarriorBundle::new(
             "Glourf".to_string(),
             MapPosition::new(2, 5),
+            &THUG_KNIFE,
             1.0,
             &warrior_assets.idle,
         ))
@@ -115,6 +121,7 @@ fn spawn_warriors(mut commands: Commands, warrior_assets: Res<WarriorAssets>) {
         .spawn_bundle(WarriorBundle::new(
             "Glarf".to_string(),
             MapPosition::new(2, 1),
+            &HEAL_WAND,
             1.0,
             &warrior_assets.idle,
         ))
@@ -125,6 +132,7 @@ fn spawn_warriors(mut commands: Commands, warrior_assets: Res<WarriorAssets>) {
         .spawn_bundle(WarriorBundle::new(
             "Glirf".to_string(),
             MapPosition::new(2, 8),
+            &THUG_KNIFE,
             1.0,
             &warrior_assets.idle,
         ))
