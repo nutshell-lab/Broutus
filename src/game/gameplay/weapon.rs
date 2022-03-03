@@ -17,8 +17,8 @@ pub struct Effect {
 }
 
 pub enum EffectType {
-    Attack(),
-    Heal(),
+    Attack,
+    Heal,
     Ineffective,
 }
 
@@ -32,8 +32,8 @@ impl Weapon {
     }
     pub fn use_on(&self, target: &mut Health) {
         match self.base_effect.effect_type {
-            EffectType::Attack() => target.hurt(self.base_effect.amount),
-            EffectType::Heal() => target.heal(self.base_effect.amount),
+            EffectType::Attack => target.hurt(self.base_effect.amount),
+            EffectType::Heal => target.heal(self.base_effect.amount),
             EffectType::Ineffective => (),
         }
     }

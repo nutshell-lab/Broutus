@@ -10,12 +10,11 @@ pub enum GameState {
     /// Load all game assets
     LOADING,
 
-    /// Show main menu
-    MENU,
+    // /// Show main menu
+    // MENU,
 
-    /// Prepare your team
-    PREPARE,
-
+    // /// Prepare your team
+    // PREPARE,
     /// Fight !
     ARENA,
 }
@@ -41,7 +40,8 @@ impl Plugin for GamePlugin {
 /// Spawn the main camera
 fn setup_camera(mut commands: Commands) {
     commands.spawn_bundle(OrthographicCameraBundle {
-        transform: Transform::identity().with_translation(Vec3::new(250.0, -490.0, 1000.0 - 0.1)),
+        transform: Transform::identity().with_translation((250.0, -490.0, 1000.0 - 0.1).into()),
+        // .with_scale((1.2, 1.2, 1.0).into()),
         ..OrthographicCameraBundle::new_2d()
     });
 }

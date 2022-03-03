@@ -38,7 +38,7 @@ impl WarriorBundle {
             movement_points: MovementPoints(Attribute { value: 5, max: 5 }),
             weapon: Weapon::new(
                 String::from("Dague du bandit"),
-                Effect::new(10, (0, 1), 3, EffectType::Attack()),
+                Effect::new(10, (0, 1), 3, EffectType::Attack),
             ),
             animation_timer: AnimationTimer(Timer::from_seconds(0.15, true)),
             sprite: SpriteSheetBundle {

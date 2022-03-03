@@ -62,7 +62,7 @@ pub fn show_turn_ui(
     mut egui_context: ResMut<EguiContext>,
     warrior_query: Query<
         (&Name, &Health, &ActionPoints, &MovementPoints),
-        (With<super::warrior::Warrior>),
+        With<super::warrior::Warrior>,
     >,
     mut team_query: QuerySet<(
         QueryState<Entity, With<TeamA>>,
@@ -176,5 +176,51 @@ pub fn show_turn_ui(
                 turn.set_next();
                 ev_turn_started.send(TurnStart(turn.get_current_warrior_entity().unwrap()));
             }
+        });
+
+    egui::containers::Window::new("Battlelogs")
+        .anchor(egui::Align2::LEFT_BOTTOM, [10.0, -10.0])
+        .collapsible(false)
+        .resizable(false)
+        .title_bar(false)
+        .fixed_size((300.0, 200.0))
+        .frame(
+            egui::containers::Frame::default()
+                .fill(egui::Color32::WHITE)
+                .corner_radius(5.0),
+        )
+        .show(egui_context.ctx_mut(), |ui| {
+            egui::containers::Frame::default()
+                .fill(egui::Color32::from_rgb(231, 76, 60))
+                .margin((105.0, 10.0))
+                .corner_radius(5.0)
+                .show(ui, |ui| {
+                    let text = RichText::new("Battlelogs")
+                        .strong()
+                        .heading()
+                        .color(egui::Color32::WHITE);
+
+                    ui.add(Label::new(text));
+                });
+
+            egui::containers::Frame::default()
+                .fill(egui::Color32::WHITE)
+                .margin((10.0, 10.0))
+                .show(ui, |ui| {
+                    let text_style = egui::TextStyle::Body;
+                    let row_height = ui.fonts()[text_style].row_height();
+                    let num_rows = 10_000;
+                    egui::ScrollArea::vertical().stick_to_bottom().show_rows(
+                        ui,
+                        row_height,
+                        num_rows,
+                        |ui, row_range| {
+                            for row in row_range {
+                                let text = format!("Row {}/{}", row + 1, num_rows);
+                                ui.label(text);
+                            }
+                        },
+                    );
+                });
         });
 }

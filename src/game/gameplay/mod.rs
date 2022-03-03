@@ -70,9 +70,9 @@ impl Plugin for GameplayPlugin {
 
 fn spawn_warriors(mut commands: Commands, warrior_assets: Res<WarriorAssets>) {
     // Spawn warriors
-    let knight_blue = commands
+    let brundal = commands
         .spawn_bundle(WarriorBundle::new(
-            "Knight Blue".to_string(),
+            "Brundal".to_string(),
             MapPosition::new(17, 5),
             -1.0,
             &warrior_assets.idle,
@@ -80,9 +80,29 @@ fn spawn_warriors(mut commands: Commands, warrior_assets: Res<WarriorAssets>) {
         .insert(TeamA)
         .id();
 
-    let knight_red = commands
+    let brandy = commands
         .spawn_bundle(WarriorBundle::new(
-            "Knight Red".to_string(),
+            "Brandy".to_string(),
+            MapPosition::new(17, 10),
+            -1.0,
+            &warrior_assets.idle,
+        ))
+        .insert(TeamA)
+        .id();
+
+    let brando = commands
+        .spawn_bundle(WarriorBundle::new(
+            "Brando".to_string(),
+            MapPosition::new(17, 2),
+            -1.0,
+            &warrior_assets.idle,
+        ))
+        .insert(TeamA)
+        .id();
+
+    let glourf = commands
+        .spawn_bundle(WarriorBundle::new(
+            "Glourf".to_string(),
             MapPosition::new(2, 5),
             1.0,
             &warrior_assets.idle,
@@ -90,10 +110,20 @@ fn spawn_warriors(mut commands: Commands, warrior_assets: Res<WarriorAssets>) {
         .insert(TeamB)
         .id();
 
-    let knight_purple = commands
+    let glarf = commands
         .spawn_bundle(WarriorBundle::new(
-            "Knight Purple".to_string(),
-            MapPosition::new(4, 10),
+            "Glarf".to_string(),
+            MapPosition::new(2, 1),
+            1.0,
+            &warrior_assets.idle,
+        ))
+        .insert(TeamB)
+        .id();
+
+    let glirf = commands
+        .spawn_bundle(WarriorBundle::new(
+            "Glirf".to_string(),
+            MapPosition::new(2, 8),
             1.0,
             &warrior_assets.idle,
         ))
@@ -102,7 +132,7 @@ fn spawn_warriors(mut commands: Commands, warrior_assets: Res<WarriorAssets>) {
 
     // Insert turn system resource
     commands.insert_resource(Turn {
-        order: vec![knight_blue, knight_red, knight_purple],
+        order: vec![brundal, glourf, brandy, glarf, brando, glirf],
         ..Default::default()
     })
 }

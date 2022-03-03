@@ -28,9 +28,6 @@ pub fn update_map_mouse_position(
     if let Some(mouse) = primary_window.cursor_position() {
         for (map_transform, tmx_handle) in map_query.iter() {
             if let Some(tiledmap) = &tmx_map.get(tmx_handle) {
-                // Get tmx data to get map size in tiles
-                let tileset = tiledmap.inner.tilesets.first().unwrap();
-
                 // let grid_size = Vec2::new(tileset.tile_width as f32, tileset.tile_height as f32);
                 let tile_size = Vec2::new(
                     tiledmap.inner.tile_width as f32,

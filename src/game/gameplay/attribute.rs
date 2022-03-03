@@ -30,6 +30,11 @@ impl Health {
     }
 
     pub fn heal(&mut self, amount: u32) {
-        self.0.value = self.0.value.checked_add(amount).unwrap_or(u32::MAX);
+        self.0.value = self
+            .0
+            .value
+            .checked_add(amount)
+            .filter(|v| v < &self.0.max)
+            .unwrap_or(self.0.max);
     }
 }
