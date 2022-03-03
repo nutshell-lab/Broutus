@@ -1,6 +1,5 @@
 use super::GameState;
 use bevy::prelude::*;
-use bevy::utils::tracing::span::Entered;
 
 mod attribute;
 mod turn;
@@ -324,7 +323,7 @@ fn handle_warrior_attack_on_click(
         QueryState<(&MapPosition, &mut Health), With<Warrior>>,
     )>,
 ) {
-    if let Some(target_position) = ev_clicked.iter().next() {
+    for click_event in ev_clicked.iter() {
         let warrior_entity = turn.get_current_warrior_entity().unwrap();
         let mut attacker_query = warrior_query.q0();
         let (weapon, mut action_points) = attacker_query.get_mut(warrior_entity).unwrap();
@@ -332,9 +331,9 @@ fn handle_warrior_attack_on_click(
         if action_points.can_spend(weapon.effect.ap_cost) {
             action_points.spend(weapon.effect.ap_cost);
 
-            let weapon = weapon.clone();
+            let weapon = weapon.clone(); // Cannot get both queries as mutable at the same time :(
             for (position, mut health) in warrior_query.q1().iter_mut() {
-                if target_position.0.eq(position) {
+                if click_event.0.eq(position) {
                     weapon.use_on(&mut health);
                 }
             }

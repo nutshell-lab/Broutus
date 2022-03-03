@@ -18,12 +18,6 @@ pub struct ActionPoints(pub Attribute);
 #[reflect(Component)]
 pub struct MovementPoints(pub Attribute);
 
-impl Attribute {
-    pub fn reset(&mut self) {
-        self.value = self.max;
-    }
-}
-
 impl Health {
     pub fn hurt(&mut self, amount: u32) {
         self.0.drop(amount);

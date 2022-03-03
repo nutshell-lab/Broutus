@@ -85,7 +85,7 @@ pub fn animate_warrior_sprite(
     }
 }
 
-/// Update the warrior's Transform based on it's TilePos
+/// Update the warrior's Transform based on it's MapPosition
 pub fn update_warrior_world_position(
     tiledmaps: Res<Assets<Tiledmap>>,
     map_query: Query<(Entity, &Map, &Handle<Tiledmap>)>,

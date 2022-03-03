@@ -1,4 +1,4 @@
-use super::attribute::{ActionPoints, Health};
+use super::attribute::Health;
 use bevy::prelude::*;
 
 pub const THUG_KNIFE: Weapon = Weapon {
