@@ -1,10 +1,15 @@
-use super::super::map::Map;
-use super::super::map::MapPosition;
-use super::super::map::Tiledmap;
 use super::attribute::*;
+use super::turn::TeamA;
+use super::turn::TeamB;
+use super::turn::ToColor32;
 use super::weapon::{Effect, EffectType, Weapon};
+use super::Map;
+use super::MapPosition;
+use super::MouseMapPosition;
+use super::Tiledmap;
 use bevy::prelude::*;
 use bevy_asset_loader::AssetCollection;
+use bevy_egui::{egui, EguiContext};
 
 #[derive(Default, Component)]
 pub struct Warrior;
@@ -113,6 +118,93 @@ pub fn update_warrior_world_position(
                 tile_width,
                 tile_height,
             );
+        }
+    }
+}
+
+/// Display all infos about the turn system in a dedicated window
+pub fn show_warrior_bubble_on_hover(
+    windows: Res<Windows>,
+    tiledmaps: Res<Assets<Tiledmap>>,
+    mouse_position: Res<MouseMapPosition>,
+    map_query: Query<&Handle<Tiledmap>, With<Map>>,
+    warrior_query: Query<(Entity, &Name, &Health, &MapPosition), With<Warrior>>,
+    camera_query: Query<(&Camera, &GlobalTransform)>,
+    mut egui_context: ResMut<EguiContext>,
+    mut team_query: QuerySet<(
+        QueryState<Entity, With<TeamA>>,
+        QueryState<Entity, With<TeamB>>,
+    )>,
+) {
+    if map_query.is_empty() {
+        return;
+    }
+    if warrior_query.is_empty() {
+        return;
+    }
+
+    if let Some(mouse_position) = mouse_position.0 {
+        let tiledmap_handle = map_query.single();
+        let tiledmap = tiledmaps.get(tiledmap_handle).unwrap();
+        let (camera, camera_transform) = camera_query.single();
+
+        for (entity, name, health, position) in warrior_query.iter() {
+            if mouse_position.ne(position) {
+                continue;
+            }
+
+            let world_position = position.to_xyz(
+                0u32,
+                tiledmap.inner.width,
+                tiledmap.inner.height,
+                tiledmap.inner.tile_width as f32,
+                tiledmap.inner.tile_height as f32,
+            );
+
+            if let Some(hover_position) =
+                camera.world_to_screen(windows.as_ref(), camera_transform, world_position)
+            {
+                let color = {
+                    let is_team_a = team_query.q0().get(entity).is_ok();
+                    let is_team_b = team_query.q1().get(entity).is_ok();
+
+                    if is_team_a {
+                        TeamA::to_color32()
+                    } else if is_team_b {
+                        TeamB::to_color32()
+                    } else {
+                        egui::Color32::LIGHT_GREEN
+                    }
+                };
+
+                let main_window = windows.get_primary().unwrap();
+                egui::containers::Window::new("WarriorMouseHover")
+                    .collapsible(false)
+                    .resizable(false)
+                    .title_bar(false)
+                    .fixed_size((150.0, 80.0))
+                    .fixed_pos((
+                        hover_position.x - 75.0,
+                        (hover_position.y - main_window.height()) * -1.0 - 108.0,
+                    ))
+                    .frame(
+                        egui::containers::Frame::default()
+                            .fill(egui::Color32::from_rgb(19, 26, 38))
+                            .stroke(egui::Stroke::new(
+                                2.0,
+                                egui::Color32::from_rgb(207, 209, 211),
+                            ))
+                            .margin((5.0, 5.0))
+                            .corner_radius(5.0),
+                    )
+                    .show(egui_context.ctx_mut(), |ui| {
+                        ui.label(egui::RichText::new(name.as_str()).color(color).heading());
+                        ui.add(
+                            egui::ProgressBar::new(health.0.value as f32 / health.0.max as f32)
+                                .text(format!("{} / {} hp", health.0.value, health.0.max)),
+                        )
+                    });
+            }
         }
     }
 }

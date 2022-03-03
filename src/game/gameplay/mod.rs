@@ -20,17 +20,17 @@ use attribute::Health;
 use attribute::MovementPoints;
 use turn::TeamA;
 use turn::TeamB;
+use turn::ToColor;
 use turn::Turn;
 use turn::TurnEnd;
 use turn::TurnStart;
-use turn::TEAM_A_COLOR;
-use turn::TEAM_B_COLOR;
 use warrior::Warrior;
 use warrior::WarriorBundle;
 use weapon::Weapon;
 
 pub use turn::show_turn_ui;
 pub use warrior::animate_warrior_sprite;
+pub use warrior::show_warrior_bubble_on_hover;
 pub use warrior::update_warrior_world_position;
 pub use warrior::WarriorAssets;
 
@@ -52,6 +52,7 @@ impl Plugin for GameplayPlugin {
                     .with_system(reset_warrior_attributes_on_turn_end)
                     .with_system(handle_warrior_movement_on_click)
                     .with_system(handle_warrior_attack_on_click)
+                    .with_system(show_warrior_bubble_on_hover)
                     .with_system(show_turn_ui),
             )
             .add_system_set(
@@ -169,7 +170,7 @@ fn highlight_warriors_tile(
             map_id,
             layer_id,
             position,
-            TEAM_A_COLOR.clone().set_a(alpha).as_rgba(),
+            TeamA::to_color().clone().set_a(alpha).as_rgba(),
         );
     }
 
@@ -182,7 +183,7 @@ fn highlight_warriors_tile(
             map_id,
             layer_id,
             position,
-            TEAM_B_COLOR.clone().set_a(alpha).as_rgba(),
+            TeamB::to_color().clone().set_a(alpha).as_rgba(),
         );
     }
 }

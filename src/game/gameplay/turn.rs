@@ -17,6 +17,40 @@ pub struct TeamB;
 
 pub const TEAM_A_COLOR: Color = Color::rgb(23.0 / 255.0, 169.0 / 255.0, 250.0 / 255.0);
 pub const TEAM_B_COLOR: Color = Color::rgb(250.0 / 255.0, 104.0 / 255.0, 23.0 / 255.0);
+pub const TEAM_A_COLOR32: egui::Color32 = egui::Color32::from_rgb(23, 169, 250);
+pub const TEAM_B_COLOR32: egui::Color32 = egui::Color32::from_rgb(250, 104, 23);
+
+pub trait ToColor {
+    fn to_color() -> Color;
+}
+
+pub trait ToColor32 {
+    fn to_color32() -> egui::Color32;
+}
+
+impl ToColor for TeamA {
+    fn to_color() -> Color {
+        TEAM_A_COLOR
+    }
+}
+
+impl ToColor for TeamB {
+    fn to_color() -> Color {
+        TEAM_B_COLOR
+    }
+}
+
+impl ToColor32 for TeamA {
+    fn to_color32() -> egui::Color32 {
+        TEAM_A_COLOR32
+    }
+}
+
+impl ToColor32 for TeamB {
+    fn to_color32() -> egui::Color32 {
+        TEAM_B_COLOR32
+    }
+}
 
 pub struct TurnStart(pub Entity);
 
@@ -98,17 +132,9 @@ pub fn show_turn_ui(
                         let is_team_b = team_query.q1().get(entity).is_ok();
 
                         if is_team_a {
-                            egui::Color32::from_rgb(
-                                (TEAM_A_COLOR.r() * 255.0).round() as u8,
-                                (TEAM_A_COLOR.g() * 255.0).round() as u8,
-                                (TEAM_A_COLOR.b() * 255.0).round() as u8,
-                            )
+                            TeamA::to_color32()
                         } else if is_team_b {
-                            egui::Color32::from_rgb(
-                                (TEAM_B_COLOR.r() * 255.0).round() as u8,
-                                (TEAM_B_COLOR.g() * 255.0).round() as u8,
-                                (TEAM_B_COLOR.b() * 255.0).round() as u8,
-                            )
+                            TeamB::to_color32()
                         } else {
                             egui::Color32::LIGHT_GREEN
                         }
