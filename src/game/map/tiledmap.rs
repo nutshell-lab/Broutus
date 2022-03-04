@@ -96,7 +96,7 @@ impl MapPosition {
         )
     }
 
-    pub fn distance_to(self, other: MapPosition) -> u32 {
+    pub fn distance_to(self, other: &MapPosition) -> u32 {
         let x_offset = if self.x < other.x {
             other.x - self.x
         } else {
@@ -124,7 +124,7 @@ impl MapPosition {
         for y in 0..map_height {
             for x in 0..map_width {
                 let p = MapPosition::new(x, y);
-                if p.ne(&self) && p.distance_to(self) <= distance {
+                if p.ne(&self) && p.distance_to(&self) <= distance {
                     positions.push(p);
                 }
             }

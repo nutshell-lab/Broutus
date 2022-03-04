@@ -70,6 +70,7 @@ impl Plugin for GameplayPlugin {
                     .after("clean_highlithing")
                     .with_system(highlight_warriors_tile)
                     .with_system(highlight_potential_movement)
+                    .with_system(highlight_potential_action)
                     .with_system(compute_and_highlight_path),
             );
     }
@@ -214,7 +215,8 @@ fn compute_and_highlight_path(
     mut map_query: MapQuery,
 ) {
     // An action is selected, don't highlight path
-    if selected_action.0.is_some() {
+    // Or the attack system just deselected action because it was triggered
+    if selected_action.0.is_some() || selected_action.is_changed() {
         return;
     }
 
@@ -271,11 +273,16 @@ fn compute_and_highlight_path(
 /// A fucking inefficient function to highlight reachable MapPositions for the hovered Warrior
 fn highlight_potential_movement(
     mouse_position: Res<MouseMapPosition>,
+    selected_action: Res<SelectedAction>,
     tiledmap_map: Res<Assets<Tiledmap>>,
     tiledmap_query: Query<&Handle<Tiledmap>, With<Map>>,
     warrior_query: Query<(&MapPosition, &MovementPoints), With<Warrior>>,
     mut map_query: MapQuery,
 ) {
+    // An action is selected, don't highlight path
+    if selected_action.0.is_some() {
+        return;
+    }
     if tiledmap_query.is_empty() {
         return;
     }
@@ -400,7 +407,7 @@ fn handle_warrior_attack_on_click(
     mut selected_action: ResMut<SelectedAction>,
     turn: Res<Turn>,
     mut warrior_query: QuerySet<(
-        QueryState<(&Weapon, &mut ActionPoints), With<Warrior>>,
+        QueryState<(&Weapon, &MapPosition, &mut ActionPoints), With<Warrior>>,
         QueryState<(&MapPosition, &mut Health), With<Warrior>>,
     )>,
 ) {
@@ -409,10 +416,17 @@ fn handle_warrior_attack_on_click(
         return;
     }
 
+    let action_distance = 2; // TODO replace with real action logic
+
     for click_event in ev_clicked.iter() {
         let warrior_entity = turn.get_current_warrior_entity().unwrap();
         let mut attacker_query = warrior_query.q0();
-        let (weapon, mut action_points) = attacker_query.get_mut(warrior_entity).unwrap();
+        let (weapon, warrior_position, mut action_points) =
+            attacker_query.get_mut(warrior_entity).unwrap();
+
+        if click_event.0.distance_to(&warrior_position) > action_distance {
+            continue;
+        }
 
         if action_points.can_spend(weapon.effect.ap_cost) {
             action_points.spend(weapon.effect.ap_cost);
@@ -421,10 +435,11 @@ fn handle_warrior_attack_on_click(
             for (position, mut health) in warrior_query.q1().iter_mut() {
                 if click_event.0.eq(position) {
                     weapon.use_on(&mut health);
-                    selected_action.0 = None; // Deselect action automatically
                 }
             }
         }
+
+        selected_action.0 = None; // Deselect action automatically
     }
 }
 
@@ -447,6 +462,54 @@ fn despawn_warrior_on_death(
             }
 
             commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
+fn highlight_potential_action(
+    turn: Res<Turn>,
+    selected_action: Res<SelectedAction>,
+    tiledmap_map: Res<Assets<Tiledmap>>,
+    tiledmap_query: Query<&Handle<Tiledmap>, With<Map>>,
+    warrior_query: Query<&MapPosition, With<Warrior>>,
+    mut map_query: MapQuery,
+) {
+    if selected_action.0.is_none() {
+        return;
+    }
+    if tiledmap_query.is_empty() {
+        return;
+    }
+
+    let action_distance = 2; // TODO replace with real action logic
+
+    let map_id = 0u32;
+    let layer_id = 1u32;
+
+    let tiledmap_handle = tiledmap_query.single();
+    let tiledmap_map = &tiledmap_map.get(tiledmap_handle);
+
+    if let Some(tiledmap_map) = tiledmap_map {
+        let warrior_entity = turn.get_current_warrior_entity().unwrap();
+        let warrior_position = warrior_query.get(warrior_entity).unwrap();
+        let surroundings = warrior_position.get_surrounding_positions(
+            action_distance,
+            tiledmap_map.inner.width,
+            tiledmap_map.inner.height,
+        );
+
+        for position in surroundings {
+            let is_obstacle = map_query.is_obstacle(map_id, &position);
+            if !is_obstacle {
+                map_query.update_tile_sprite_color(
+                    map_id,
+                    layer_id,
+                    &position,
+                    bevy::render::color::Color::from(color::HEALTH)
+                        .set_a(0.6)
+                        .as_rgba(),
+                );
+            }
         }
     }
 }

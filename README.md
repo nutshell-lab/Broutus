@@ -1,6 +1,8 @@
 # BROUTUS
 
-The soon-extraordinary game by Nutshell
+> Game prototype
+
+The soon-extraordinary (first) game by Nutshell
 
 ## Getting started
 
@@ -16,57 +18,26 @@ Next follow [bevy's setup instructions](https://bevyengine.org/learn/book/gettin
 ## Gameplay
 
 - Start a game
-    - Select characters to create a team
-    - Characters are avalable through a predefined list
-    - Customize character equipments (but not stats, nor abilities)
-    - Character has stats
-        - Strength (damages)
-        - Agility (dodge)
-        - Accuracy (aim)
-        - Constitution (health)
-        - Luck (critical strikes)
-    - Character has items
-    - Character has limited items slots
-        - Head
-        - Left arm
-        - Right arm
-        - Upper body
-        - Lower body
-        - Back
-        - Pocket 1
-        - Pocket 2
-    - Item has a type
-        - Helmet
-        - Weapon (1h)
-        - Weapon (2h)
-        - Shield
-        - Armor
-        - Pants
-    - Item provides stats bonuses
-    - Item provides actions
-    - Item has a wost in customization points
-- Figth in arena
-    - Turn based
+    - Select 3 warriors to create a team
+    - Warriors are avalable through a predefined list
+    - (later) draft system - alternate pick / ban
+- Figth in arena 3vs3
+    - Turn based combat
     - Grid based deplacement
-    - Automatic selection of the current character based on a stat
-    - Move or Act
+    - Automatic selection of the current warrior based on automatic turn ordering system
     - Movement points
     - Action points
-    - Differents actions
-    - Items changes character stats and actions
-    - Character has base actions
-    - Character has actions given by his items
-    - Combined stuff provide more actions (item1 + item2 = action3 unlocked)
+    - Warrior has a dedicated set of actions
 
 ## Prototyping
 Create a team:
-1. Add a basic HUD
-2. Show a list of items
-3. Display some text-properties of an item
+1. Show warriors list
+2. Select 3 of them
+3. Click Fight!
 
 Fight :
-1. Spawn a character 
-2. Move the character to a location
+1. Spawn a warrior 
+2. Move the warrior to a location
 3. Make the location follow a path (orthogonal)
 4. Make a tile below the mouse highlight
 5. Hilight a path between two tiles

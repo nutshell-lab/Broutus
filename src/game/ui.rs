@@ -352,50 +352,59 @@ pub fn handle_action_bar_shortcuts(
 
 /// Show battle logs window (scrollable)
 pub fn show_battlelog_ui(mut egui_context: ResMut<EguiContext>) {
-    egui::containers::Window::new("battlelogs")
+    egui::containers::Area::new("battlelogs")
         .anchor(egui::Align2::LEFT_BOTTOM, [20.0, -20.0])
-        .collapsible(false)
-        .resizable(false)
-        .title_bar(false)
-        .fixed_size((300.0, 200.0))
-        .frame(
-            egui::containers::Frame::default()
-                .fill(egui::Color32::WHITE)
-                .corner_radius(5.0),
-        )
         .show(egui_context.ctx_mut(), |ui| {
             egui::containers::Frame::default()
-                .fill(egui::Color32::from_rgb(231, 76, 60))
-                .margin((105.0, 10.0))
+                .fill(color::WHITE_BG.into())
                 .corner_radius(5.0)
                 .show(ui, |ui| {
-                    let text = RichText::new("Battlelogs")
-                        .strong()
-                        .heading()
-                        .color(egui::Color32::WHITE);
+                    egui::containers::Frame::default()
+                        .fill(color::HEALTH.into())
+                        .corner_radius(4.0)
+                        .show(ui, |ui| {
+                            egui::Resize::default()
+                                .default_width(300.0)
+                                .default_height(30.0)
+                                .resizable(false)
+                                .show(ui, |ui| {
+                                    let text = RichText::new("Battlelogs")
+                                        .strong()
+                                        .heading()
+                                        .color(egui::Color32::WHITE);
 
-                    ui.add(Label::new(text));
-                });
+                                    ui.with_layout(
+                                        egui::Layout::centered_and_justified(
+                                            egui::Direction::LeftToRight,
+                                        ),
+                                        |ui| {
+                                            ui.add(Label::new(text));
+                                        },
+                                    )
+                                });
+                        });
 
-            egui::containers::Frame::default()
-                .fill(egui::Color32::WHITE)
-                .margin((10.0, 10.0))
-                .show(ui, |ui| {
-                    // TODO show real battle logs
-                    let text_style = egui::TextStyle::Body;
-                    let row_height = ui.fonts()[text_style].row_height();
-                    let num_rows = 10_000;
-                    egui::ScrollArea::vertical().stick_to_bottom().show_rows(
-                        ui,
-                        row_height,
-                        num_rows,
-                        |ui, row_range| {
-                            for row in row_range {
-                                let text = format!("Row {}/{}", row + 1, num_rows);
-                                ui.label(text);
-                            }
-                        },
-                    );
+                    egui::Resize::default()
+                        .default_width(300.0)
+                        .default_height(200.0)
+                        .resizable(false)
+                        .show(ui, |ui| {
+                            let text_style = egui::TextStyle::Body;
+                            let row_height = ui.fonts()[text_style].row_height();
+                            let num_rows = 1_000;
+                            egui::ScrollArea::vertical().stick_to_bottom().show_rows(
+                                ui,
+                                row_height * 2.0,
+                                num_rows,
+                                |ui, row_range| {
+
+                                    for _ in row_range {
+                                        let message = egui::RichText::new("system: Brunto attacked Glurf with a Rusty Sword for 32 damages.").strong().color(color::DEFAULT_BG);
+                                            ui.label(message);
+                                    }
+                                },
+                            );
+                        });
                 });
         });
 }
