@@ -100,9 +100,3 @@ pub fn unproject_iso(
         None
     }
 }
-
-/// Get the list of tile neightbours at the given position
-pub fn tile_distance(start: &MapPosition, end: &MapPosition) -> u32 {
-    (pathfinding::prelude::absdiff(start.x, end.x) + pathfinding::prelude::absdiff(start.x, end.x))
-        as u32
-}

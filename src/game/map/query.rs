@@ -236,10 +236,9 @@ impl<'w, 's> MapQuery<'w, 's> {
         map_width: u32,
         map_height: u32,
     ) -> Option<(Vec<MapPosition>, u32)> {
-        pathfinding::prelude::astar(
+        pathfinding::prelude::dijkstra(
             start,
             |position| self.non_obstacle_tile_neightbours(map_id, position, map_width, map_height),
-            |current| tile_distance(current, end),
             |position| position.eq(end),
         )
     }
