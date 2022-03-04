@@ -359,7 +359,7 @@ fn handle_warrior_action_on_click(
         return;
     }
 
-    if let Some(_) = selected_action.0 {
+    if selected_action.0.is_some() {
         let action_distance = 2; // TODO replace with real action logic
 
         for click_event in ev_clicked.iter() {

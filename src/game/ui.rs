@@ -14,9 +14,9 @@ pub struct ActionsAssets {
 
 /// Display all infos about the turn system in a dedicated window
 pub fn show_turn_ui(
-    mut turn: ResMut<Turn>,
-    mut egui_context: ResMut<EguiContext>,
+    turn: Res<Turn>,
     warrior_query: Query<(&Name, &Health, &ActionPoints, &MovementPoints), With<Warrior>>,
+    mut egui_context: ResMut<EguiContext>,
     mut team_query: QuerySet<(
         QueryState<Entity, With<TeamA>>,
         QueryState<Entity, With<TeamB>>,
@@ -439,6 +439,7 @@ pub fn show_warrior_ui(
     windows: Res<Windows>,
     tiledmaps: Res<Assets<Tiledmap>>,
     mouse_position: Res<MouseMapPosition>,
+    selected_action: Res<SelectedAction>,
     map_query: Query<&Handle<Tiledmap>, With<Map>>,
     warrior_query: Query<(Entity, &Name, &Health, &MapPosition), With<Warrior>>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
@@ -513,6 +514,21 @@ pub fn show_warrior_ui(
                             ProgressBar::new(health.as_percentage())
                                 .text(egui::RichText::new(health.as_text()).color(color::BG_TEXT)),
                         );
+
+                        // Preview selected action consequences on the hovered warrior
+                        if selected_action.0.is_some() {
+                            ui.separator();
+                            ui.label(
+                                egui::RichText::new("Slash")
+                                    .color(color::ACTION_POINTS)
+                                    .text_style(egui::TextStyle::Button),
+                            );
+                            ui.label(
+                                egui::RichText::new("-15 health")
+                                    .color(color::HEALTH)
+                                    .strong(),
+                            );
+                        }
                     });
             }
         }
