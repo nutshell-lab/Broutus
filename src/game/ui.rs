@@ -15,9 +15,6 @@ pub struct ActionsAssets {
 /// Display all infos about the turn system in a dedicated window
 pub fn show_turn_ui(
     mut turn: ResMut<Turn>,
-    turn_timer: Res<TurnTimer>,
-    mut ev_turn_started: EventWriter<TurnStart>,
-    mut ev_turn_ended: EventWriter<TurnEnd>,
     mut egui_context: ResMut<EguiContext>,
     warrior_query: Query<(&Name, &Health, &ActionPoints, &MovementPoints), With<Warrior>>,
     mut team_query: QuerySet<(
@@ -91,85 +88,56 @@ pub fn show_turn_ui(
                 egui::RichText::new(format!("turn {}", turn.current + 1)).color(color::BG_TEXT),
             ));
         });
+}
 
-    egui::containers::Area::new("next_turn_button")
+pub fn show_turn_button_ui(
+    mut turn: ResMut<Turn>,
+    turn_timer: Res<TurnTimer>,
+    mut ev_turn_started: EventWriter<TurnStart>,
+    mut ev_turn_ended: EventWriter<TurnEnd>,
+    mut egui_context: ResMut<EguiContext>,
+) {
+    egui::containers::Window::new("next_turn_button")
         .anchor(egui::Align2::RIGHT_BOTTOM, [-20.0, -20.0])
+        .collapsible(false)
+        .resizable(false)
+        .title_bar(false)
+        .default_width(200.0)
+        .frame(
+            egui::containers::Frame::default()
+                .margin((10.0, 10.0))
+                .fill(egui::Color32::from_white_alpha(0))
+                .stroke(egui::Stroke::none()),
+        )
         .show(egui_context.ctx_mut(), |ui| {
             let mut style = ui.style_mut();
             style.spacing.button_padding = [15.0, 15.0].into();
+            ui.with_layout(
+                egui::Layout::top_down_justified(egui::Align::Center),
+                |ui| {
+                    let end_turn_text = RichText::new("🕑 End turn")
+                        .strong()
+                        .heading()
+                        .color(egui::Color32::BLACK);
 
-            let warrior_entity = turn.get_current_warrior_entity().unwrap();
-            let (_, _, ap, mp) = warrior_query.get(warrior_entity).unwrap();
-
-            egui::Resize::default()
-                .default_width(140.0)
-                .resizable(false)
-                .show(ui, |ui| {
-                    ui.with_layout(
-                        egui::Layout::top_down_justified(egui::Align::Center),
-                        |ui| {
-                            egui::containers::Frame::default()
-                                .corner_radius(5.0)
-                                .fill(color::ACTION_POINTS.into())
-                                .margin((10.0, 10.0))
-                                .show(ui, |ui| {
-                                    let timer_text = RichText::new(format!(
-                                        "{} secs",
-                                        turn_timer.0.duration().as_secs()
-                                            - turn_timer.0.elapsed_secs() as u64
-                                    ))
-                                    .strong()
-                                    .heading()
-                                    .color(egui::Color32::BLACK);
-
-                                    ui.add(Label::new(timer_text));
-                                });
-
-                            egui::containers::Frame::default()
-                                .corner_radius(5.0)
-                                .fill(color::ACTION_POINTS.into())
-                                .margin((10.0, 10.0))
-                                .show(ui, |ui| {
-                                    let ap_text = RichText::new(format!("★ {}", ap.0.value))
-                                        .strong()
-                                        .heading()
-                                        .color(egui::Color32::BLACK);
-
-                                    ui.add(Label::new(ap_text));
-                                });
-
-                            egui::containers::Frame::default()
-                                .corner_radius(5.0)
-                                .fill(color::MOVEMENT_POINTS.into())
-                                .margin((10.0, 10.0))
-                                .show(ui, |ui| {
-                                    let mp_text = RichText::new(format!("🎠 {}", mp.0.value))
-                                        .strong()
-                                        .heading()
-                                        .color(egui::Color32::BLACK);
-
-                                    ui.add(Label::new(mp_text));
-                                });
-
-                            let end_turn_text = RichText::new("🕑 End turn")
-                                .strong()
-                                .heading()
-                                .color(egui::Color32::BLACK);
-
-                            let end_turn_button = egui::Button::new(end_turn_text)
-                                .fill(color::END_TURN)
-                                .stroke(egui::Stroke::new(2.0, color::HIGHLIGHT_BORDER));
-
-                            if ui.add(end_turn_button).clicked() {
-                                ev_turn_ended
-                                    .send(TurnEnd(turn.get_current_warrior_entity().unwrap()));
-                                turn.set_next();
-                                ev_turn_started
-                                    .send(TurnStart(turn.get_current_warrior_entity().unwrap()));
-                            }
-                        },
+                    let end_turn_button = ui.add(
+                        egui::Button::new(end_turn_text)
+                            .fill(color::END_TURN)
+                            .stroke(egui::Stroke::new(2.0, color::HIGHLIGHT_BORDER)),
                     );
-                });
+
+                    if end_turn_button.clicked() {
+                        ev_turn_ended.send(TurnEnd(turn.get_current_warrior_entity().unwrap()));
+                        turn.set_next();
+                        ev_turn_started.send(TurnStart(turn.get_current_warrior_entity().unwrap()));
+                    }
+
+                    let timer_percentage = turn_timer.0.percent_left();
+                    ui.visuals_mut().selection.bg_fill = color::END_TURN.into();
+                    ui.visuals_mut().extreme_bg_color = color::DEFAULT_BG.into();
+                    ui.add(egui::ProgressBar::new(timer_percentage));
+                },
+            );
         });
 }
 
@@ -200,6 +168,64 @@ pub fn show_health_bar_ui(
                     .text(egui::RichText::new(health.as_text()).color(color::BG_TEXT))
                     .desired_width(500.0),
             );
+        });
+}
+
+pub fn show_action_points_ui(
+    mut egui_context: ResMut<EguiContext>,
+    turn: Res<Turn>,
+    warrior_query: Query<&ActionPoints, With<Warrior>>,
+) {
+    egui::containers::Window::new("action_points")
+        .anchor(egui::Align2::CENTER_BOTTOM, [-280.0, -78.0])
+        .collapsible(false)
+        .resizable(false)
+        .title_bar(false)
+        .frame(
+            egui::containers::Frame::default()
+                .margin((10.0, 10.0))
+                .fill(color::ACTION_POINTS.into())
+                .stroke(egui::Stroke::none())
+                .corner_radius(5.0),
+        )
+        .show(egui_context.ctx_mut(), |ui| {
+            let entity = turn.get_current_warrior_entity().unwrap();
+            let action_points = warrior_query.get(entity).unwrap();
+            let text = RichText::new(format!("★ {}", action_points.0.value))
+                .strong()
+                .heading()
+                .color(egui::Color32::BLACK);
+
+            ui.add(Label::new(text));
+        });
+}
+
+pub fn show_movement_points_ui(
+    mut egui_context: ResMut<EguiContext>,
+    turn: Res<Turn>,
+    warrior_query: Query<&MovementPoints, With<Warrior>>,
+) {
+    egui::containers::Window::new("movement_points")
+        .anchor(egui::Align2::CENTER_BOTTOM, [280.0, -78.0])
+        .collapsible(false)
+        .resizable(false)
+        .title_bar(false)
+        .frame(
+            egui::containers::Frame::default()
+                .margin((10.0, 10.0))
+                .fill(color::MOVEMENT_POINTS.into())
+                .stroke(egui::Stroke::none())
+                .corner_radius(5.0),
+        )
+        .show(egui_context.ctx_mut(), |ui| {
+            let entity = turn.get_current_warrior_entity().unwrap();
+            let movement_points = warrior_query.get(entity).unwrap();
+            let text = RichText::new(format!("★ {}", movement_points.0.value))
+                .strong()
+                .heading()
+                .color(egui::Color32::BLACK);
+
+            ui.add(Label::new(text));
         });
 }
 
@@ -242,20 +268,15 @@ pub fn show_action_bar_ui(
                             .map(|selected| selected == index)
                             .unwrap_or(false);
 
-                        let is_disabled = action_points.0.value < 3; // TODO replace by the real action cost
-                        let tint = if is_disabled {
-                            egui::Color32::from_white_alpha(80)
-                        } else {
-                            egui::Color32::from_white_alpha(255)
-                        };
-                        let button = ui.add(
+                        let enabled = action_points.0.value >= 3; // TODO replace by the real action cost
+                        let button = ui.add_enabled(
+                            enabled,
                             egui::ImageButton::new(egui::TextureId::User(0), (48.0, 48.0))
-                                .selected(is_selected)
-                                .tint(tint),
+                                .selected(is_selected),
                         );
 
                         // Toggle action selection
-                        if button.clicked() && !is_disabled {
+                        if button.clicked() && enabled {
                             selected_action.0 = if is_selected { None } else { Some(index) };
                         }
 
