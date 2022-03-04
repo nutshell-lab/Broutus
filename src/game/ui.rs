@@ -115,7 +115,7 @@ pub fn show_turn_button_ui(
             ui.with_layout(
                 egui::Layout::top_down_justified(egui::Align::Center),
                 |ui| {
-                    let end_turn_text = RichText::new("🕑 End turn")
+                    let end_turn_text = RichText::new("⮫ End turn")
                         .strong()
                         .heading()
                         .color(egui::Color32::BLACK);
@@ -220,7 +220,7 @@ pub fn show_movement_points_ui(
         .show(egui_context.ctx_mut(), |ui| {
             let entity = turn.get_current_warrior_entity().unwrap();
             let movement_points = warrior_query.get(entity).unwrap();
-            let text = RichText::new(format!("★ {}", movement_points.0.value))
+            let text = RichText::new(format!("🏃 {}", movement_points.0.value))
                 .strong()
                 .heading()
                 .color(egui::Color32::BLACK);
