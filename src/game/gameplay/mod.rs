@@ -19,11 +19,14 @@ pub use attribute::ActionPoints;
 pub use attribute::Attribute;
 pub use attribute::Health;
 pub use attribute::MovementPoints;
+pub use turn::reset_turn_timer;
+pub use turn::run_turn_timer;
 pub use turn::TeamA;
 pub use turn::TeamB;
 pub use turn::Turn;
 pub use turn::TurnEnd;
 pub use turn::TurnStart;
+pub use turn::TurnTimer;
 pub use warrior::animate_warrior_sprite;
 pub use warrior::update_warrior_world_position;
 pub use warrior::Warrior;
@@ -48,6 +51,8 @@ impl Plugin for GameplayPlugin {
             .add_system_set(SystemSet::on_enter(GameState::Arena).with_system(spawn_warriors))
             .add_system_set(
                 SystemSet::on_update(GameState::Arena)
+                    .with_system(run_turn_timer)
+                    .with_system(reset_turn_timer)
                     .with_system(animate_warrior_sprite)
                     .with_system(update_warrior_world_position)
                     .with_system(reset_warrior_attributes_on_turn_end)
@@ -139,6 +144,7 @@ fn spawn_warriors(mut commands: Commands, warrior_assets: Res<WarriorAssets>) {
         .id();
 
     // Insert turn system resource
+    commands.insert_resource(TurnTimer::default());
     commands.insert_resource(Turn {
         order: vec![brundal, glourf, brandy, glarf, brando, glirf],
         ..Default::default()

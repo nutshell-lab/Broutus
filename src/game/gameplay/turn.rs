@@ -44,3 +44,23 @@ impl Turn {
         self.order.iter().position(|e| e.eq(&entity))
     }
 }
+
+pub struct TurnTimer(pub Timer);
+
+impl Default for TurnTimer {
+    fn default() -> Self {
+        TurnTimer(Timer::from_seconds(30.0, true))
+    }
+}
+
+pub fn run_turn_timer(time: Res<Time>, mut timer: ResMut<TurnTimer>, mut turn: ResMut<Turn>) {
+    if timer.0.tick(time.delta()).just_finished() {
+        turn.set_next();
+    }
+}
+
+pub fn reset_turn_timer(mut ev_turn_started: EventReader<TurnStart>, mut timer: ResMut<TurnTimer>) {
+    for _ in ev_turn_started.iter() {
+        timer.0.reset();
+    }
+}

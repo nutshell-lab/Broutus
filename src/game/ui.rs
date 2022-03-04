@@ -15,6 +15,7 @@ pub struct ActionsAssets {
 /// Display all infos about the turn system in a dedicated window
 pub fn show_turn_ui(
     mut turn: ResMut<Turn>,
+    turn_timer: Res<TurnTimer>,
     mut ev_turn_started: EventWriter<TurnStart>,
     mut ev_turn_ended: EventWriter<TurnEnd>,
     mut egui_context: ResMut<EguiContext>,
@@ -107,6 +108,23 @@ pub fn show_turn_ui(
                     ui.with_layout(
                         egui::Layout::top_down_justified(egui::Align::Center),
                         |ui| {
+                            egui::containers::Frame::default()
+                                .corner_radius(5.0)
+                                .fill(color::ACTION_POINTS.into())
+                                .margin((10.0, 10.0))
+                                .show(ui, |ui| {
+                                    let timer_text = RichText::new(format!(
+                                        "{} secs",
+                                        turn_timer.0.duration().as_secs()
+                                            - turn_timer.0.elapsed_secs() as u64
+                                    ))
+                                    .strong()
+                                    .heading()
+                                    .color(egui::Color32::BLACK);
+
+                                    ui.add(Label::new(timer_text));
+                                });
+
                             egui::containers::Frame::default()
                                 .corner_radius(5.0)
                                 .fill(color::ACTION_POINTS.into())
