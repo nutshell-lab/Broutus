@@ -200,12 +200,18 @@ fn highlight_warriors_tile(
 /// Compute and highlight the path to the mouse position from the current warrior
 fn compute_and_highlight_path(
     turn: Res<Turn>,
+    selected_action: Res<SelectedAction>,
     mouse_position: Res<MouseMapPosition>,
     tiledmap_map: Res<Assets<Tiledmap>>,
     tiledmap_query: Query<&Handle<Tiledmap>, With<Map>>,
     warrior_query: Query<(&MapPosition, &MovementPoints), With<Warrior>>,
     mut map_query: MapQuery,
 ) {
+    // An action is selected, don't highlight path
+    if selected_action.0.is_some() {
+        return;
+    }
+
     if tiledmap_query.is_empty() {
         return;
     }
@@ -243,7 +249,9 @@ fn compute_and_highlight_path(
                                     map_id,
                                     layer_id,
                                     position,
-                                    Color::rgba(26. / 255., 174. / 255., 159. / 255., 0.7),
+                                    bevy::render::color::Color::from(color::MOVEMENT_POINTS)
+                                        .set_a(0.8)
+                                        .as_rgba(),
                                 );
                             }
                         }
@@ -300,7 +308,9 @@ fn highlight_potential_movement(
                                         map_id,
                                         layer_id,
                                         &position,
-                                        color::MOVEMENT_POINTS.into(),
+                                        bevy::render::color::Color::from(color::MOVEMENT_POINTS)
+                                            .set_a(0.6)
+                                            .as_rgba(),
                                     );
                                 }
                             }
@@ -327,6 +337,7 @@ fn reset_warrior_attributes_on_turn_end(
 // /// Move the warrior on click if he can afford the cost of the path in movement points
 fn handle_warrior_movement_on_click(
     mut ev_clicked: EventReader<TileLeftClickedEvent>,
+    selected_action: Res<SelectedAction>,
     turn: Res<Turn>,
     tiledmap_map: Res<Assets<Tiledmap>>,
     tiledmap_query: Query<&Handle<Tiledmap>, With<Map>>,
@@ -336,6 +347,11 @@ fn handle_warrior_movement_on_click(
     >,
     mut map_query: MapQuery,
 ) {
+    // An action is selected, don't move
+    if selected_action.0.is_some() {
+        return;
+    }
+
     if tiledmap_query.is_empty() {
         return;
     }
@@ -374,13 +390,19 @@ fn handle_warrior_movement_on_click(
 }
 
 fn handle_warrior_attack_on_click(
-    mut ev_clicked: EventReader<TileRightClickedEvent>,
+    mut ev_clicked: EventReader<TileLeftClickedEvent>,
+    mut selected_action: ResMut<SelectedAction>,
     turn: Res<Turn>,
     mut warrior_query: QuerySet<(
         QueryState<(&Weapon, &mut ActionPoints), With<Warrior>>,
         QueryState<(&MapPosition, &mut Health), With<Warrior>>,
     )>,
 ) {
+    // No action is selected, don't attack
+    if selected_action.0.is_none() {
+        return;
+    }
+
     for click_event in ev_clicked.iter() {
         let warrior_entity = turn.get_current_warrior_entity().unwrap();
         let mut attacker_query = warrior_query.q0();
@@ -393,6 +415,7 @@ fn handle_warrior_attack_on_click(
             for (position, mut health) in warrior_query.q1().iter_mut() {
                 if click_event.0.eq(position) {
                     weapon.use_on(&mut health);
+                    selected_action.0 = None; // Deselect action automatically
                 }
             }
         }

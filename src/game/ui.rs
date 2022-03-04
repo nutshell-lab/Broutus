@@ -161,7 +161,7 @@ pub fn show_health_bar_ui(
     warrior_query: Query<&Health, With<Warrior>>,
 ) {
     egui::containers::Window::new("health_bar")
-        .anchor(egui::Align2::CENTER_BOTTOM, [0.0, -100.0])
+        .anchor(egui::Align2::CENTER_BOTTOM, [0.0, -120.0])
         .collapsible(false)
         .resizable(false)
         .title_bar(false)
@@ -188,6 +188,8 @@ pub fn show_action_bar_ui(
     mut egui_context: ResMut<EguiContext>,
     mut selected_action: ResMut<SelectedAction>,
     images: Res<ActionsAssets>,
+    turn: Res<Turn>,
+    warrior_query: Query<&ActionPoints, With<Warrior>>,
 ) {
     egui_context.set_egui_texture(0, images.sword.clone_weak());
 
@@ -207,8 +209,12 @@ pub fn show_action_bar_ui(
             egui::Grid::new("action_bar_grid")
                 .spacing((5.0, 5.0))
                 .show(ui, |ui| {
+                    let entity = turn.get_current_warrior_entity().unwrap();
+                    let action_points = warrior_query.get(entity).unwrap();
+
+                    let action_count = 8usize;
                     // TODO show real actions
-                    for index in 0..8usize {
+                    for index in 0..action_count {
                         if index > 0 && index % 8 == 0 {
                             ui.end_row();
                         }
@@ -216,13 +222,21 @@ pub fn show_action_bar_ui(
                             .0
                             .map(|selected| selected == index)
                             .unwrap_or(false);
+
+                        let is_disabled = action_points.0.value < 3; // TODO replace by the real action cost
+                        let tint = if is_disabled {
+                            egui::Color32::from_white_alpha(80)
+                        } else {
+                            egui::Color32::from_white_alpha(255)
+                        };
                         let button = ui.add(
                             egui::ImageButton::new(egui::TextureId::User(0), (48.0, 48.0))
-                                .selected(is_selected),
+                                .selected(is_selected)
+                                .tint(tint),
                         );
 
                         // Toggle action selection
-                        if button.clicked() {
+                        if button.clicked() && !is_disabled {
                             selected_action.0 = if is_selected { None } else { Some(index) };
                         }
 
@@ -249,8 +263,73 @@ pub fn show_action_bar_ui(
                             });
                         }
                     }
+
+                    ui.end_row();
+                    for index in 0..action_count {
+                        ui.with_layout(
+                            egui::Layout::centered_and_justified(egui::Direction::LeftToRight),
+                            |ui| {
+                                ui.add(egui::Label::new(
+                                    egui::RichText::new((index + 1).to_string())
+                                        .small()
+                                        .color(color::BG_TEXT),
+                                ));
+                            },
+                        );
+                    }
                 });
         });
+}
+
+pub fn handle_action_bar_shortcuts(
+    mut selected_action: ResMut<SelectedAction>,
+    keys: Res<Input<KeyCode>>,
+    turn: Res<Turn>,
+    warrior_query: Query<&ActionPoints, With<Warrior>>,
+) {
+    if keys.just_pressed(KeyCode::Escape) {
+        selected_action.0 = None;
+    }
+
+    let entity = turn.get_current_warrior_entity().unwrap();
+    let action_points = warrior_query.get(entity).unwrap();
+    let is_disabled = action_points.0.value < 3; // TODO replace by the real action cost, for each action
+
+    if is_disabled {
+        return;
+    }
+
+    if keys.just_pressed(KeyCode::Key1) {
+        selected_action.0 = Some(0);
+    }
+
+    if keys.just_pressed(KeyCode::Key2) {
+        selected_action.0 = Some(1);
+    }
+
+    if keys.just_pressed(KeyCode::Key3) {
+        selected_action.0 = Some(2);
+    }
+
+    if keys.just_pressed(KeyCode::Key4) {
+        selected_action.0 = Some(3);
+    }
+
+    if keys.just_pressed(KeyCode::Key5) {
+        selected_action.0 = Some(4);
+    }
+
+    if keys.just_pressed(KeyCode::Key6) {
+        selected_action.0 = Some(5);
+    }
+
+    if keys.just_pressed(KeyCode::Key7) {
+        selected_action.0 = Some(6);
+    }
+
+    if keys.just_pressed(KeyCode::Key8) {
+        selected_action.0 = Some(7);
+    }
 }
 
 /// Show battle logs window (scrollable)

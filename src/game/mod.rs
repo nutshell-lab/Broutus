@@ -42,6 +42,7 @@ impl Plugin for GamePlugin {
                     .with_system(ui::show_turn_ui)
                     .with_system(ui::show_health_bar_ui)
                     .with_system(ui::show_action_bar_ui)
+                    .with_system(ui::handle_action_bar_shortcuts)
                     .with_system(ui::show_battlelog_ui)
                     .with_system(ui::show_warrior_ui),
             );
