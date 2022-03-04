@@ -197,7 +197,8 @@ pub fn show_health_bar_ui(
             ui.visuals_mut().selection.bg_fill = color::HEALTH.into();
             ui.add(
                 ProgressBar::new(health.as_percentage())
-                    .text(egui::RichText::new(health.as_text()).color(color::BG_TEXT)),
+                    .text(egui::RichText::new(health.as_text()).color(color::BG_TEXT))
+                    .desired_width(500.0),
             );
         });
 }
@@ -282,6 +283,7 @@ pub fn show_action_bar_ui(
                         }
                     }
 
+                    // Show keybindigs below
                     ui.end_row();
                     for index in 0..action_count {
                         ui.with_layout(
@@ -317,6 +319,8 @@ pub fn handle_action_bar_shortcuts(
         return;
     }
 
+    // TODO switch to ScanCode to be layout agnostic
+    // see: https://bevy-cheatbook.github.io/input/keyboard.html#layout-agnostic-key-bindings
     if keys.just_pressed(KeyCode::Key1) {
         selected_action.0 = Some(0);
     }

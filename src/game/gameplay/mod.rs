@@ -56,8 +56,7 @@ impl Plugin for GameplayPlugin {
                     .with_system(animate_warrior_sprite)
                     .with_system(update_warrior_world_position)
                     .with_system(reset_warrior_attributes_on_turn_end)
-                    .with_system(handle_warrior_movement_on_click)
-                    .with_system(handle_warrior_attack_on_click)
+                    .with_system(handle_warrior_action_on_click)
                     .with_system(despawn_warrior_on_death),
             )
             .add_system_set(
@@ -335,6 +334,92 @@ fn highlight_potential_movement(
     }
 }
 
+// /// Move the warrior on click if he can afford the cost of the path in movement points
+fn handle_warrior_action_on_click(
+    mut ev_clicked: EventReader<TileLeftClickedEvent>,
+    mut selected_action: ResMut<SelectedAction>,
+    turn: Res<Turn>,
+    tiledmap_map: Res<Assets<Tiledmap>>,
+    tiledmap_query: Query<&Handle<Tiledmap>, With<Map>>,
+    mut warrior_query: QuerySet<(
+        QueryState<
+            (
+                &Weapon,
+                &mut MapPosition,
+                &mut ActionPoints,
+                &mut MovementPoints,
+            ),
+            (With<Warrior>, Without<Tile>),
+        >, // Initiator
+        QueryState<(&MapPosition, &mut Health), (With<Warrior>, Without<Tile>)>, // Potential targets
+    )>,
+    mut map_query: MapQuery,
+) {
+    if tiledmap_query.is_empty() {
+        return;
+    }
+
+    if let Some(_) = selected_action.0 {
+        let action_distance = 2; // TODO replace with real action logic
+
+        for click_event in ev_clicked.iter() {
+            let warrior_entity = turn.get_current_warrior_entity().unwrap();
+            let mut attacker_query = warrior_query.q0();
+            let (weapon, warrior_position, mut action_points, _) =
+                attacker_query.get_mut(warrior_entity).unwrap();
+
+            if click_event.0.distance_to(&warrior_position) > action_distance {
+                continue;
+            }
+
+            if action_points.can_spend(weapon.effect.ap_cost) {
+                action_points.spend(weapon.effect.ap_cost);
+
+                let weapon = *weapon; // Cannot get both queries as mutable at the same time :(
+                for (position, mut health) in warrior_query.q1().iter_mut() {
+                    if click_event.0.eq(position) {
+                        weapon.use_on(&mut health);
+                    }
+                }
+            }
+
+            selected_action.0 = None; // Deselect action automatically
+        }
+    } else {
+        let map_id = 0u32;
+        let tiledmap_handle = tiledmap_query.single();
+        let tiledmap_map = &tiledmap_map.get(tiledmap_handle);
+
+        for ev in ev_clicked.iter() {
+            let warrior_entity = turn.get_current_warrior_entity().unwrap();
+            if let Ok((_, mut warrior_position, _, mut movement_points)) =
+                warrior_query.q0().get_mut(warrior_entity)
+            {
+                if let Some(tiledmap_map) = tiledmap_map {
+                    let path = map_query.pathfinding(
+                        map_id,
+                        &warrior_position,
+                        &ev.0,
+                        tiledmap_map.inner.width,
+                        tiledmap_map.inner.height,
+                    );
+
+                    // TODO Replace the current sprite sheets by another one containing all 4 directions
+                    // TODO Animate warrior movement along the path
+                    // TODO Change warrior orientation when it changes direction
+                    if let Some((_path, cost)) = path {
+                        if movement_points.can_spend(cost) {
+                            warrior_position.x = ev.0.x;
+                            warrior_position.y = ev.0.y;
+                            movement_points.spend(cost);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 /// Reset warrior action & movement points at the end of their turn
 fn reset_warrior_attributes_on_turn_end(
     mut ev_turn_ended: EventReader<TurnEnd>,
@@ -347,127 +432,10 @@ fn reset_warrior_attributes_on_turn_end(
     }
 }
 
-// /// Move the warrior on click if he can afford the cost of the path in movement points
-fn handle_warrior_movement_on_click(
-    mut ev_clicked: EventReader<TileLeftClickedEvent>,
-    selected_action: Res<SelectedAction>,
-    turn: Res<Turn>,
-    tiledmap_map: Res<Assets<Tiledmap>>,
-    tiledmap_query: Query<&Handle<Tiledmap>, With<Map>>,
-    mut warrior_query: Query<
-        (&mut MapPosition, &mut MovementPoints),
-        (With<Warrior>, Without<Tile>),
-    >,
-    mut map_query: MapQuery,
-) {
-    // An action is selected, don't move
-    if selected_action.0.is_some() {
-        return;
-    }
-
-    if tiledmap_query.is_empty() {
-        return;
-    }
-
-    let map_id = 0u32;
-    let tiledmap_handle = tiledmap_query.single();
-    let tiledmap_map = &tiledmap_map.get(tiledmap_handle);
-
-    for ev in ev_clicked.iter() {
-        let warrior_entity = turn.get_current_warrior_entity().unwrap();
-        if let Ok((mut warrior_position, mut movement_points)) =
-            warrior_query.get_mut(warrior_entity)
-        {
-            if let Some(tiledmap_map) = tiledmap_map {
-                let path = map_query.pathfinding(
-                    map_id,
-                    &warrior_position,
-                    &ev.0,
-                    tiledmap_map.inner.width,
-                    tiledmap_map.inner.height,
-                );
-
-                // TODO Replace the current sprite sheets by another one containing all 4 directions
-                // TODO Animate warrior movement along the path
-                // TODO Change warrior orientation when it changes direction
-                if let Some((_path, cost)) = path {
-                    if movement_points.can_spend(cost) {
-                        warrior_position.x = ev.0.x;
-                        warrior_position.y = ev.0.y;
-                        movement_points.spend(cost);
-                    }
-                }
-            }
-        }
-    }
-}
-
-fn handle_warrior_attack_on_click(
-    mut ev_clicked: EventReader<TileLeftClickedEvent>,
-    mut selected_action: ResMut<SelectedAction>,
-    turn: Res<Turn>,
-    mut warrior_query: QuerySet<(
-        QueryState<(&Weapon, &MapPosition, &mut ActionPoints), With<Warrior>>,
-        QueryState<(&MapPosition, &mut Health), With<Warrior>>,
-    )>,
-) {
-    // No action is selected, don't attack
-    if selected_action.0.is_none() {
-        return;
-    }
-
-    let action_distance = 2; // TODO replace with real action logic
-
-    for click_event in ev_clicked.iter() {
-        let warrior_entity = turn.get_current_warrior_entity().unwrap();
-        let mut attacker_query = warrior_query.q0();
-        let (weapon, warrior_position, mut action_points) =
-            attacker_query.get_mut(warrior_entity).unwrap();
-
-        if click_event.0.distance_to(&warrior_position) > action_distance {
-            continue;
-        }
-
-        if action_points.can_spend(weapon.effect.ap_cost) {
-            action_points.spend(weapon.effect.ap_cost);
-
-            let weapon = *weapon; // Cannot get both queries as mutable at the same time :(
-            for (position, mut health) in warrior_query.q1().iter_mut() {
-                if click_event.0.eq(position) {
-                    weapon.use_on(&mut health);
-                }
-            }
-        }
-
-        selected_action.0 = None; // Deselect action automatically
-    }
-}
-
-fn despawn_warrior_on_death(
-    mut commands: Commands,
-    mut turn: ResMut<Turn>,
-    warrior_query: Query<(Entity, &Health), (With<Warrior>, Changed<Health>)>,
-) {
-    for (entity, health) in warrior_query.iter() {
-        if health.0.value == 0 {
-            let turn_index = turn.get_entity_index(entity);
-
-            if let Some(turn_index) = turn_index {
-                turn.order.remove(turn_index);
-                turn.order_index = if turn.order_index >= turn_index {
-                    turn.order_index.saturating_sub(1)
-                } else {
-                    turn.order_index
-                }
-            }
-
-            commands.entity(entity).despawn_recursive();
-        }
-    }
-}
-
+/// Highlight the targetable cells with the current action
 fn highlight_potential_action(
     turn: Res<Turn>,
+    mouse_position: Res<MouseMapPosition>,
     selected_action: Res<SelectedAction>,
     tiledmap_map: Res<Assets<Tiledmap>>,
     tiledmap_query: Query<&Handle<Tiledmap>, With<Map>>,
@@ -501,15 +469,43 @@ fn highlight_potential_action(
         for position in surroundings {
             let is_obstacle = map_query.is_obstacle(map_id, &position);
             if !is_obstacle {
+                let alpha = mouse_position
+                    .0
+                    .filter(|mouse| mouse.eq(&position))
+                    .map(|_| 0.9)
+                    .unwrap_or(0.6);
                 map_query.update_tile_sprite_color(
                     map_id,
                     layer_id,
                     &position,
                     bevy::render::color::Color::from(color::HEALTH)
-                        .set_a(0.6)
+                        .set_a(alpha)
                         .as_rgba(),
                 );
             }
+        }
+    }
+}
+
+fn despawn_warrior_on_death(
+    mut commands: Commands,
+    mut turn: ResMut<Turn>,
+    warrior_query: Query<(Entity, &Health), (With<Warrior>, Changed<Health>)>,
+) {
+    for (entity, health) in warrior_query.iter() {
+        if health.0.value == 0 {
+            let turn_index = turn.get_entity_index(entity);
+
+            if let Some(turn_index) = turn_index {
+                turn.order.remove(turn_index);
+                turn.order_index = if turn.order_index >= turn_index {
+                    turn.order_index.saturating_sub(1)
+                } else {
+                    turn.order_index
+                }
+            }
+
+            commands.entity(entity).despawn_recursive();
         }
     }
 }
