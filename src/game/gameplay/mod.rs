@@ -62,6 +62,7 @@ impl Plugin for GameplayPlugin {
                 SystemSet::on_update(GameState::Arena)
                     .after("clean_highlithing")
                     .with_system(highlight_warriors_tile)
+                    .with_system(highlight_potential_movement)
                     .with_system(compute_and_highlight_path),
             );
     }
@@ -242,6 +243,64 @@ fn compute_and_highlight_path(
                                     position,
                                     Color::rgba(26. / 255., 174. / 255., 159. / 255., 0.7),
                                 );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// A fucking inefficient function to highlight reachable MapPositions for the hovered Warrior
+fn highlight_potential_movement(
+    mouse_position: Res<MouseMapPosition>,
+    tiledmap_map: Res<Assets<Tiledmap>>,
+    tiledmap_query: Query<&Handle<Tiledmap>, With<Map>>,
+    warrior_query: Query<(&MapPosition, &MovementPoints), With<Warrior>>,
+    mut map_query: MapQuery,
+) {
+    if tiledmap_query.is_empty() {
+        return;
+    }
+
+    let map_id = 0u32;
+    let layer_id = 1u32;
+
+    let tiledmap_handle = tiledmap_query.single();
+    let tiledmap_map = &tiledmap_map.get(tiledmap_handle);
+
+    for (warrior_position, movement_points) in warrior_query.iter() {
+        if let Some(tiledmap_map) = tiledmap_map {
+            if mouse_position.is_changed() {
+                if let Some(mouse_position) = mouse_position.0 {
+                    // The mouse is over a warrior, let's highlight it's potential movement
+                    if mouse_position.eq(warrior_position) {
+                        let surroundings = warrior_position.get_surrounding_positions(
+                            movement_points.0.value,
+                            tiledmap_map.inner.width,
+                            tiledmap_map.inner.height,
+                        );
+
+                        for position in surroundings {
+                            // Yes that is horrible
+                            let path = map_query.pathfinding(
+                                map_id,
+                                warrior_position,
+                                &position,
+                                tiledmap_map.inner.width,
+                                tiledmap_map.inner.height,
+                            );
+
+                            if let Some((_, cost)) = path {
+                                if cost <= movement_points.0.value {
+                                    map_query.update_tile_sprite_color(
+                                        map_id,
+                                        layer_id,
+                                        &position,
+                                        color::MOVEMENT_POINTS.into(),
+                                    );
+                                }
                             }
                         }
                     }

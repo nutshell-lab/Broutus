@@ -4,6 +4,7 @@ use bevy::{
     reflect::TypeUuid,
     utils::HashMap,
 };
+use pathfinding::num_traits::Float;
 use std::{io::BufReader, path::Path};
 
 #[derive(TypeUuid)]
@@ -94,6 +95,43 @@ impl MapPosition {
             coords.y,
             self.to_relative_z(map_width, map_height) + layer_index as f32,
         )
+    }
+
+    pub fn distance_to(self, other: MapPosition) -> u32 {
+        let x_offset = if self.x < other.x {
+            other.x - self.x
+        } else {
+            self.x - other.x
+        };
+
+        let y_offset = if self.y < other.y {
+            other.y - self.y
+        } else {
+            self.y - other.y
+        };
+
+        x_offset + y_offset
+    }
+
+    pub fn get_surrounding_positions(
+        self,
+        distance: u32,
+        map_width: u32,
+        map_height: u32,
+    ) -> Vec<MapPosition> {
+        let mut positions = Vec::new();
+
+        // Yes that is horrible
+        for y in 0..map_height {
+            for x in 0..map_width {
+                let p = MapPosition::new(x, y);
+                if p.ne(&self) && p.distance_to(self) <= distance {
+                    positions.push(p);
+                }
+            }
+        }
+
+        positions
     }
 }
 

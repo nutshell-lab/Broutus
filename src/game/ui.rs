@@ -24,7 +24,7 @@ pub fn show_turn_ui(
         QueryState<Entity, With<TeamB>>,
     )>,
 ) {
-    egui::containers::Window::new("TurnOrder")
+    egui::containers::Window::new("turn_order")
         .anchor(egui::Align2::RIGHT_TOP, [-20.0, 20.0])
         .collapsible(false)
         .resizable(false)
@@ -100,44 +100,58 @@ pub fn show_turn_ui(
             let warrior_entity = turn.get_current_warrior_entity().unwrap();
             let (_, _, ap, mp) = warrior_query.get(warrior_entity).unwrap();
 
-            egui::containers::Frame::default()
-                .corner_radius(2.0)
-                .fill(color::ACTION_POINTS.into())
-                .margin((45.0, 15.0))
+            egui::Resize::default()
+                .default_width(140.0)
+                .resizable(false)
                 .show(ui, |ui| {
-                    let ap_text = RichText::new(format!("★ {}", ap.0.value))
-                        .strong()
-                        .heading()
-                        .color(egui::Color32::BLACK);
+                    ui.with_layout(
+                        egui::Layout::top_down_justified(egui::Align::Center),
+                        |ui| {
+                            egui::containers::Frame::default()
+                                .corner_radius(5.0)
+                                .fill(color::ACTION_POINTS.into())
+                                .margin((10.0, 10.0))
+                                .show(ui, |ui| {
+                                    let ap_text = RichText::new(format!("★ {}", ap.0.value))
+                                        .strong()
+                                        .heading()
+                                        .color(egui::Color32::BLACK);
 
-                    ui.add(Label::new(ap_text));
+                                    ui.add(Label::new(ap_text));
+                                });
+
+                            egui::containers::Frame::default()
+                                .corner_radius(5.0)
+                                .fill(color::MOVEMENT_POINTS.into())
+                                .margin((10.0, 10.0))
+                                .show(ui, |ui| {
+                                    let mp_text = RichText::new(format!("🎠 {}", mp.0.value))
+                                        .strong()
+                                        .heading()
+                                        .color(egui::Color32::BLACK);
+
+                                    ui.add(Label::new(mp_text));
+                                });
+
+                            let end_turn_text = RichText::new("🕑 End turn")
+                                .strong()
+                                .heading()
+                                .color(egui::Color32::BLACK);
+
+                            let end_turn_button = egui::Button::new(end_turn_text)
+                                .fill(color::END_TURN)
+                                .stroke(egui::Stroke::new(2.0, color::HIGHLIGHT_BORDER));
+
+                            if ui.add(end_turn_button).clicked() {
+                                ev_turn_ended
+                                    .send(TurnEnd(turn.get_current_warrior_entity().unwrap()));
+                                turn.set_next();
+                                ev_turn_started
+                                    .send(TurnStart(turn.get_current_warrior_entity().unwrap()));
+                            }
+                        },
+                    );
                 });
-
-            egui::containers::Frame::default()
-                .corner_radius(2.0)
-                .fill(color::MOVEMENT_POINTS.into())
-                .margin((44.0, 15.0))
-                .show(ui, |ui| {
-                    let mp_text = RichText::new(format!("🎠 {}", mp.0.value))
-                        .strong()
-                        .heading()
-                        .color(egui::Color32::BLACK);
-
-                    ui.add(Label::new(mp_text));
-                });
-
-            let end_turn_text = RichText::new("🕑 End turn")
-                .strong()
-                .heading()
-                .color(egui::Color32::BLACK);
-            if ui
-                .add(egui::Button::new(end_turn_text).fill(color::END_TURN))
-                .clicked()
-            {
-                ev_turn_ended.send(TurnEnd(turn.get_current_warrior_entity().unwrap()));
-                turn.set_next();
-                ev_turn_started.send(TurnStart(turn.get_current_warrior_entity().unwrap()));
-            }
         });
 }
 
@@ -146,7 +160,7 @@ pub fn show_health_bar_ui(
     turn: Res<Turn>,
     warrior_query: Query<&Health, With<Warrior>>,
 ) {
-    egui::containers::Window::new("HealthBar")
+    egui::containers::Window::new("health_bar")
         .anchor(egui::Align2::CENTER_BOTTOM, [0.0, -100.0])
         .collapsible(false)
         .resizable(false)
@@ -173,7 +187,7 @@ pub fn show_health_bar_ui(
 pub fn show_action_bar_ui(mut egui_context: ResMut<EguiContext>, images: Res<ActionsAssets>) {
     egui_context.set_egui_texture(0, images.sword.clone_weak());
 
-    egui::containers::Window::new("ActionBar")
+    egui::containers::Window::new("action_bar")
         .anchor(egui::Align2::CENTER_BOTTOM, [0.0, -20.0])
         .collapsible(false)
         .resizable(false)
@@ -186,7 +200,7 @@ pub fn show_action_bar_ui(mut egui_context: ResMut<EguiContext>, images: Res<Act
                 .corner_radius(5.0),
         )
         .show(egui_context.ctx_mut(), |ui| {
-            egui::Grid::new("ActionBarGrid")
+            egui::Grid::new("action_bar_grid")
                 .spacing((5.0, 5.0))
                 .show(ui, |ui| {
                     // TODO show real actions
@@ -199,19 +213,24 @@ pub fn show_action_bar_ui(mut egui_context: ResMut<EguiContext>, images: Res<Act
                             .selected(is_selected);
 
                         if ui.add(button).hovered() {
-                            egui::show_tooltip(ui.ctx(), egui::Id::new("ActionTooltip"), |ui| {
-                                egui::Grid::new(format!("ActionBarGrid{}", index)).show(ui, |ui| {
-                                    ui.label(egui::RichText::new("Sword").heading());
-                                    ui.label(
-                                        egui::RichText::new("★ 3")
-                                            .heading()
-                                            .color(color::ACTION_POINTS),
-                                    );
-                                    ui.end_row();
-                                    ui.label(
-                                        egui::RichText::new("15 dmg").strong().color(color::HEALTH),
-                                    );
-                                })
+                            egui::show_tooltip(ui.ctx(), egui::Id::new("action_tooltip"), |ui| {
+                                egui::Grid::new(format!("action_bar_grid_{}", index)).show(
+                                    ui,
+                                    |ui| {
+                                        ui.label(egui::RichText::new("Sword").heading());
+                                        ui.label(
+                                            egui::RichText::new("★ 3")
+                                                .heading()
+                                                .color(color::ACTION_POINTS),
+                                        );
+                                        ui.end_row();
+                                        ui.label(
+                                            egui::RichText::new("15 dmg")
+                                                .strong()
+                                                .color(color::HEALTH),
+                                        );
+                                    },
+                                )
                             });
                         }
                     }
@@ -221,7 +240,7 @@ pub fn show_action_bar_ui(mut egui_context: ResMut<EguiContext>, images: Res<Act
 
 /// Show battle logs window (scrollable)
 pub fn show_battlelog_ui(mut egui_context: ResMut<EguiContext>) {
-    egui::containers::Window::new("Battlelogs")
+    egui::containers::Window::new("battlelogs")
         .anchor(egui::Align2::LEFT_BOTTOM, [20.0, -20.0])
         .collapsible(false)
         .resizable(false)
@@ -325,7 +344,7 @@ pub fn show_warrior_ui(
                 };
 
                 let main_window = windows.get_primary().unwrap();
-                egui::containers::Window::new("WarriorMouseHover")
+                egui::containers::Window::new("warrior_mouse_hover")
                     .collapsible(false)
                     .resizable(false)
                     .title_bar(false)
