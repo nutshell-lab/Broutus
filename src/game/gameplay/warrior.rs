@@ -53,7 +53,7 @@ impl WarriorBundle {
 #[derive(AssetCollection)]
 pub struct WarriorAssets {
     #[asset(texture_atlas(tile_size_x = 64., tile_size_y = 64., columns = 15, rows = 1))]
-    #[asset(path = "warriors/knight_idle.png")]
+    #[asset(path = "animations/knight_idle.png")]
     pub idle: Handle<TextureAtlas>,
 }
 
