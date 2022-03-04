@@ -1,6 +1,9 @@
 use super::attribute::Health;
 use bevy::prelude::*;
 
+#[derive(Default)]
+pub struct SelectedAction(pub Option<usize>); // TODO do we need to put something more relevant in this ?
+
 pub const THUG_KNIFE: Weapon = Weapon {
     name: "Dague du bandit",
     effect: WeaponEffect {

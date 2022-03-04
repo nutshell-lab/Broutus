@@ -29,6 +29,7 @@ pub use warrior::update_warrior_world_position;
 pub use warrior::Warrior;
 pub use warrior::WarriorAssets;
 pub use warrior::WarriorBundle;
+pub use weapon::SelectedAction;
 pub use weapon::Weapon;
 pub use weapon::HEAL_WAND;
 pub use weapon::THUG_KNIFE;
@@ -41,6 +42,7 @@ impl Plugin for GameplayPlugin {
             .register_type::<Health>()
             .register_type::<ActionPoints>()
             .register_type::<MovementPoints>()
+            .init_resource::<SelectedAction>()
             .add_event::<TurnStart>()
             .add_event::<TurnEnd>()
             .add_system_set(SystemSet::on_enter(GameState::Arena).with_system(spawn_warriors))

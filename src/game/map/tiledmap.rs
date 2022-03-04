@@ -4,7 +4,6 @@ use bevy::{
     reflect::TypeUuid,
     utils::HashMap,
 };
-use pathfinding::num_traits::Float;
 use std::{io::BufReader, path::Path};
 
 #[derive(TypeUuid)]

@@ -184,7 +184,11 @@ pub fn show_health_bar_ui(
         });
 }
 
-pub fn show_action_bar_ui(mut egui_context: ResMut<EguiContext>, images: Res<ActionsAssets>) {
+pub fn show_action_bar_ui(
+    mut egui_context: ResMut<EguiContext>,
+    mut selected_action: ResMut<SelectedAction>,
+    images: Res<ActionsAssets>,
+) {
     egui_context.set_egui_texture(0, images.sword.clone_weak());
 
     egui::containers::Window::new("action_bar")
@@ -204,15 +208,26 @@ pub fn show_action_bar_ui(mut egui_context: ResMut<EguiContext>, images: Res<Act
                 .spacing((5.0, 5.0))
                 .show(ui, |ui| {
                     // TODO show real actions
-                    for index in 0..8 {
+                    for index in 0..8usize {
                         if index > 0 && index % 8 == 0 {
                             ui.end_row();
                         }
-                        let is_selected = false; // TODO is this the current selection action ?
-                        let button = egui::ImageButton::new(egui::TextureId::User(0), (48.0, 48.0))
-                            .selected(is_selected);
+                        let is_selected = selected_action
+                            .0
+                            .map(|selected| selected == index)
+                            .unwrap_or(false);
+                        let button = ui.add(
+                            egui::ImageButton::new(egui::TextureId::User(0), (48.0, 48.0))
+                                .selected(is_selected),
+                        );
 
-                        if ui.add(button).hovered() {
+                        // Toggle action selection
+                        if button.clicked() {
+                            selected_action.0 = if is_selected { None } else { Some(index) };
+                        }
+
+                        // Display action details in a toolip on hover
+                        if button.hovered() {
                             egui::show_tooltip(ui.ctx(), egui::Id::new("action_tooltip"), |ui| {
                                 egui::Grid::new(format!("action_bar_grid_{}", index)).show(
                                     ui,
