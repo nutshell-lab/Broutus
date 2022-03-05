@@ -1,4 +1,6 @@
+use super::SelectedAction;
 use bevy::prelude::*;
+
 #[derive(Default, Component)]
 pub struct TeamA;
 
@@ -53,8 +55,14 @@ impl Default for TurnTimer {
     }
 }
 
-pub fn run_turn_timer(time: Res<Time>, mut timer: ResMut<TurnTimer>, mut turn: ResMut<Turn>) {
+pub fn run_turn_timer(
+    time: Res<Time>,
+    mut timer: ResMut<TurnTimer>,
+    mut turn: ResMut<Turn>,
+    mut selected_action: ResMut<SelectedAction>,
+) {
     if timer.0.tick(time.delta()).just_finished() {
+        selected_action.0 = None;
         turn.set_next();
     }
 }

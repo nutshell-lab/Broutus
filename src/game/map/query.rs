@@ -99,7 +99,7 @@ impl<'w, 's> MapQuery<'w, 's> {
                 continue;
             }
 
-            for (layer_entity, layer, tiles) in self.layer_queryset.q1().iter() {
+            for (layer_entity, layer, _) in self.layer_queryset.q1().iter() {
                 if layer.id.ne(&layer_id) {
                     continue;
                 }
@@ -107,16 +107,7 @@ impl<'w, 's> MapQuery<'w, 's> {
                     continue;
                 }
 
-                for (tile_entity, tile_position, _, _) in self.tile_queryset.q1().iter() {
-                    if position.ne(tile_position) {
-                        continue;
-                    }
-                    if !tiles.contains(&tile_entity) {
-                        continue;
-                    }
-
-                    return Some(tile_entity);
-                }
+                return layer.tiles.get(&(position.x, position.y)).copied();
             }
         }
         None
@@ -186,6 +177,19 @@ impl<'w, 's> MapQuery<'w, 's> {
             }
         }
         None
+    }
+
+    /// Return is a line of sight to the given position is blocked by an obstacle or not
+    pub fn line_of_sight_check(
+        &mut self,
+        map_id: u32,
+        me: &MapPosition,
+        target: &MapPosition,
+    ) -> bool {
+        me.line_to(&target)
+            .iter()
+            .any(|position| self.is_obstacle(map_id, position))
+            == false
     }
 
     /// Is a map position an obstacle ?

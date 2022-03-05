@@ -112,6 +112,42 @@ impl MapPosition {
         x_offset + y_offset
     }
 
+    /// Get the line path between two positions (supercover line).
+    /// see: https://www.redblobgames.com/grids/line-drawing.html
+    pub fn line_to(self, other: &MapPosition) -> Vec<MapPosition> {
+        let (dx, dy) = (
+            other.x as i32 - self.x as i32,
+            other.y as i32 - self.y as i32,
+        );
+        let (nx, ny) = (dx.abs(), dy.abs());
+        let (sign_x, sign_y) = (if dx > 0 { 1 } else { -1 }, if dy > 0 { 1 } else { -1 });
+
+        let mut path = Vec::new();
+        path.push(self);
+
+        let (mut x, mut y) = (self.x as i32, self.y as i32);
+        let (mut ix, mut iy) = (0, 0);
+        while ix < nx || iy < ny {
+            let decision = (1 + 2 * ix) * ny - (1 + 2 * iy) * nx;
+            if decision == 0 {
+                x += sign_x;
+                y += sign_y;
+                ix += 1;
+                iy += 1;
+            } else if decision < 0 {
+                x += sign_x;
+                ix += 1;
+            } else {
+                y += sign_y;
+                iy += 1;
+            }
+            path.push(MapPosition::new(x as u32, y as u32));
+        }
+
+        path
+    }
+
+    /// Get all positions in the reach of the given position, excluding the given position
     pub fn get_surrounding_positions(
         self,
         distance: u32,

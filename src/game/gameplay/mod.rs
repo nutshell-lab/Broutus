@@ -467,8 +467,7 @@ fn highlight_potential_action(
         );
 
         for position in surroundings {
-            let is_obstacle = map_query.is_obstacle(map_id, &position);
-            if !is_obstacle {
+            if map_query.line_of_sight_check(map_id, warrior_position, &position) {
                 let alpha = mouse_position
                     .0
                     .filter(|mouse| mouse.eq(&position))
