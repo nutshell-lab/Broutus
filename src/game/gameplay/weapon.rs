@@ -7,7 +7,7 @@ pub struct SelectedAction(pub Option<usize>); // TODO do we need to put somethin
 pub const THUG_KNIFE: Weapon = Weapon {
     name: "Dague du bandit",
     effect: WeaponEffect {
-        to_health: HealthEffect::Damage(15),
+        to_health: HealthEffect::Damage(170),
         ap_cost: 3u32,
         range: (1u32, 1u32),
     },
@@ -16,7 +16,7 @@ pub const THUG_KNIFE: Weapon = Weapon {
 pub const HEAL_WAND: Weapon = Weapon {
     name: "Baguette curative",
     effect: WeaponEffect {
-        to_health: HealthEffect::Heal(8),
+        to_health: HealthEffect::Heal(120),
         ap_cost: 4u32,
         range: (2u32, 5u32),
     },

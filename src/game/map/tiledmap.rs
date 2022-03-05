@@ -150,7 +150,8 @@ impl MapPosition {
     /// Get all positions in the reach of the given position, excluding the given position
     pub fn get_surrounding_positions(
         self,
-        distance: u32,
+        min_distance: u32,
+        max_distance: u32,
         map_width: u32,
         map_height: u32,
     ) -> Vec<MapPosition> {
@@ -160,7 +161,7 @@ impl MapPosition {
         for y in 0..map_height {
             for x in 0..map_width {
                 let p = MapPosition::new(x, y);
-                if p.ne(&self) && p.distance_to(&self) <= distance {
+                if p.distance_to(&self) >= min_distance && p.distance_to(&self) <= max_distance {
                     positions.push(p);
                 }
             }

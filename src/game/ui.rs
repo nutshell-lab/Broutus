@@ -6,10 +6,32 @@ use bevy_egui::egui;
 use bevy_egui::egui::{Label, ProgressBar, RichText};
 use bevy_egui::EguiContext;
 
+// TODO actions unmock
 #[derive(AssetCollection)]
 pub struct ActionsAssets {
-    #[asset(path = "actions/sword.png")]
-    sword: Handle<Image>,
+    #[asset(path = "actions/blind.png")]
+    blind: Handle<Image>,
+
+    #[asset(path = "actions/cripple.png")]
+    cripple: Handle<Image>,
+
+    #[asset(path = "actions/heal.png")]
+    heal: Handle<Image>,
+
+    #[asset(path = "actions/push.png")]
+    push: Handle<Image>,
+
+    #[asset(path = "actions/shield.png")]
+    shield: Handle<Image>,
+
+    #[asset(path = "actions/shoot.png")]
+    shoot: Handle<Image>,
+
+    #[asset(path = "actions/slash.png")]
+    slash: Handle<Image>,
+
+    #[asset(path = "actions/teleport.png")]
+    teleport: Handle<Image>,
 }
 
 /// Display all infos about the turn system in a dedicated window
@@ -93,9 +115,13 @@ pub fn show_turn_ui(
 pub fn show_turn_button_ui(
     mut turn: ResMut<Turn>,
     turn_timer: Res<TurnTimer>,
-    mut ev_turn_started: EventWriter<TurnStart>,
-    mut ev_turn_ended: EventWriter<TurnEnd>,
+    ev_turn_started: EventWriter<TurnStart>,
+    ev_turn_ended: EventWriter<TurnEnd>,
     mut egui_context: ResMut<EguiContext>,
+    mut team_query: QuerySet<(
+        QueryState<Entity, With<TeamA>>,
+        QueryState<Entity, With<TeamB>>,
+    )>,
 ) {
     egui::containers::Window::new("next_turn_button")
         .anchor(egui::Align2::RIGHT_BOTTOM, [-20.0, -20.0])
@@ -120,20 +146,34 @@ pub fn show_turn_button_ui(
                         .heading()
                         .color(egui::Color32::BLACK);
 
-                    let end_turn_button = ui.add(
+                    let color = {
+                        let entity = turn.get_current_warrior_entity().unwrap();
+                        let is_team_a = team_query.q0().get(entity).is_ok();
+                        let is_team_b = team_query.q1().get(entity).is_ok();
+
+                        if is_team_a {
+                            color::TEAM_A_COLOR
+                        } else if is_team_b {
+                            color::TEAM_B_COLOR
+                        } else {
+                            color::TEAM_SPEC_COLOR
+                        }
+                    };
+
+                    let is_enabled = !turn.is_changed();
+                    let end_turn_button = ui.add_enabled(
+                        is_enabled,
                         egui::Button::new(end_turn_text)
-                            .fill(color::END_TURN)
+                            .fill(color)
                             .stroke(egui::Stroke::new(2.0, color::HIGHLIGHT_BORDER)),
                     );
 
                     if end_turn_button.clicked() {
-                        ev_turn_ended.send(TurnEnd(turn.get_current_warrior_entity().unwrap()));
-                        turn.set_next();
-                        ev_turn_started.send(TurnStart(turn.get_current_warrior_entity().unwrap()));
+                        turn.set_next(ev_turn_started, ev_turn_ended);
                     }
 
                     let timer_percentage = turn_timer.0.percent_left();
-                    ui.visuals_mut().selection.bg_fill = color::END_TURN.into();
+                    ui.visuals_mut().selection.bg_fill = color.into();
                     ui.visuals_mut().extreme_bg_color = color::DEFAULT_BG.into();
                     ui.add(egui::ProgressBar::new(timer_percentage));
                 },
@@ -236,7 +276,15 @@ pub fn show_action_bar_ui(
     turn: Res<Turn>,
     warrior_query: Query<&ActionPoints, With<Warrior>>,
 ) {
-    egui_context.set_egui_texture(0, images.sword.clone_weak());
+    // TODO actions unmock
+    egui_context.set_egui_texture(0, images.slash.clone_weak());
+    egui_context.set_egui_texture(1, images.shoot.clone_weak());
+    egui_context.set_egui_texture(2, images.cripple.clone_weak());
+    egui_context.set_egui_texture(3, images.blind.clone_weak());
+    egui_context.set_egui_texture(4, images.push.clone_weak());
+    egui_context.set_egui_texture(5, images.teleport.clone_weak());
+    egui_context.set_egui_texture(6, images.shield.clone_weak());
+    egui_context.set_egui_texture(7, images.heal.clone_weak());
 
     egui::containers::Window::new("action_bar")
         .anchor(egui::Align2::CENTER_BOTTOM, [0.0, -20.0])
@@ -258,21 +306,37 @@ pub fn show_action_bar_ui(
                     let action_points = warrior_query.get(entity).unwrap();
 
                     let action_count = 8usize;
-                    // TODO show real actions
+                    // TODO actions unmock
                     for index in 0..action_count {
                         if index > 0 && index % 8 == 0 {
                             ui.end_row();
                         }
+
+                        // TODO actions unmock
+                        let (name, cost) = match index {
+                            0 => ("Slash", 3),
+                            1 => ("Shoot", 5),
+                            2 => ("Cripple", 3),
+                            3 => ("Blind", 3),
+                            4 => ("Push", 2),
+                            5 => ("Teleport", 5),
+                            6 => ("Shield", 3),
+                            _ => ("Heal", 4),
+                        };
+
                         let is_selected = selected_action
                             .0
                             .map(|selected| selected == index)
                             .unwrap_or(false);
 
-                        let enabled = action_points.0.value >= 3; // TODO replace by the real action cost
+                        let enabled = action_points.0.value >= cost; // TODO replace by the real action cost
                         let button = ui.add_enabled(
                             enabled,
-                            egui::ImageButton::new(egui::TextureId::User(0), (48.0, 48.0))
-                                .selected(is_selected),
+                            egui::ImageButton::new(
+                                egui::TextureId::User(index as u64),
+                                (48.0, 48.0),
+                            )
+                            .selected(is_selected),
                         );
 
                         // Toggle action selection
@@ -286,18 +350,57 @@ pub fn show_action_bar_ui(
                                 egui::Grid::new(format!("action_bar_grid_{}", index)).show(
                                     ui,
                                     |ui| {
-                                        ui.label(egui::RichText::new("Sword").heading());
+                                        ui.label(egui::RichText::new(name).heading());
                                         ui.label(
-                                            egui::RichText::new("★ 3")
+                                            egui::RichText::new(format!("★ {}", cost))
                                                 .heading()
                                                 .color(color::ACTION_POINTS),
                                         );
                                         ui.end_row();
-                                        ui.label(
-                                            egui::RichText::new("15 dmg")
-                                                .strong()
-                                                .color(color::HEALTH),
-                                        );
+
+                                        // TODO actions unmock
+                                        match index {
+                                            0 => ui.label(
+                                                egui::RichText::new("-170 health")
+                                                    .strong()
+                                                    .color(color::HEALTH),
+                                            ),
+                                            1 => ui.label(
+                                                egui::RichText::new("-90 health")
+                                                    .strong()
+                                                    .color(color::HEALTH),
+                                            ),
+                                            2 => ui.label(
+                                                egui::RichText::new("-2 mp")
+                                                    .strong()
+                                                    .color(color::MOVEMENT_POINTS),
+                                            ),
+                                            3 => ui.label(
+                                                egui::RichText::new("-2 ap")
+                                                    .strong()
+                                                    .color(color::ACTION_POINTS),
+                                            ),
+                                            4 => ui.label(
+                                                egui::RichText::new("push target 2 tiles away")
+                                                    .strong()
+                                                    .color(color::MOVEMENT_POINTS),
+                                            ),
+                                            5 => ui.label(
+                                                egui::RichText::new("teleport yourself to target")
+                                                    .strong()
+                                                    .color(color::MOVEMENT_POINTS),
+                                            ),
+                                            6 => ui.label(
+                                                egui::RichText::new("+20 armor for 2 turns")
+                                                    .strong()
+                                                    .color(color::ACTION_POINTS),
+                                            ),
+                                            _ => ui.label(
+                                                egui::RichText::new("+120 health")
+                                                    .strong()
+                                                    .color(color::HEALTH),
+                                            ),
+                                        };
                                     },
                                 )
                             });

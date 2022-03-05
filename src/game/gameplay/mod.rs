@@ -66,11 +66,17 @@ impl Plugin for GameplayPlugin {
             )
             .add_system_set(
                 SystemSet::on_update(GameState::Arena)
+                    .label("highlight_1")
                     .after("clean_highlithing")
                     .with_system(highlight_warriors_tile)
                     .with_system(highlight_potential_movement)
-                    .with_system(highlight_potential_action)
                     .with_system(compute_and_highlight_path),
+            )
+            .add_system_set(
+                SystemSet::on_update(GameState::Arena)
+                    .label("highlight_2")
+                    .after("highlight_1")
+                    .with_system(highlight_potential_action),
             );
     }
 }
@@ -299,6 +305,7 @@ fn highlight_potential_movement(
                     // The mouse is over a warrior, let's highlight it's potential movement
                     if mouse_position.eq(warrior_position) {
                         let surroundings = warrior_position.get_surrounding_positions(
+                            1,
                             movement_points.0.value,
                             tiledmap_map.inner.width,
                             tiledmap_map.inner.height,
@@ -341,34 +348,46 @@ fn handle_warrior_action_on_click(
     turn: Res<Turn>,
     tiledmap_map: Res<Assets<Tiledmap>>,
     tiledmap_query: Query<&Handle<Tiledmap>, With<Map>>,
-    mut warrior_query: QuerySet<(
-        QueryState<
-            (
-                &Weapon,
-                &mut MapPosition,
-                &mut ActionPoints,
-                &mut MovementPoints,
-            ),
-            (With<Warrior>, Without<Tile>),
-        >, // Initiator
-        QueryState<(&MapPosition, &mut Health), (With<Warrior>, Without<Tile>)>, // Potential targets
-    )>,
+    mut warrior_query: Query<
+        (
+            &Weapon,
+            &mut MapPosition,
+            &mut ActionPoints,
+            &mut MovementPoints,
+            &mut Health,
+        ),
+        (With<Warrior>, Without<Tile>),
+    >,
     mut map_query: MapQuery,
 ) {
     if tiledmap_query.is_empty() {
         return;
     }
 
-    if selected_action.0.is_some() {
-        let action_distance = 2; // TODO replace with real action logic
+    if let Some(index) = selected_action.0 {
+        let (_, cost, min_distance, max_distance) = match index {
+            0 => ("Slash", 3, 1, 2),
+            1 => ("Shoot", 5, 3, 5),
+            2 => ("Cripple", 3, 1, 2),
+            3 => ("Blind", 3, 1, 1),
+            4 => ("Push", 2, 1, 2),
+            5 => ("Teleport", 5, 2, 5),
+            6 => ("Shield", 3, 0, 0),
+            _ => ("Heal", 4, 0, 1),
+        };
 
         for click_event in ev_clicked.iter() {
             let warrior_entity = turn.get_current_warrior_entity().unwrap();
-            let mut attacker_query = warrior_query.q0();
-            let (weapon, position, mut action_points, _) =
-                attacker_query.get_mut(warrior_entity).unwrap();
+            let (_, mut position, mut action_points, _, _) =
+                warrior_query.get_mut(warrior_entity).unwrap();
 
-            if position.distance_to(&click_event.0) > action_distance {
+            let distance_to_event = position.distance_to(&click_event.0);
+
+            if distance_to_event < min_distance {
+                continue;
+            }
+
+            if distance_to_event > max_distance {
                 continue;
             }
 
@@ -376,13 +395,25 @@ fn handle_warrior_action_on_click(
                 continue;
             }
 
-            if action_points.can_spend(weapon.effect.ap_cost) {
-                action_points.spend(weapon.effect.ap_cost);
+            if action_points.can_spend(cost) {
+                action_points.spend(cost);
 
-                let weapon = *weapon; // Cannot get both queries as mutable at the same time :(
-                for (position, mut health) in warrior_query.q1().iter_mut() {
-                    if click_event.0.eq(position) {
-                        weapon.use_on(&mut health);
+                if index == 5 {
+                    position.x = click_event.0.x;
+                    position.y = click_event.0.y;
+                }
+
+                for (_, mut position, mut ap, mut mp, mut health) in warrior_query.iter_mut() {
+                    if click_event.0.eq(&position) {
+                        match index {
+                            0 => health.hurt(170),
+                            1 => health.hurt(90),
+                            2 => mp.spend(2),
+                            3 => ap.spend(2),
+                            4 => position.x -= 2,
+                            6 => health.heal(120),
+                            _ => health.heal(120),
+                        }
                     }
                 }
             }
@@ -396,8 +427,8 @@ fn handle_warrior_action_on_click(
 
         for ev in ev_clicked.iter() {
             let warrior_entity = turn.get_current_warrior_entity().unwrap();
-            if let Ok((_, mut warrior_position, _, mut movement_points)) =
-                warrior_query.q0().get_mut(warrior_entity)
+            if let Ok((_, mut warrior_position, _, mut movement_points, _)) =
+                warrior_query.get_mut(warrior_entity)
             {
                 if let Some(tiledmap_map) = tiledmap_map {
                     let path = map_query.pathfinding(
@@ -453,7 +484,17 @@ fn highlight_potential_action(
         return;
     }
 
-    let action_distance = 2; // TODO replace with real action logic
+    // TODO actions unmock
+    let (_, min_distance, max_distance) = match selected_action.0.unwrap() {
+        0 => ("Slash", 1, 2),
+        1 => ("Shoot", 3, 5),
+        2 => ("Cripple", 1, 2),
+        3 => ("Blind", 1, 1),
+        4 => ("Push", 1, 2),
+        5 => ("Teleport", 2, 5),
+        6 => ("Shield", 0, 0),
+        _ => ("Heal", 0, 1),
+    };
 
     let map_id = 0u32;
     let layer_id = 1u32;
@@ -465,7 +506,8 @@ fn highlight_potential_action(
         let warrior_entity = turn.get_current_warrior_entity().unwrap();
         let warrior_position = warrior_query.get(warrior_entity).unwrap();
         let surroundings = warrior_position.get_surrounding_positions(
-            action_distance,
+            min_distance,
+            max_distance,
             tiledmap_map.inner.width,
             tiledmap_map.inner.height,
         );

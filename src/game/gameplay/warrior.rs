@@ -34,8 +34,11 @@ impl WarriorBundle {
         WarriorBundle {
             name: Name::new(name),
             position,
-            health: Health(Attribute { value: 50, max: 50 }),
-            action_points: ActionPoints(Attribute { value: 6, max: 6 }),
+            health: Health(Attribute {
+                value: 1500,
+                max: 1500,
+            }),
+            action_points: ActionPoints(Attribute { value: 8, max: 8 }),
             movement_points: MovementPoints(Attribute { value: 5, max: 5 }),
             weapon: *weapon,
             animation_timer: AnimationTimer(Timer::from_seconds(0.15, true)),
