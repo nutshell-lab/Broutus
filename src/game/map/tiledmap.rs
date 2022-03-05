@@ -170,6 +170,18 @@ impl MapPosition {
     }
 }
 
+impl From<MapPosition> for (u32, u32) {
+    fn from(position: MapPosition) -> Self {
+        (position.x, position.y)
+    }
+}
+
+impl From<(u32, u32)> for MapPosition {
+    fn from((x, y): (u32, u32)) -> Self {
+        Self::new(x, y)
+    }
+}
+
 pub struct TiledmapLoader;
 
 impl AssetLoader for TiledmapLoader {
