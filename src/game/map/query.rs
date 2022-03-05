@@ -188,8 +188,7 @@ impl<'w, 's> MapQuery<'w, 's> {
     ) -> bool {
         me.line_to(&target)
             .iter()
-            .any(|position| self.is_obstacle(map_id, position))
-            == false
+            .all(|position| !self.is_obstacle(map_id, position))
     }
 
     /// Is a map position an obstacle ?

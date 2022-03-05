@@ -365,10 +365,14 @@ fn handle_warrior_action_on_click(
         for click_event in ev_clicked.iter() {
             let warrior_entity = turn.get_current_warrior_entity().unwrap();
             let mut attacker_query = warrior_query.q0();
-            let (weapon, warrior_position, mut action_points, _) =
+            let (weapon, position, mut action_points, _) =
                 attacker_query.get_mut(warrior_entity).unwrap();
 
-            if click_event.0.distance_to(&warrior_position) > action_distance {
+            if position.distance_to(&click_event.0) > action_distance {
+                continue;
+            }
+
+            if !map_query.line_of_sight_check(0u32, &position, &click_event.0) {
                 continue;
             }
 
