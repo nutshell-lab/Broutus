@@ -185,14 +185,26 @@ impl<'w, 's> MapQuery<'w, 's> {
         map_id: u32,
         me: &MapPosition,
         target: &MapPosition,
+        map_width: u32,
+        map_height: u32,
     ) -> bool {
         me.line_to(&target)
             .iter()
-            .all(|position| !self.is_obstacle(map_id, position))
+            .all(|position| !self.is_obstacle(map_id, position, map_width, map_height))
     }
 
     /// Is a map position an obstacle ?
-    pub fn is_obstacle(&mut self, map_id: u32, position: &MapPosition) -> bool {
+    pub fn is_obstacle(
+        &mut self,
+        map_id: u32,
+        position: &MapPosition,
+        map_width: u32,
+        map_height: u32,
+    ) -> bool {
+        if !position.is_in_map_bounds(map_width, map_height) {
+            return false;
+        }
+
         for (_, map, _) in self.map_queryset.q1().iter() {
             if map.id.ne(&map_id) {
                 continue;
@@ -225,7 +237,7 @@ impl<'w, 's> MapQuery<'w, 's> {
         neightbours
             .iter()
             .filter(|&position| position.x < map_width && position.y < map_height)
-            .filter(|&position| !self.is_obstacle(map_id, position))
+            .filter(|&position| !self.is_obstacle(map_id, position, map_width, map_height))
             .map(|&position| (position, 1))
             .collect()
     }

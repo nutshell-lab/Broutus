@@ -6,6 +6,12 @@ use bevy_egui::egui::Color32;
 #[derive(Copy, Clone)]
 pub struct Color(u8, u8, u8);
 
+impl Default for Color {
+    fn default() -> Self {
+        Self(255, 255, 255)
+    }
+}
+
 impl From<Color> for Color32 {
     fn from(color: Color) -> Color32 {
         Color32::from_rgb(color.0, color.1, color.2)

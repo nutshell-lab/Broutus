@@ -1,6 +1,7 @@
 use super::color;
 use super::GameState;
 use bevy::prelude::*;
+use bevy::ui::Direction;
 
 mod attribute;
 mod turn;
@@ -21,8 +22,8 @@ pub use attribute::Health;
 pub use attribute::MovementPoints;
 pub use turn::reset_turn_timer;
 pub use turn::run_turn_timer;
-pub use turn::TeamA;
-pub use turn::TeamB;
+pub use turn::Team;
+pub use turn::TeamSide;
 pub use turn::Turn;
 pub use turn::TurnEnd;
 pub use turn::TurnStart;
@@ -81,7 +82,55 @@ impl Plugin for GameplayPlugin {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
+enum MapPositionDirection {
+    NordWest, // top-left
+    NordEst,  // top-right
+    SudWest,  // bottom-left
+    SudEst,   // bottom-right
+}
+
+impl MapPosition {
+    fn direction_to(&self, target: &MapPosition) -> Option<MapPositionDirection> {
+        if self.x == target.x && self.y < target.y {
+            Some(MapPositionDirection::SudWest)
+        } else if self.x == target.x && self.y > target.y {
+            Some(MapPositionDirection::NordEst)
+        } else if self.x < target.x && self.y == target.y {
+            Some(MapPositionDirection::SudEst)
+        } else if self.x > target.x && self.y == target.y {
+            Some(MapPositionDirection::NordWest)
+        } else {
+            None
+        }
+    }
+
+    fn push_from(&self, direction: MapPositionDirection, distance: u32) -> Vec<MapPosition> {
+        let mut distance = distance;
+        let mut path = Vec::new();
+        let (dx, dy) = match direction {
+            MapPositionDirection::NordWest => (-1, 0),
+            MapPositionDirection::NordEst => (0, -1),
+            MapPositionDirection::SudWest => (0, 1),
+            MapPositionDirection::SudEst => (1, 0),
+        };
+
+        let (mut x, mut y) = (self.x as i32, self.y as i32);
+        while distance != 0 {
+            x += dx;
+            y += dy;
+            path.push(MapPosition::new(x as u32, y as u32));
+            distance -= 1;
+        }
+
+        path
+    }
+}
+
 fn spawn_warriors(mut commands: Commands, warrior_assets: Res<WarriorAssets>) {
+    let team_a = Team::new(TeamSide::A, color::TEAM_A_COLOR);
+    let team_b = Team::new(TeamSide::B, color::TEAM_B_COLOR);
+
     // Spawn warriors
     let brundal = commands
         .spawn_bundle(WarriorBundle::new(
@@ -91,7 +140,7 @@ fn spawn_warriors(mut commands: Commands, warrior_assets: Res<WarriorAssets>) {
             -1.0,
             &warrior_assets.idle,
         ))
-        .insert(TeamA)
+        .insert(team_a.clone())
         .id();
 
     let brandy = commands
@@ -102,7 +151,7 @@ fn spawn_warriors(mut commands: Commands, warrior_assets: Res<WarriorAssets>) {
             -1.0,
             &warrior_assets.idle,
         ))
-        .insert(TeamA)
+        .insert(team_a.clone())
         .id();
 
     let brando = commands
@@ -113,7 +162,7 @@ fn spawn_warriors(mut commands: Commands, warrior_assets: Res<WarriorAssets>) {
             -1.0,
             &warrior_assets.idle,
         ))
-        .insert(TeamA)
+        .insert(team_a.clone())
         .id();
 
     let glourf = commands
@@ -124,7 +173,7 @@ fn spawn_warriors(mut commands: Commands, warrior_assets: Res<WarriorAssets>) {
             1.0,
             &warrior_assets.idle,
         ))
-        .insert(TeamB)
+        .insert(team_b.clone())
         .id();
 
     let glarf = commands
@@ -135,7 +184,7 @@ fn spawn_warriors(mut commands: Commands, warrior_assets: Res<WarriorAssets>) {
             1.0,
             &warrior_assets.idle,
         ))
-        .insert(TeamB)
+        .insert(team_b.clone())
         .id();
 
     let glirf = commands
@@ -146,7 +195,7 @@ fn spawn_warriors(mut commands: Commands, warrior_assets: Res<WarriorAssets>) {
             1.0,
             &warrior_assets.idle,
         ))
-        .insert(TeamB)
+        .insert(team_b.clone())
         .id();
 
     // Insert turn system resource
@@ -168,10 +217,7 @@ fn unhighlight_all_tiles(mut map_query: MapQuery) {
 fn highlight_warriors_tile(
     time: Res<Time>,
     turn: Res<Turn>,
-    mut warriors_queryset: QuerySet<(
-        QueryState<(Entity, &MapPosition), With<TeamA>>,
-        QueryState<(Entity, &MapPosition), With<TeamB>>,
-    )>,
+    mut warriors_query: Query<(Entity, &MapPosition, &Team), With<Warrior>>,
     mut map_query: MapQuery,
 ) {
     let map_id = 0u32;
@@ -180,25 +226,11 @@ fn highlight_warriors_tile(
     let current = turn.get_current_warrior_entity();
     let alpha = (((time.seconds_since_startup() * 4.0).sin() + 1.0) / 2.85) as f32;
 
-    for (entity, position) in warriors_queryset.q0().iter() {
+    for (entity, position, team) in warriors_query.iter() {
+        let mut color: bevy::prelude::Color = team.color().into();
         let alpha = current
             .map(|e| if e.eq(&entity) { alpha } else { 0.8 })
             .unwrap_or(0.8);
-        let mut color: bevy::prelude::Color = color::TEAM_A_COLOR.into();
-
-        map_query.update_tile_sprite_color(
-            map_id,
-            layer_id,
-            position,
-            color.set_a(alpha).as_rgba(),
-        );
-    }
-
-    for (entity, position) in warriors_queryset.q1().iter() {
-        let alpha = current
-            .map(|e| if e.eq(&entity) { alpha } else { 0.8 })
-            .unwrap_or(0.8);
-        let mut color: bevy::prelude::Color = color::TEAM_B_COLOR.into();
 
         map_query.update_tile_sprite_color(
             map_id,
@@ -364,6 +396,10 @@ fn handle_warrior_action_on_click(
         return;
     }
 
+    let map_id = 0u32;
+    let tiledmap_handle = tiledmap_query.single();
+    let tiledmap_map = &tiledmap_map.get(tiledmap_handle).unwrap();
+
     if let Some(index) = selected_action.0 {
         let (_, cost, min_distance, max_distance) = match index {
             0 => ("Slash", 3, 1, 2),
@@ -391,9 +427,17 @@ fn handle_warrior_action_on_click(
                 continue;
             }
 
-            if !map_query.line_of_sight_check(0u32, &position, &click_event.0) {
+            if !map_query.line_of_sight_check(
+                0u32,
+                &position,
+                &click_event.0,
+                tiledmap_map.inner.width,
+                tiledmap_map.inner.height,
+            ) {
                 continue;
             }
+
+            let direction = position.direction_to(&click_event.0);
 
             if action_points.can_spend(cost) {
                 action_points.spend(cost);
@@ -410,7 +454,26 @@ fn handle_warrior_action_on_click(
                             1 => health.hurt(90),
                             2 => mp.spend(2),
                             3 => ap.spend(2),
-                            4 => position.x -= 2,
+                            4 => {
+                                if let Some(direction) = direction {
+                                    let path = position.push_from(direction, 2);
+                                    let mut path_iter = path.iter();
+                                    println!("{:?}", direction);
+                                    println!("{:?}", path);
+                                    while let Some(pos) = path_iter.next() {
+                                        if map_query.is_obstacle(
+                                            0u32,
+                                            pos,
+                                            tiledmap_map.inner.width,
+                                            tiledmap_map.inner.height,
+                                        ) {
+                                            break;
+                                        }
+                                        position.x = pos.x;
+                                        position.y = pos.y;
+                                    }
+                                }
+                            }
                             6 => health.heal(120),
                             _ => health.heal(120),
                         }
@@ -421,33 +484,27 @@ fn handle_warrior_action_on_click(
             selected_action.0 = None; // Deselect action automatically
         }
     } else {
-        let map_id = 0u32;
-        let tiledmap_handle = tiledmap_query.single();
-        let tiledmap_map = &tiledmap_map.get(tiledmap_handle);
-
         for ev in ev_clicked.iter() {
             let warrior_entity = turn.get_current_warrior_entity().unwrap();
             if let Ok((_, mut warrior_position, _, mut movement_points, _)) =
                 warrior_query.get_mut(warrior_entity)
             {
-                if let Some(tiledmap_map) = tiledmap_map {
-                    let path = map_query.pathfinding(
-                        map_id,
-                        &warrior_position,
-                        &ev.0,
-                        tiledmap_map.inner.width,
-                        tiledmap_map.inner.height,
-                    );
+                let path = map_query.pathfinding(
+                    map_id,
+                    &warrior_position,
+                    &ev.0,
+                    tiledmap_map.inner.width,
+                    tiledmap_map.inner.height,
+                );
 
-                    // TODO Replace the current sprite sheets by another one containing all 4 directions
-                    // TODO Animate warrior movement along the path
-                    // TODO Change warrior orientation when it changes direction
-                    if let Some((_path, cost)) = path {
-                        if movement_points.can_spend(cost) {
-                            warrior_position.x = ev.0.x;
-                            warrior_position.y = ev.0.y;
-                            movement_points.spend(cost);
-                        }
+                // TODO Replace the current sprite sheets by another one containing all 4 directions
+                // TODO Animate warrior movement along the path
+                // TODO Change warrior orientation when it changes direction
+                if let Some((_path, cost)) = path {
+                    if movement_points.can_spend(cost) {
+                        warrior_position.x = ev.0.x;
+                        warrior_position.y = ev.0.y;
+                        movement_points.spend(cost);
                     }
                 }
             }
@@ -513,7 +570,13 @@ fn highlight_potential_action(
         );
 
         for position in surroundings {
-            if map_query.line_of_sight_check(map_id, warrior_position, &position) {
+            if map_query.line_of_sight_check(
+                map_id,
+                warrior_position,
+                &position,
+                tiledmap_map.inner.width,
+                tiledmap_map.inner.height,
+            ) {
                 let alpha = mouse_position
                     .0
                     .filter(|mouse| mouse.eq(&position))

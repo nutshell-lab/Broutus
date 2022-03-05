@@ -169,6 +169,11 @@ impl MapPosition {
 
         positions
     }
+
+    /// Get all positions in the reach of the given position, excluding the given position
+    pub fn is_in_map_bounds(self, map_width: u32, map_height: u32) -> bool {
+        self.x != 0 && self.y != 0 && self.x < (map_width - 1) && self.y < (map_height - 1)
+    }
 }
 
 impl From<MapPosition> for (u32, u32) {

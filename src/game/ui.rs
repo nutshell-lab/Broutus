@@ -39,10 +39,7 @@ pub fn show_turn_ui(
     turn: Res<Turn>,
     warrior_query: Query<(&Name, &Health, &ActionPoints, &MovementPoints), With<Warrior>>,
     mut egui_context: ResMut<EguiContext>,
-    mut team_query: QuerySet<(
-        QueryState<Entity, With<TeamA>>,
-        QueryState<Entity, With<TeamB>>,
-    )>,
+    mut team_query: Query<&Team, With<Warrior>>,
 ) {
     egui::containers::Window::new("turn_order")
         .anchor(egui::Align2::RIGHT_TOP, [-20.0, 20.0])
@@ -67,19 +64,7 @@ pub fn show_turn_ui(
                 let offset = if index == 0 { turn.order_index } else { 0 };
                 for &entity in turn.order.iter().skip(offset).take(display_slots) {
                     let (name, health, _, _) = warrior_query.get(entity).unwrap();
-                    let color = {
-                        let is_team_a = team_query.q0().get(entity).is_ok();
-                        let is_team_b = team_query.q1().get(entity).is_ok();
-
-                        if is_team_a {
-                            color::TEAM_A_COLOR
-                        } else if is_team_b {
-                            color::TEAM_B_COLOR
-                        } else {
-                            color::TEAM_SPEC_COLOR
-                        }
-                    };
-
+                    let color = team_query.get(entity).unwrap().color();
                     let stroke = if index == 0 && display_slots == turn.order.len() {
                         egui::Stroke::new(2.0, color::HIGHLIGHT_BORDER)
                     } else {
@@ -118,10 +103,7 @@ pub fn show_turn_button_ui(
     ev_turn_started: EventWriter<TurnStart>,
     ev_turn_ended: EventWriter<TurnEnd>,
     mut egui_context: ResMut<EguiContext>,
-    mut team_query: QuerySet<(
-        QueryState<Entity, With<TeamA>>,
-        QueryState<Entity, With<TeamB>>,
-    )>,
+    mut team_query: Query<&Team, With<Warrior>>,
 ) {
     egui::containers::Window::new("next_turn_button")
         .anchor(egui::Align2::RIGHT_BOTTOM, [-20.0, -20.0])
@@ -146,20 +128,8 @@ pub fn show_turn_button_ui(
                         .heading()
                         .color(egui::Color32::BLACK);
 
-                    let color = {
-                        let entity = turn.get_current_warrior_entity().unwrap();
-                        let is_team_a = team_query.q0().get(entity).is_ok();
-                        let is_team_b = team_query.q1().get(entity).is_ok();
-
-                        if is_team_a {
-                            color::TEAM_A_COLOR
-                        } else if is_team_b {
-                            color::TEAM_B_COLOR
-                        } else {
-                            color::TEAM_SPEC_COLOR
-                        }
-                    };
-
+                    let entity = turn.get_current_warrior_entity().unwrap();
+                    let color = team_query.get(entity).unwrap().color();
                     let is_enabled = !turn.is_changed();
                     let end_turn_button = ui.add_enabled(
                         is_enabled,
@@ -547,10 +517,7 @@ pub fn show_warrior_ui(
     warrior_query: Query<(Entity, &Name, &Health, &MapPosition), With<Warrior>>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
     mut egui_context: ResMut<EguiContext>,
-    mut team_query: QuerySet<(
-        QueryState<Entity, With<TeamA>>,
-        QueryState<Entity, With<TeamB>>,
-    )>,
+    mut team_query: Query<&Team, With<Warrior>>,
 ) {
     if map_query.is_empty() {
         return;
@@ -580,19 +547,7 @@ pub fn show_warrior_ui(
             if let Some(hover_position) =
                 camera.world_to_screen(windows.as_ref(), camera_transform, world_position)
             {
-                let color = {
-                    let is_team_a = team_query.q0().get(entity).is_ok();
-                    let is_team_b = team_query.q1().get(entity).is_ok();
-
-                    if is_team_a {
-                        color::TEAM_A_COLOR.into()
-                    } else if is_team_b {
-                        color::TEAM_B_COLOR.into()
-                    } else {
-                        egui::Color32::LIGHT_GREEN
-                    }
-                };
-
+                let color = team_query.get(entity).unwrap().color();
                 let main_window = windows.get_primary().unwrap();
                 egui::containers::Window::new("warrior_mouse_hover")
                     .collapsible(false)
