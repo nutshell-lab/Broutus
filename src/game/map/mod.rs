@@ -21,6 +21,7 @@ pub use query::MapQuery;
 pub use tiledmap::Layer;
 pub use tiledmap::Map;
 pub use tiledmap::MapPosition;
+pub use tiledmap::MapPositionDirection;
 pub use tiledmap::Tile;
 pub use tiledmap::Tiledmap;
 

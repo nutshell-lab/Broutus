@@ -202,7 +202,7 @@ impl<'w, 's> MapQuery<'w, 's> {
         map_height: u32,
     ) -> bool {
         if !position.is_in_map_bounds(map_width, map_height) {
-            return false;
+            return true;
         }
 
         for (_, map, _) in self.map_queryset.q1().iter() {

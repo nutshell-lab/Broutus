@@ -1,8 +1,8 @@
 use super::color;
 use super::GameState;
 use bevy::prelude::*;
-use bevy::ui::Direction;
 
+mod action;
 mod attribute;
 mod turn;
 mod warrior;
@@ -10,6 +10,7 @@ mod weapon;
 
 pub use super::map::Map;
 pub use super::map::MapPosition;
+pub use super::map::MapPositionDirection;
 pub use super::map::MapQuery;
 pub use super::map::MouseMapPosition;
 pub use super::map::Tile;
@@ -79,51 +80,6 @@ impl Plugin for GameplayPlugin {
                     .after("highlight_1")
                     .with_system(highlight_potential_action),
             );
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-enum MapPositionDirection {
-    NordWest, // top-left
-    NordEst,  // top-right
-    SudWest,  // bottom-left
-    SudEst,   // bottom-right
-}
-
-impl MapPosition {
-    fn direction_to(&self, target: &MapPosition) -> Option<MapPositionDirection> {
-        if self.x == target.x && self.y < target.y {
-            Some(MapPositionDirection::SudWest)
-        } else if self.x == target.x && self.y > target.y {
-            Some(MapPositionDirection::NordEst)
-        } else if self.x < target.x && self.y == target.y {
-            Some(MapPositionDirection::SudEst)
-        } else if self.x > target.x && self.y == target.y {
-            Some(MapPositionDirection::NordWest)
-        } else {
-            None
-        }
-    }
-
-    fn push_from(&self, direction: MapPositionDirection, distance: u32) -> Vec<MapPosition> {
-        let mut distance = distance;
-        let mut path = Vec::new();
-        let (dx, dy) = match direction {
-            MapPositionDirection::NordWest => (-1, 0),
-            MapPositionDirection::NordEst => (0, -1),
-            MapPositionDirection::SudWest => (0, 1),
-            MapPositionDirection::SudEst => (1, 0),
-        };
-
-        let (mut x, mut y) = (self.x as i32, self.y as i32);
-        while distance != 0 {
-            x += dx;
-            y += dy;
-            path.push(MapPosition::new(x as u32, y as u32));
-            distance -= 1;
-        }
-
-        path
     }
 }
 
@@ -217,7 +173,7 @@ fn unhighlight_all_tiles(mut map_query: MapQuery) {
 fn highlight_warriors_tile(
     time: Res<Time>,
     turn: Res<Turn>,
-    mut warriors_query: Query<(Entity, &MapPosition, &Team), With<Warrior>>,
+    warriors_query: Query<(Entity, &MapPosition, &Team), With<Warrior>>,
     mut map_query: MapQuery,
 ) {
     let map_id = 0u32;
@@ -456,10 +412,8 @@ fn handle_warrior_action_on_click(
                             3 => ap.spend(2),
                             4 => {
                                 if let Some(direction) = direction {
-                                    let path = position.push_from(direction, 2);
+                                    let path = position.unchecked_path_torward(direction, 2);
                                     let mut path_iter = path.iter();
-                                    println!("{:?}", direction);
-                                    println!("{:?}", path);
                                     while let Some(pos) = path_iter.next() {
                                         if map_query.is_obstacle(
                                             0u32,

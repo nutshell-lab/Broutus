@@ -172,8 +172,57 @@ impl MapPosition {
 
     /// Get all positions in the reach of the given position, excluding the given position
     pub fn is_in_map_bounds(self, map_width: u32, map_height: u32) -> bool {
-        self.x != 0 && self.y != 0 && self.x < (map_width - 1) && self.y < (map_height - 1)
+        self.x != 0 && self.y != 0 && self.x < map_width && self.y < map_height
     }
+
+    /// Get the direction of a target from the current position, only straight, no diagonals.
+    pub fn direction_to(&self, target: &MapPosition) -> Option<MapPositionDirection> {
+        if self.x == target.x && self.y < target.y {
+            Some(MapPositionDirection::SudWest)
+        } else if self.x == target.x && self.y > target.y {
+            Some(MapPositionDirection::NordEst)
+        } else if self.x < target.x && self.y == target.y {
+            Some(MapPositionDirection::SudEst)
+        } else if self.x > target.x && self.y == target.y {
+            Some(MapPositionDirection::NordWest)
+        } else {
+            None
+        }
+    }
+
+    /// Get a straight path torward a position from the current position, unchecked for obstacles.
+    pub fn unchecked_path_torward(
+        &self,
+        direction: MapPositionDirection,
+        distance: u32,
+    ) -> Vec<MapPosition> {
+        let mut distance = distance;
+        let mut path = Vec::new();
+        let (dx, dy) = match direction {
+            MapPositionDirection::NordWest => (-1, 0),
+            MapPositionDirection::NordEst => (0, -1),
+            MapPositionDirection::SudWest => (0, 1),
+            MapPositionDirection::SudEst => (1, 0),
+        };
+
+        let (mut x, mut y) = (self.x as i32, self.y as i32);
+        while distance != 0 {
+            x += dx;
+            y += dy;
+            path.push(MapPosition::new(x as u32, y as u32));
+            distance -= 1;
+        }
+
+        path
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum MapPositionDirection {
+    NordWest, // top-left
+    NordEst,  // top-right
+    SudWest,  // bottom-left
+    SudEst,   // bottom-right
 }
 
 impl From<MapPosition> for (u32, u32) {
