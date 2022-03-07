@@ -18,7 +18,7 @@ impl AnimationCollection {
     /// Get an image handle giving an icon key
     pub fn get(&self, key: &str) -> Option<Handle<TextureAtlas>> {
         self.field(key)
-            .and_then(|v| v.downcast_ref::<Handle<TextureAtlas>>())
+            .and_then(|field| field.downcast_ref::<Handle<TextureAtlas>>())
             .cloned()
     }
 }
@@ -55,34 +55,43 @@ impl IconCollection {
     /// Get an image handle giving an icon key
     pub fn get(&self, key: &str) -> Option<Handle<Image>> {
         self.field(key)
-            .and_then(|v| v.downcast_ref::<Handle<Image>>())
+            .and_then(|field| field.downcast_ref::<Handle<Image>>())
             .cloned()
+    }
+
+    pub fn get_all(&self) -> Vec<Handle<Image>> {
+        self.iter_fields()
+            .map(|field| field.downcast_ref::<Handle<Image>>())
+            .filter(|res| res.is_some())
+            .map(|res| res.unwrap())
+            .cloned()
+            .collect()
     }
 }
 
 #[derive(AssetCollection)]
 pub struct WarriorCollection {
     #[asset(path = "warriors", folder(typed))]
-    warriors: Vec<Handle<WarriorAsset>>,
+    pub warriors: Vec<Handle<WarriorAsset>>,
 }
 
 /// Loadable asset struct used to spawn WarriorBundle(s)
-#[derive(TypeUuid, Deserialize, Serialize)]
+#[derive(TypeUuid, Debug, Deserialize, Serialize)]
 #[uuid = "e51081d0-6168-4881-a1c6-1249b2000e7f"]
 pub struct WarriorAsset {
-    name: String,
-    render: WarriorAssetRender,
-    health: Attribute<Health>,
-    shield: Attribute<Shield>,
-    action_points: Attribute<ActionPoints>,
-    movement_points: Attribute<MovementPoints>,
-    actions: Vec<Action>,
+    pub name: String,
+    pub render: WarriorAssetRender,
+    pub health: Attribute<Health>,
+    pub shield: Attribute<Shield>,
+    pub action_points: Attribute<ActionPoints>,
+    pub movement_points: Attribute<MovementPoints>,
+    pub actions: Vec<Action>,
 }
 
-#[derive(Deserialize, Serialize)]
-struct WarriorAssetRender {
-    atlas_texture: String,
-    animations: HashMap<String, (usize, usize)>,
+#[derive(Debug, Deserialize, Serialize)]
+pub struct WarriorAssetRender {
+    pub atlas_texture: String,
+    pub animations: HashMap<String, (usize, usize)>,
 }
 
 pub struct WarriorAssetLoader;
@@ -95,10 +104,9 @@ impl AssetLoader for WarriorAssetLoader {
     ) -> BoxedFuture<'a, Result<(), anyhow::Error>> {
         Box::pin(async move {
             let asset = ron::de::from_bytes::<WarriorAsset>(bytes)?;
-            let label = asset.name.clone().to_lowercase();
             let asset = LoadedAsset::new(asset);
 
-            load_context.set_labeled_asset(label.as_str(), asset);
+            load_context.set_default_asset(asset);
 
             Ok(())
         })

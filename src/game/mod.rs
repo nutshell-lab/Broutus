@@ -13,12 +13,16 @@ pub enum GameState {
     Loading,
 
     // /// Show main menu
-    // MENU,
+    Menu,
 
-    // /// Prepare your team
-    // PREPARE,
+    /// Prepare your team by picking
+    Picking,
+
     /// Fight !
     Arena,
+
+    /// Game is paused (suspend turn timer)
+    Paused,
 }
 
 pub struct GamePlugin;
@@ -33,7 +37,7 @@ impl Plugin for GamePlugin {
             .with_collection::<gameplay::WarriorCollection>()
             .with_collection::<gameplay::AnimationCollection>()
             .with_collection::<gameplay::IconCollection>()
-            .continue_to_state(GameState::Arena)
+            .continue_to_state(GameState::Picking)
             .build(app);
 
         app.add_state(GameState::Loading)
@@ -41,6 +45,12 @@ impl Plugin for GamePlugin {
             .add_plugin(map::TiledmapPlugin)
             .add_plugin(gameplay::GameplayPlugin)
             .add_startup_system(setup_camera)
+            .add_system_set(
+                SystemSet::on_update(GameState::Menu), // .with_system(ui::show_main_menu)
+            )
+            .add_system_set(
+                SystemSet::on_update(GameState::Picking).with_system(ui::show_warrior_selection_ui),
+            )
             .add_system_set(
                 SystemSet::on_update(GameState::Arena)
                     .with_system(ui::show_turn_ui)
@@ -52,6 +62,9 @@ impl Plugin for GamePlugin {
                     .with_system(ui::handle_action_bar_shortcuts)
                     .with_system(ui::show_battlelog_ui)
                     .with_system(ui::show_warrior_ui),
+            )
+            .add_system_set(
+                SystemSet::on_update(GameState::Paused), // .with_system(ui::show_pause_menu)
             );
     }
 }

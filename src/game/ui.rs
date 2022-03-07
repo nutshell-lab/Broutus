@@ -1,10 +1,48 @@
 use super::color;
 use super::gameplay::*;
+use super::GameState;
 use bevy::prelude::*;
 use bevy_asset_loader::AssetCollection;
 use bevy_egui::egui;
 use bevy_egui::egui::{Label, ProgressBar, RichText};
 use bevy_egui::EguiContext;
+
+pub fn show_warrior_selection_ui(
+    mut egui_context: ResMut<EguiContext>,
+    mut game_state: ResMut<State<GameState>>,
+    warriors: Res<Assets<WarriorAsset>>,
+    warrior_collection: Res<WarriorCollection>,
+    icon_collection: Res<IconCollection>,
+) {
+    for (index, icon) in icon_collection.get_all().iter().enumerate() {
+        egui_context.set_egui_texture(index as u64, icon.clone());
+    }
+
+    egui::containers::Window::new("warrior_selection")
+        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+        .collapsible(false)
+        .resizable(false)
+        .title_bar(false)
+        .frame(
+            egui::containers::Frame::default()
+                .margin((10.0, 10.0))
+                .fill(egui::Color32::from_white_alpha(0))
+                .stroke(egui::Stroke::none())
+                .corner_radius(5.0),
+        )
+        .show(egui_context.ctx_mut(), |ui| {
+            for warrior_handle in warrior_collection.warriors.iter() {
+                if let Some(warrior) = warriors.get(warrior_handle) {
+                    println!("Warriors {}", warrior.name.as_str());
+                    ui.label(warrior.name.as_str());
+                }
+            }
+
+            if ui.button("Play").clicked() {
+                game_state.set(GameState::Arena).unwrap();
+            }
+        });
+}
 
 // TODO actions unmock
 #[derive(AssetCollection)]
@@ -247,14 +285,14 @@ pub fn show_action_bar_ui(
     warrior_query: Query<&ActionPoints, With<Warrior>>,
 ) {
     // TODO actions unmock
-    egui_context.set_egui_texture(0, images.slash.clone_weak());
-    egui_context.set_egui_texture(1, images.shoot.clone_weak());
-    egui_context.set_egui_texture(2, images.cripple.clone_weak());
-    egui_context.set_egui_texture(3, images.blind.clone_weak());
-    egui_context.set_egui_texture(4, images.push.clone_weak());
-    egui_context.set_egui_texture(5, images.teleport.clone_weak());
-    egui_context.set_egui_texture(6, images.shield.clone_weak());
-    egui_context.set_egui_texture(7, images.heal.clone_weak());
+    egui_context.set_egui_texture(0, images.slash.clone());
+    egui_context.set_egui_texture(1, images.shoot.clone());
+    egui_context.set_egui_texture(2, images.cripple.clone());
+    egui_context.set_egui_texture(3, images.blind.clone());
+    egui_context.set_egui_texture(4, images.push.clone());
+    egui_context.set_egui_texture(5, images.teleport.clone());
+    egui_context.set_egui_texture(6, images.shield.clone());
+    egui_context.set_egui_texture(7, images.heal.clone());
 
     egui::containers::Window::new("action_bar")
         .anchor(egui::Align2::CENTER_BOTTOM, [0.0, -20.0])

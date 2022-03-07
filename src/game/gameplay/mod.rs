@@ -11,6 +11,8 @@ mod weapon;
 
 pub use warrior_new::AnimationCollection;
 pub use warrior_new::IconCollection;
+pub use warrior_new::WarriorAsset;
+pub use warrior_new::WarriorAssetLoader;
 pub use warrior_new::WarriorCollection;
 
 pub use super::map::Map;
@@ -52,6 +54,8 @@ impl Plugin for GameplayPlugin {
             .register_type::<ActionPoints>()
             .register_type::<MovementPoints>()
             .init_resource::<SelectedAction>()
+            .add_asset::<WarriorAsset>()
+            .add_asset_loader(WarriorAssetLoader)
             .add_event::<TurnStart>()
             .add_event::<TurnEnd>()
             .add_system_set(SystemSet::on_enter(GameState::Arena).with_system(spawn_warriors))
