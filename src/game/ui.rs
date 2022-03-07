@@ -33,7 +33,6 @@ pub fn show_warrior_selection_ui(
         .show(egui_context.ctx_mut(), |ui| {
             for warrior_handle in warrior_collection.warriors.iter() {
                 if let Some(warrior) = warriors.get(warrior_handle) {
-                    println!("Warriors {}", warrior.name.as_str());
                     ui.label(warrior.name.as_str());
                 }
             }
