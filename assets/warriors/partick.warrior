@@ -1,5 +1,5 @@
 (
-    name: "Freddy",
+    name: "Patrick",
     render: (
         atlas_texture: "freddy_idle",
         animations: {
@@ -13,7 +13,7 @@
         }
     ),
     health: (
-        value: Health(1000),
+        value: Health(800),
         min: Health(0),
         max: Health(1000),
     ),
@@ -34,13 +34,13 @@
     ),
     actions: [
         Action(
-            name: "Slash",
-            icon_key: "action_slash",
-            animation_key: "action_slash",
-            cost: ActionPoints(4),
+            name: "Shoot",
+            icon_key: "action_shoot",
+            animation_key: "action_shoot",
+            cost: ActionPoints(5),
             aoe: Cell,
-            range: Around(min_distance: 1, max_distance: 2),
-            effects: [DamageHealthOrShield(amount: 150, erode: 0.1, crit_mult: 1.4, crit_chance: 0.12)]
+            range: Around(min_distance: 3, max_distance: 6),
+            effects: [DamageHealthOrShield(amount: 110, erode: 0.1, crit_mult: 1.3, crit_chance: 0.11)]
         ),
         Action(
             name: "Push",

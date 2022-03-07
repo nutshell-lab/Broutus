@@ -10,6 +10,7 @@ use bevy_egui::EguiContext;
 pub fn show_warrior_selection_ui(
     mut egui_context: ResMut<EguiContext>,
     mut game_state: ResMut<State<GameState>>,
+    windows: Res<Windows>,
     warriors: Res<Assets<WarriorAsset>>,
     warrior_collection: Res<WarriorCollection>,
     icon_collection: Res<IconCollection>,
@@ -18,11 +19,17 @@ pub fn show_warrior_selection_ui(
         egui_context.set_egui_texture(index as u64, icon.clone());
     }
 
+    let window = windows.get_primary().unwrap();
+
     egui::containers::Window::new("warrior_selection")
         .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
         .collapsible(false)
         .resizable(false)
         .title_bar(false)
+        .fixed_rect(egui::Rect::from_two_pos(
+            egui::pos2(0., 0.),
+            egui::pos2(window.width(), window.height()),
+        ))
         .frame(
             egui::containers::Frame::default()
                 .margin((10.0, 10.0))
@@ -31,25 +38,90 @@ pub fn show_warrior_selection_ui(
                 .corner_radius(5.0),
         )
         .show(egui_context.ctx_mut(), |ui| {
-            for warrior_handle in warrior_collection.warriors.iter() {
-                if let Some(warrior) = warriors.get(warrior_handle) {
-                    ui.label(warrior.name.as_str());
+            egui::TopBottomPanel::top("warrior_selection_top_panel")
+                .resizable(false)
+                .min_height(100.)
+                .frame(
+                    egui::containers::Frame::default()
+                        .margin((10.0, 10.0))
+                        .fill(egui::Color32::from_white_alpha(0))
+                        .stroke(egui::Stroke::none())
+                        .corner_radius(5.0),
+                )
+                .show_inside(ui, |ui| {
+                    ui.centered_and_justified(|ui| {
+                        ui.add(egui::Label::new(
+                            egui::RichText::new("Pick your fighters").heading(),
+                        ));
+                    })
+                });
 
-                    for action in warrior.actions.iter() {
-                        ui.label(action.name.as_str());
-
-                        if let Some(texture_id) =
-                            icon_collection.get_index(action.icon_key.as_str())
-                        {
-                            ui.image(egui::TextureId::User(texture_id as u64), (64., 64.));
+            egui::TopBottomPanel::bottom("warrior_selection_bottom_panel")
+                .resizable(false)
+                .min_height(100.)
+                .frame(
+                    egui::containers::Frame::default()
+                        .margin((10.0, 10.0))
+                        .fill(egui::Color32::from_white_alpha(0))
+                        .stroke(egui::Stroke::none())
+                        .corner_radius(5.0),
+                )
+                .show_inside(ui, |ui| {
+                    ui.centered_and_justified(|ui| {
+                        if ui.button("Play").clicked() {
+                            game_state.set(GameState::Arena).unwrap();
                         }
-                    }
-                }
-            }
+                    })
+                });
 
-            if ui.button("Play").clicked() {
-                game_state.set(GameState::Arena).unwrap();
-            }
+            egui::CentralPanel::default()
+                .frame(
+                    egui::containers::Frame::default()
+                        .margin((10.0, 10.0))
+                        .fill(egui::Color32::from_white_alpha(0))
+                        .stroke(egui::Stroke::none())
+                        .corner_radius(5.0),
+                )
+                .show_inside(ui, |ui| {
+                    egui::Grid::new("warrior_selection_grid")
+                        .spacing((20.0, 20.0))
+                        .num_columns(warriors.len())
+                        .show(ui, |ui| {
+                            ui.columns(warriors.len(), |ui| {
+                                for (index, warrior_handle) in
+                                    warrior_collection.warriors.iter().enumerate()
+                                {
+                                    egui::Frame::default()
+                                        .fill(color::HIGHLIGHT_BORDER.into())
+                                        .show(&mut ui[index], |ui| {
+                                            if let Some(warrior) = warriors.get(warrior_handle) {
+                                                ui.label(
+                                                    RichText::new(warrior.name.as_str()).heading(),
+                                                );
+
+                                                for action in warrior.actions.iter() {
+                                                    ui.label(
+                                                        RichText::new(action.name.as_str())
+                                                            .monospace(),
+                                                    );
+
+                                                    if let Some(texture_id) = icon_collection
+                                                        .get_index(action.icon_key.as_str())
+                                                    {
+                                                        ui.image(
+                                                            egui::TextureId::User(
+                                                                texture_id as u64,
+                                                            ),
+                                                            (64., 64.),
+                                                        );
+                                                    }
+                                                }
+                                            }
+                                        });
+                                }
+                            });
+                        });
+                });
         });
 }
 
