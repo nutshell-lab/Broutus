@@ -3,6 +3,7 @@ use super::GameState;
 use bevy::prelude::*;
 
 mod attribute;
+mod team;
 mod turn;
 mod warrior;
 mod warrior_new;
@@ -20,15 +21,14 @@ pub use super::map::MouseMapPosition;
 pub use super::map::Tile;
 pub use super::map::TileLeftClickedEvent;
 pub use super::map::TileRightClickedEvent;
-pub use super::map::Tiledmap;
 pub use attribute::ActionPoints;
 pub use attribute::Attribute;
 pub use attribute::Health;
 pub use attribute::MovementPoints;
+pub use team::Team;
+pub use team::TeamSide;
 pub use turn::reset_turn_timer;
 pub use turn::run_turn_timer;
-pub use turn::Team;
-pub use turn::TeamSide;
 pub use turn::Turn;
 pub use turn::TurnEnd;
 pub use turn::TurnStart;
@@ -206,8 +206,6 @@ fn compute_and_highlight_path(
     turn: Res<Turn>,
     selected_action: Res<SelectedAction>,
     mouse_position: Res<MouseMapPosition>,
-    tiledmap_map: Res<Assets<Tiledmap>>,
-    tiledmap_query: Query<&Handle<Tiledmap>, With<Map>>,
     warrior_query: Query<(&MapPosition, &MovementPoints), With<Warrior>>,
     mut map_query: MapQuery,
 ) {
@@ -217,48 +215,42 @@ fn compute_and_highlight_path(
         return;
     }
 
-    if tiledmap_query.is_empty() {
-        return;
-    }
-
-    let map_id = 0u32;
-    let layer_id = 1u32;
-
-    let tiledmap_handle = tiledmap_query.single();
-    let tiledmap_map = &tiledmap_map.get(tiledmap_handle);
+    let (_, map, _) = map_query.map_queryset.q1().single();
+    let map_id = map.id;
+    let highlight_layer_id = map.highlight_layer;
+    let map_width = map.width;
+    let map_height = map.height;
 
     let warrior_position = turn
         .get_current_warrior_entity()
         .and_then(|e| warrior_query.get(e).ok());
 
     if let Some((warrior_position, movement_points)) = warrior_position {
-        if let Some(tiledmap_map) = tiledmap_map {
-            if mouse_position.is_changed() {
-                if let Some(mouse_position) = mouse_position.0 {
-                    let path = map_query.pathfinding(
-                        map_id,
-                        warrior_position,
-                        &mouse_position,
-                        tiledmap_map.inner.width,
-                        tiledmap_map.inner.height,
-                    );
+        if mouse_position.is_changed() {
+            if let Some(mouse_position) = mouse_position.0 {
+                let path = map_query.pathfinding(
+                    map_id,
+                    warrior_position,
+                    &mouse_position,
+                    map_width,
+                    map_height,
+                );
 
-                    if let Some((path, cost)) = path {
-                        if cost <= movement_points.0.value {
-                            for position in path
-                                .iter()
-                                .skip(1)
-                                .take(movement_points.0.value as usize + 1)
-                            {
-                                map_query.update_tile_sprite_color(
-                                    map_id,
-                                    layer_id,
-                                    position,
-                                    bevy::render::color::Color::from(color::MOVEMENT_POINTS)
-                                        .set_a(0.8)
-                                        .as_rgba(),
-                                );
-                            }
+                if let Some((path, cost)) = path {
+                    if cost <= movement_points.0.value {
+                        for position in path
+                            .iter()
+                            .skip(1)
+                            .take(movement_points.0.value as usize + 1)
+                        {
+                            map_query.update_tile_sprite_color(
+                                map_id,
+                                highlight_layer_id,
+                                position,
+                                bevy::render::color::Color::from(color::MOVEMENT_POINTS)
+                                    .set_a(0.8)
+                                    .as_rgba(),
+                            );
                         }
                     }
                 }
@@ -271,8 +263,6 @@ fn compute_and_highlight_path(
 fn highlight_potential_movement(
     mouse_position: Res<MouseMapPosition>,
     selected_action: Res<SelectedAction>,
-    tiledmap_map: Res<Assets<Tiledmap>>,
-    tiledmap_query: Query<&Handle<Tiledmap>, With<Map>>,
     warrior_query: Query<(&MapPosition, &MovementPoints), With<Warrior>>,
     mut map_query: MapQuery,
 ) {
@@ -280,50 +270,45 @@ fn highlight_potential_movement(
     if selected_action.0.is_some() {
         return;
     }
-    if tiledmap_query.is_empty() {
-        return;
-    }
 
-    let map_id = 0u32;
-    let layer_id = 1u32;
-
-    let tiledmap_handle = tiledmap_query.single();
-    let tiledmap_map = &tiledmap_map.get(tiledmap_handle);
+    let (_, map, _) = map_query.map_queryset.q1().single();
+    let map_id = map.id;
+    let highlight_layer_id = map.highlight_layer;
+    let map_width = map.width;
+    let map_height = map.height;
 
     for (warrior_position, movement_points) in warrior_query.iter() {
-        if let Some(tiledmap_map) = tiledmap_map {
-            if mouse_position.is_changed() {
-                if let Some(mouse_position) = mouse_position.0 {
-                    // The mouse is over a warrior, let's highlight it's potential movement
-                    if mouse_position.eq(warrior_position) {
-                        let surroundings = warrior_position.get_surrounding_positions(
-                            1,
-                            movement_points.0.value,
-                            tiledmap_map.inner.width,
-                            tiledmap_map.inner.height,
+        if mouse_position.is_changed() {
+            if let Some(mouse_position) = mouse_position.0 {
+                // The mouse is over a warrior, let's highlight it's potential movement
+                if mouse_position.eq(warrior_position) {
+                    let surroundings = warrior_position.get_surrounding_positions(
+                        1,
+                        movement_points.0.value,
+                        map_width,
+                        map_height,
+                    );
+
+                    for position in surroundings {
+                        // Yes that is horrible
+                        let path = map_query.pathfinding(
+                            map_id,
+                            warrior_position,
+                            &position,
+                            map_width,
+                            map_height,
                         );
 
-                        for position in surroundings {
-                            // Yes that is horrible
-                            let path = map_query.pathfinding(
-                                map_id,
-                                warrior_position,
-                                &position,
-                                tiledmap_map.inner.width,
-                                tiledmap_map.inner.height,
-                            );
-
-                            if let Some((_, cost)) = path {
-                                if cost <= movement_points.0.value {
-                                    map_query.update_tile_sprite_color(
-                                        map_id,
-                                        layer_id,
-                                        &position,
-                                        bevy::render::color::Color::from(color::MOVEMENT_POINTS)
-                                            .set_a(0.6)
-                                            .as_rgba(),
-                                    );
-                                }
+                        if let Some((_, cost)) = path {
+                            if cost <= movement_points.0.value {
+                                map_query.update_tile_sprite_color(
+                                    map_id,
+                                    highlight_layer_id,
+                                    &position,
+                                    bevy::render::color::Color::from(color::MOVEMENT_POINTS)
+                                        .set_a(0.6)
+                                        .as_rgba(),
+                                );
                             }
                         }
                     }
@@ -335,11 +320,9 @@ fn highlight_potential_movement(
 
 // /// Move the warrior on click if he can afford the cost of the path in movement points
 fn handle_warrior_action_on_click(
+    turn: Res<Turn>,
     mut ev_clicked: EventReader<TileLeftClickedEvent>,
     mut selected_action: ResMut<SelectedAction>,
-    turn: Res<Turn>,
-    tiledmap_map: Res<Assets<Tiledmap>>,
-    tiledmap_query: Query<&Handle<Tiledmap>, With<Map>>,
     mut warrior_query: Query<
         (
             &Weapon,
@@ -352,13 +335,10 @@ fn handle_warrior_action_on_click(
     >,
     mut map_query: MapQuery,
 ) {
-    if tiledmap_query.is_empty() {
-        return;
-    }
-
-    let map_id = 0u32;
-    let tiledmap_handle = tiledmap_query.single();
-    let tiledmap_map = &tiledmap_map.get(tiledmap_handle).unwrap();
+    let (_, map, _) = map_query.map_queryset.q1().single();
+    let map_id = map.id;
+    let map_width = map.width;
+    let map_height = map.height;
 
     if let Some(index) = selected_action.0 {
         let (_, cost, min_distance, max_distance) = match index {
@@ -388,11 +368,11 @@ fn handle_warrior_action_on_click(
             }
 
             if !map_query.line_of_sight_check(
-                0u32,
+                map_id,
                 &position,
                 &click_event.0,
-                tiledmap_map.inner.width,
-                tiledmap_map.inner.height,
+                map_width,
+                map_height,
             ) {
                 continue;
             }
@@ -419,12 +399,8 @@ fn handle_warrior_action_on_click(
                                     let path = position.unchecked_path_torward(direction, 2);
                                     let mut path_iter = path.iter();
                                     while let Some(pos) = path_iter.next() {
-                                        if map_query.is_obstacle(
-                                            0u32,
-                                            pos,
-                                            tiledmap_map.inner.width,
-                                            tiledmap_map.inner.height,
-                                        ) {
+                                        if map_query.is_obstacle(map_id, pos, map_width, map_height)
+                                        {
                                             break;
                                         }
                                         position.x = pos.x;
@@ -447,13 +423,8 @@ fn handle_warrior_action_on_click(
             if let Ok((_, mut warrior_position, _, mut movement_points, _)) =
                 warrior_query.get_mut(warrior_entity)
             {
-                let path = map_query.pathfinding(
-                    map_id,
-                    &warrior_position,
-                    &ev.0,
-                    tiledmap_map.inner.width,
-                    tiledmap_map.inner.height,
-                );
+                let path =
+                    map_query.pathfinding(map_id, &warrior_position, &ev.0, map_width, map_height);
 
                 // TODO Replace the current sprite sheets by another one containing all 4 directions
                 // TODO Animate warrior movement along the path
@@ -487,15 +458,10 @@ fn highlight_potential_action(
     turn: Res<Turn>,
     mouse_position: Res<MouseMapPosition>,
     selected_action: Res<SelectedAction>,
-    tiledmap_map: Res<Assets<Tiledmap>>,
-    tiledmap_query: Query<&Handle<Tiledmap>, With<Map>>,
     warrior_query: Query<&MapPosition, With<Warrior>>,
     mut map_query: MapQuery,
 ) {
     if selected_action.0.is_none() {
-        return;
-    }
-    if tiledmap_query.is_empty() {
         return;
     }
 
@@ -511,44 +477,37 @@ fn highlight_potential_action(
         _ => ("Heal", 0, 1),
     };
 
-    let map_id = 0u32;
-    let layer_id = 1u32;
+    let (_, map, _) = map_query.map_queryset.q1().single();
+    let map_id = map.id;
+    let highlight_layer_id = map.highlight_layer;
+    let map_width = map.width;
+    let map_height = map.height;
 
-    let tiledmap_handle = tiledmap_query.single();
-    let tiledmap_map = &tiledmap_map.get(tiledmap_handle);
+    let warrior_entity = turn.get_current_warrior_entity().unwrap();
+    let warrior_position = warrior_query.get(warrior_entity).unwrap();
+    let surroundings = warrior_position.get_surrounding_positions(
+        min_distance,
+        max_distance,
+        map.width,
+        map.height,
+    );
 
-    if let Some(tiledmap_map) = tiledmap_map {
-        let warrior_entity = turn.get_current_warrior_entity().unwrap();
-        let warrior_position = warrior_query.get(warrior_entity).unwrap();
-        let surroundings = warrior_position.get_surrounding_positions(
-            min_distance,
-            max_distance,
-            tiledmap_map.inner.width,
-            tiledmap_map.inner.height,
-        );
-
-        for position in surroundings {
-            if map_query.line_of_sight_check(
+    for position in surroundings {
+        if map_query.line_of_sight_check(map_id, warrior_position, &position, map_width, map_height)
+        {
+            let alpha = mouse_position
+                .0
+                .filter(|mouse| mouse.eq(&position))
+                .map(|_| 0.9)
+                .unwrap_or(0.6);
+            map_query.update_tile_sprite_color(
                 map_id,
-                warrior_position,
+                highlight_layer_id,
                 &position,
-                tiledmap_map.inner.width,
-                tiledmap_map.inner.height,
-            ) {
-                let alpha = mouse_position
-                    .0
-                    .filter(|mouse| mouse.eq(&position))
-                    .map(|_| 0.9)
-                    .unwrap_or(0.6);
-                map_query.update_tile_sprite_color(
-                    map_id,
-                    layer_id,
-                    &position,
-                    bevy::render::color::Color::from(color::HEALTH)
-                        .set_a(alpha)
-                        .as_rgba(),
-                );
-            }
+                bevy::render::color::Color::from(color::HEALTH)
+                    .set_a(alpha)
+                    .as_rgba(),
+            );
         }
     }
 }

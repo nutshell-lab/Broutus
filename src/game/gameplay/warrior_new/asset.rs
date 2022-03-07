@@ -7,41 +7,56 @@ use serde::{Deserialize, Serialize};
 
 use super::{Action, ActionPoints, Attribute, Health, MovementPoints, Shield};
 
-#[derive(AssetCollection)]
+// TODO find a way to load a folder into as HashMap<String, Handle<..>>
+#[derive(AssetCollection, Reflect)]
 pub struct AnimationCollection {
     #[asset(key = "animations.freddy")]
     pub freddy: Handle<TextureAtlas>,
 }
 
 impl AnimationCollection {
+    /// Get an image handle giving an icon key
     pub fn get(&self, key: &str) -> Option<Handle<TextureAtlas>> {
-        match key {
-            "freddy" => Some(self.freddy.clone_weak()),
-            _ => None,
-        }
+        self.field(key)
+            .and_then(|v| v.downcast_ref::<Handle<TextureAtlas>>())
+            .cloned()
     }
 }
 
-#[derive(AssetCollection)]
+// TODO find a way to load a folder into as HashMap<String, Handle<..>>
+#[derive(AssetCollection, Reflect)]
 pub struct IconCollection {
-    #[asset(key = "icons.action_slash")]
-    pub action_slash: Handle<Image>,
+    #[asset(key = "icons.action_blind")]
+    pub action_blind: Handle<Image>,
+
+    #[asset(key = "icons.action_cripple")]
+    pub action_cripple: Handle<Image>,
+
+    #[asset(key = "icons.action_heal")]
+    pub action_heal: Handle<Image>,
 
     #[asset(key = "icons.action_push")]
     pub action_push: Handle<Image>,
+
+    #[asset(key = "icons.action_shield")]
+    pub action_shield: Handle<Image>,
+
+    #[asset(key = "icons.action_shoot")]
+    pub action_shoot: Handle<Image>,
+
+    #[asset(key = "icons.action_slash")]
+    pub action_slash: Handle<Image>,
 
     #[asset(key = "icons.action_teleport")]
     pub action_teleport: Handle<Image>,
 }
 
 impl IconCollection {
+    /// Get an image handle giving an icon key
     pub fn get(&self, key: &str) -> Option<Handle<Image>> {
-        match key {
-            "action_slash" => Some(self.action_slash.clone_weak()),
-            "action_push" => Some(self.action_push.clone_weak()),
-            "action_teleport" => Some(self.action_teleport.clone_weak()),
-            _ => None,
-        }
+        self.field(key)
+            .and_then(|v| v.downcast_ref::<Handle<Image>>())
+            .cloned()
     }
 }
 

@@ -1,7 +1,7 @@
 (
     name: "Freddy",
     render: (
-        atlas_texture: "freddy",
+        atlas_texture: "freddy_idle",
         animations: {
             "idle": (from: 0, to: 14),
             "moving": (from: 15, to: 29),

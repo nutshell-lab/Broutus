@@ -1,4 +1,4 @@
-use super::super::{Map, MapPosition, Tiledmap};
+use super::super::{Map, MapPosition};
 use super::Warrior;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
@@ -44,8 +44,7 @@ pub fn animate_warrior_sprite(
 
 /// Update the warrior's Transform based on it's MapPosition
 pub fn update_warrior_world_position(
-    tiledmaps: Res<Assets<Tiledmap>>,
-    map_query: Query<(Entity, &Map, &Handle<Tiledmap>)>,
+    map_query: Query<&Map>,
     mut warrior_query: Query<(&mut Transform, &MapPosition), (With<Warrior>, Changed<MapPosition>)>,
 ) {
     if map_query.is_empty() {
@@ -55,24 +54,20 @@ pub fn update_warrior_world_position(
         return;
     }
 
-    let (_, map, tiledmap_handle) = map_query.single();
-    let tiledmap = tiledmaps.get(tiledmap_handle);
+    let map = map_query.single();
+    let obstacle_layer_id = map.obstacle_layer;
+    let map_width = map.width;
+    let map_height = map.height;
+    let tile_width = map.tile_width as f32;
+    let tile_height = map.tile_height as f32;
 
-    if let Some(tiledmap) = tiledmap {
-        let obstacle_layer_id = map.obstacle_layer;
-        let map_width = tiledmap.inner.width;
-        let map_height = tiledmap.inner.height;
-        let tile_width = tiledmap.inner.tile_width as f32;
-        let tile_height = tiledmap.inner.tile_height as f32;
-
-        for (mut transform, position) in warrior_query.iter_mut() {
-            transform.translation = position.to_xyz(
-                obstacle_layer_id,
-                map_width,
-                map_height,
-                tile_width,
-                tile_height,
-            );
-        }
+    for (mut transform, position) in warrior_query.iter_mut() {
+        transform.translation = position.to_xyz(
+            obstacle_layer_id,
+            map_width,
+            map_height,
+            tile_width,
+            tile_height,
+        );
     }
 }

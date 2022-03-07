@@ -27,6 +27,10 @@ pub struct Tiledmap {
 #[reflect(Component)]
 pub struct Map {
     pub id: u32,
+    pub width: u32,
+    pub height: u32,
+    pub tile_width: u32,
+    pub tile_height: u32,
     pub layers: HashMap<u32, Entity>,
     pub ground_layer: u32,
     pub highlight_layer: u32,
@@ -215,13 +219,16 @@ pub fn spawn_tiledmap(
                 tiledmap: maps_assets.simple.clone(),
                 map: Map {
                     id: tiledmap.id,
+                    width: tiledmap.inner.width,
+                    height: tiledmap.inner.height,
+                    tile_width: tiledmap.inner.tile_width,
+                    tile_height: tiledmap.inner.tile_height,
                     layers: layer_entities,
                     ground_layer: 0,
                     highlight_layer: 1,
                     obstacle_layer: 2,
                     spawn_team_a_layer: 3,
                     spawn_team_b_layer: 4,
-                    ..Default::default()
                 },
                 ..Default::default()
             });

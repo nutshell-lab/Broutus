@@ -20,7 +20,6 @@ pub struct WarriorBundle {
 
     // Meta
     name: Name,
-    team: super::Team,
 
     // Gameplay
     position: super::MapPosition,

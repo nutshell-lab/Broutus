@@ -510,10 +510,9 @@ pub fn show_battlelog_ui(mut egui_context: ResMut<EguiContext>) {
 /// Show a bubble on top of the head of warrior on hover
 pub fn show_warrior_ui(
     windows: Res<Windows>,
-    tiledmaps: Res<Assets<Tiledmap>>,
     mouse_position: Res<MouseMapPosition>,
     selected_action: Res<SelectedAction>,
-    map_query: Query<&Handle<Tiledmap>, With<Map>>,
+    map_query: Query<&Map>,
     warrior_query: Query<(Entity, &Name, &Health, &MapPosition), With<Warrior>>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
     mut egui_context: ResMut<EguiContext>,
@@ -527,8 +526,7 @@ pub fn show_warrior_ui(
     }
 
     if let Some(mouse_position) = mouse_position.0 {
-        let tiledmap_handle = map_query.single();
-        let tiledmap = tiledmaps.get(tiledmap_handle).unwrap();
+        let map = map_query.single();
         let (camera, camera_transform) = camera_query.single();
 
         for (entity, name, health, position) in warrior_query.iter() {
@@ -538,10 +536,10 @@ pub fn show_warrior_ui(
 
             let world_position = position.to_xyz(
                 0u32,
-                tiledmap.inner.width,
-                tiledmap.inner.height,
-                tiledmap.inner.tile_width as f32,
-                tiledmap.inner.tile_height as f32,
+                map.width,
+                map.height,
+                map.tile_width as f32,
+                map.tile_height as f32,
             );
 
             if let Some(hover_position) =

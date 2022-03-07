@@ -43,9 +43,15 @@ impl Action {
             With<Warrior>,
         >,
     ) {
-        if let ActionAoe::Cell = self.aoe {
+        let hit_positions = match self.aoe {
+            ActionAoe::Cell => vec![to_position],
+            _ => vec![],
+        };
+
+        for hit_position in hit_positions {
+            // Process warriors on the given position
             for (_, mut position, mut health, ..) in warrior_query.iter_mut() {
-                if position.ne(to_position) {
+                if position.ne(hit_position) {
                     continue;
                 }
 
