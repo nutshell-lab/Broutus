@@ -2,11 +2,15 @@ use super::color;
 use super::GameState;
 use bevy::prelude::*;
 
-mod action;
 mod attribute;
 mod turn;
 mod warrior;
+mod warrior_new;
 mod weapon;
+
+pub use warrior_new::AnimationCollection;
+pub use warrior_new::IconCollection;
+pub use warrior_new::WarriorCollection;
 
 pub use super::map::Map;
 pub use super::map::MapPosition;

@@ -1,27 +1,26 @@
 use super::GameState;
 use bevy::prelude::*;
-use bevy_asset_loader::AssetCollection;
 
 mod events;
 mod mouse;
+mod position;
 mod query;
 mod tiledmap;
 
 use events::trigger_map_mouse_events;
 use mouse::update_map_mouse_position;
-use tiledmap::process_loaded_tiledmap;
-use tiledmap::MapBundle;
+use tiledmap::spawn_tiledmap;
 use tiledmap::TiledmapLoader;
 
 pub use events::TileLeftClickedEvent;
 pub use events::TileRightClickedEvent;
 pub use mouse::MouseMapPosition;
 pub use mouse::PreviousMouseMapPosition;
+pub use position::*;
 pub use query::MapQuery;
 pub use tiledmap::Layer;
 pub use tiledmap::Map;
-pub use tiledmap::MapPosition;
-pub use tiledmap::MapPositionDirection;
+pub use tiledmap::MapsAssets;
 pub use tiledmap::Tile;
 pub use tiledmap::Tiledmap;
 
@@ -39,40 +38,13 @@ impl Plugin for TiledmapPlugin {
             .add_event::<TileRightClickedEvent>()
             .add_asset::<Tiledmap>()
             .add_asset_loader(TiledmapLoader)
-            .add_system_set(SystemSet::on_enter(GameState::Arena).with_system(spawn_map))
+            .add_system_set(SystemSet::on_enter(GameState::Arena).with_system(spawn_tiledmap))
             .add_system_set(
                 SystemSet::on_update(GameState::Arena)
-                    .with_system(process_loaded_tiledmap)
                     .with_system(update_map_mouse_position)
                     .with_system(trigger_map_mouse_events),
             );
     }
-}
-
-#[derive(AssetCollection)]
-pub struct MapsAssets {
-    #[asset(path = "maps/simple.tmx")]
-    simple: Handle<Tiledmap>,
-}
-
-fn spawn_map(mut commands: Commands, maps_assets: Res<MapsAssets>) {
-    let map_entity = commands.spawn().id();
-    commands
-        .entity(map_entity)
-        .insert(Name::new("map"))
-        .insert_bundle(MapBundle {
-            transform: Transform::from_xyz(0.0, 0.0, 0.0),
-            tiledmap: maps_assets.simple.clone(),
-            map: Map {
-                ground_layer: 0,
-                highlight_layer: 1,
-                obstacle_layer: 2,
-                spawn_team_a_layer: 3,
-                spawn_team_b_layer: 4,
-                ..Default::default()
-            },
-            ..Default::default()
-        });
 }
 
 /// TilePos --> WorldPos

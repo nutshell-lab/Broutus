@@ -1,0 +1,18 @@
+({
+    "animations.freddy": TextureAtlas(
+        path: "animations/knight_idle.png",
+        tile_size_x: 64.,
+        tile_size_y: 64.,
+        columns: 15,
+        rows: 1,
+    ),
+    "icons.action_blind": File(path: "actions/blind.png"),
+    "icons.action_cripple": File(path: "actions/cripple.png"),
+    "icons.action_heal": File(path: "actions/heal.png"),
+    "icons.action_push": File(path: "actions/push.png"),
+    "icons.action_shield": File(path: "actions/shield.png"),
+    "icons.action_shoot": File(path: "actions/shoot.png"),
+    "icons.action_slash": File(path: "actions/slash.png"),
+    "icons.action_teleport": File(path: "actions/teleport.png"),
+    "maps.simple": File(path: "maps/simple.tmx"),
+})

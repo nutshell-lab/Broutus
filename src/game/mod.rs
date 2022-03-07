@@ -26,9 +26,13 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         AssetLoader::new(GameState::Loading)
+            .with_asset_collection_file("dynamic.assets")
             .with_collection::<map::MapsAssets>()
             .with_collection::<gameplay::WarriorAssets>()
             .with_collection::<ui::ActionsAssets>()
+            .with_collection::<gameplay::WarriorCollection>()
+            .with_collection::<gameplay::AnimationCollection>()
+            .with_collection::<gameplay::IconCollection>()
             .continue_to_state(GameState::Arena)
             .build(app);
 

@@ -278,23 +278,35 @@ dependencies = [
 
 [[package]]
 name = "bevy_asset_loader"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c66ad231244301f2102277fd3b189d75a9c875c79fdf1f94953ad51bdd72c2b"
+version = "0.10.0-github.main"
+source = "git+https://github.com/NiklasEi/bevy_asset_loader#264e7e1e187c952385c2f8cc1afe2ecae860f4da"
 dependencies = [
  "bevy",
  "bevy_asset_loader_derive",
+ "bevy_asset_ron",
+ "serde",
 ]
 
 [[package]]
 name = "bevy_asset_loader_derive"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92c9e041d416fbe57cd63a5c0ee5b46afa2fedefc4e9c96bb830358bc12a166b"
+version = "0.10.0-github.main"
+source = "git+https://github.com/NiklasEi/bevy_asset_loader#264e7e1e187c952385c2f8cc1afe2ecae860f4da"
 dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "bevy_asset_ron"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d1cac0c9e9448b0c750daade0b1755072e031671dd08ad1bdded6f6f3a7d4d2"
+dependencies = [
+ "anyhow",
+ "bevy",
+ "ron",
+ "serde",
 ]
 
 [[package]]
@@ -867,6 +879,8 @@ dependencies = [
  "bevy_asset_loader",
  "bevy_egui",
  "pathfinding",
+ "ron",
+ "serde",
  "tiled",
 ]
 
