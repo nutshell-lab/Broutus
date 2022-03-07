@@ -59,6 +59,14 @@ impl IconCollection {
             .cloned()
     }
 
+    pub fn get_index(&self, key: &str) -> Option<usize> {
+        if let Some(right) = self.get(key) {
+            self.get_all().iter().position(|left| left.eq(&right))
+        } else {
+            None
+        }
+    }
+
     pub fn get_all(&self) -> Vec<Handle<Image>> {
         self.iter_fields()
             .map(|field| field.downcast_ref::<Handle<Image>>())

@@ -15,13 +15,13 @@ impl Default for Actions {
 /// A Warrior action is usable in Arena mode, consuming ActionPoints
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Action {
-    name: String,
-    icon_key: String,
-    animation_key: String,
-    cost: ActionPoints,
-    aoe: ActionAoe,
-    range: ActionRange,
-    effects: Vec<ActionEffect>,
+    pub name: String,
+    pub icon_key: String,
+    pub animation_key: String,
+    pub cost: ActionPoints,
+    pub aoe: ActionAoe,
+    pub range: ActionRange,
+    pub effects: Vec<ActionEffect>,
 }
 
 impl Action {

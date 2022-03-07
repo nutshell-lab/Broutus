@@ -34,6 +34,16 @@ pub fn show_warrior_selection_ui(
             for warrior_handle in warrior_collection.warriors.iter() {
                 if let Some(warrior) = warriors.get(warrior_handle) {
                     ui.label(warrior.name.as_str());
+
+                    for action in warrior.actions.iter() {
+                        ui.label(action.name.as_str());
+
+                        if let Some(texture_id) =
+                            icon_collection.get_index(action.icon_key.as_str())
+                        {
+                            ui.image(egui::TextureId::User(texture_id as u64), (64., 64.));
+                        }
+                    }
                 }
             }
 
