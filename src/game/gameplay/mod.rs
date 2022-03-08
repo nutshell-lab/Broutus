@@ -2,61 +2,25 @@ use super::color;
 use super::GameState;
 use bevy::prelude::*;
 
-mod attribute;
 mod team;
 mod turn;
 mod warrior;
-mod warrior_new;
-mod weapon;
 
-pub use warrior_new::AnimationCollection;
-pub use warrior_new::IconCollection;
-pub use warrior_new::PortraitCollection;
-pub use warrior_new::WarriorAsset;
-pub use warrior_new::WarriorAssetLoader;
-pub use warrior_new::WarriorCollection;
-
-pub use super::map::Map;
-pub use super::map::MapPosition;
-pub use super::map::MapPositionDirection;
-pub use super::map::MapQuery;
-pub use super::map::MouseMapPosition;
-pub use super::map::Tile;
-pub use super::map::TileLeftClickedEvent;
-pub use super::map::TileRightClickedEvent;
-pub use attribute::ActionPoints;
-pub use attribute::Attribute;
-pub use attribute::Health;
-pub use attribute::MovementPoints;
-pub use team::Team;
-pub use team::TeamSide;
-pub use turn::reset_turn_timer;
-pub use turn::run_turn_timer;
-pub use turn::Turn;
-pub use turn::TurnEnd;
-pub use turn::TurnStart;
-pub use turn::TurnTimer;
-pub use warrior::animate_warrior_sprite;
-pub use warrior::update_warrior_world_position;
-pub use warrior::Warrior;
-pub use warrior::WarriorAssets;
-pub use warrior::WarriorBundle;
-pub use weapon::SelectedAction;
-pub use weapon::Weapon;
-pub use weapon::HEAL_WAND;
-pub use weapon::THUG_KNIFE;
+use super::map::*;
+pub use team::*;
+pub use turn::*;
+pub use warrior::*;
 
 pub struct GameplayPlugin;
 
 impl Plugin for GameplayPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<Attribute>()
-            .register_type::<Health>()
-            .register_type::<ActionPoints>()
-            .register_type::<MovementPoints>()
-            .init_resource::<SelectedAction>()
+        app.init_resource::<SelectedAction>()
             .add_asset::<WarriorAsset>()
             .add_asset_loader(WarriorAssetLoader)
+            .register_type::<SelectedAction>()
+            .register_type::<SelectedAnimation>()
+            .register_type::<AnimationTimer>()
             .add_event::<TurnStart>()
             .add_event::<TurnEnd>()
             .add_system_set(SystemSet::on_enter(GameState::Arena).with_system(spawn_warriors))
@@ -67,7 +31,7 @@ impl Plugin for GameplayPlugin {
                     .with_system(animate_warrior_sprite)
                     .with_system(update_warrior_world_position)
                     .with_system(reset_warrior_attributes_on_turn_end)
-                    .with_system(handle_warrior_action_on_click)
+                    // .with_system(handle_warrior_action_on_click)
                     .with_system(despawn_warrior_on_death),
             )
             .add_system_set(
@@ -92,81 +56,42 @@ impl Plugin for GameplayPlugin {
     }
 }
 
-fn spawn_warriors(mut commands: Commands, warrior_assets: Res<WarriorAssets>) {
+fn spawn_warriors(
+    mut commands: Commands,
+    warrior_collection: Res<WarriorCollection>,
+    warriors: Res<Assets<WarriorAsset>>,
+    animation_collection: Res<AnimationCollection>,
+) {
     let team_a = Team::new(TeamSide::A, color::TEAM_A_COLOR);
     let team_b = Team::new(TeamSide::B, color::TEAM_B_COLOR);
 
+    let edificadores_asset = warriors
+        .get(warrior_collection.warriors[0].clone())
+        .unwrap();
+    let ella_asset = warriors
+        .get(warrior_collection.warriors[1].clone())
+        .unwrap();
+
     // Spawn warriors
-    let brundal = commands
+    let edificadores = commands
         .spawn_bundle(WarriorBundle::new(
-            "Brundal".to_string(),
-            MapPosition::new(17, 5),
-            &THUG_KNIFE,
-            -1.0,
-            &warrior_assets.idle,
+            edificadores_asset,
+            &animation_collection,
         ))
+        .insert(MapPosition::new(17, 5))
         .insert(team_a.clone())
         .id();
 
-    let brandy = commands
-        .spawn_bundle(WarriorBundle::new(
-            "Brandy".to_string(),
-            MapPosition::new(17, 10),
-            &HEAL_WAND,
-            -1.0,
-            &warrior_assets.idle,
-        ))
-        .insert(team_a.clone())
-        .id();
-
-    let brando = commands
-        .spawn_bundle(WarriorBundle::new(
-            "Brando".to_string(),
-            MapPosition::new(17, 2),
-            &THUG_KNIFE,
-            -1.0,
-            &warrior_assets.idle,
-        ))
-        .insert(team_a.clone())
-        .id();
-
-    let glourf = commands
-        .spawn_bundle(WarriorBundle::new(
-            "Glourf".to_string(),
-            MapPosition::new(2, 5),
-            &THUG_KNIFE,
-            1.0,
-            &warrior_assets.idle,
-        ))
-        .insert(team_b.clone())
-        .id();
-
-    let glarf = commands
-        .spawn_bundle(WarriorBundle::new(
-            "Glarf".to_string(),
-            MapPosition::new(2, 1),
-            &HEAL_WAND,
-            1.0,
-            &warrior_assets.idle,
-        ))
-        .insert(team_b.clone())
-        .id();
-
-    let glirf = commands
-        .spawn_bundle(WarriorBundle::new(
-            "Glirf".to_string(),
-            MapPosition::new(2, 8),
-            &THUG_KNIFE,
-            1.0,
-            &warrior_assets.idle,
-        ))
+    let ella = commands
+        .spawn_bundle(WarriorBundle::new(ella_asset, &animation_collection))
+        .insert(MapPosition::new(2, 5))
         .insert(team_b.clone())
         .id();
 
     // Insert turn system resource
     commands.insert_resource(TurnTimer::default());
     commands.insert_resource(Turn {
-        order: vec![brundal, glourf, brandy, glarf, brando, glirf],
+        order: vec![edificadores, ella],
         ..Default::default()
     })
 }
@@ -211,7 +136,7 @@ fn compute_and_highlight_path(
     turn: Res<Turn>,
     selected_action: Res<SelectedAction>,
     mouse_position: Res<MouseMapPosition>,
-    warrior_query: Query<(&MapPosition, &MovementPoints), With<Warrior>>,
+    warrior_query: Query<(&MapPosition, &Attribute<MovementPoints>), With<Warrior>>,
     mut map_query: MapQuery,
 ) {
     // An action is selected, don't highlight path
@@ -242,11 +167,11 @@ fn compute_and_highlight_path(
                 );
 
                 if let Some((path, cost)) = path {
-                    if cost <= movement_points.0.value {
+                    if cost <= movement_points.value() {
                         for position in path
                             .iter()
                             .skip(1)
-                            .take(movement_points.0.value as usize + 1)
+                            .take(movement_points.value() as usize + 1)
                         {
                             map_query.update_tile_sprite_color(
                                 map_id,
@@ -268,7 +193,7 @@ fn compute_and_highlight_path(
 fn highlight_potential_movement(
     mouse_position: Res<MouseMapPosition>,
     selected_action: Res<SelectedAction>,
-    warrior_query: Query<(&MapPosition, &MovementPoints), With<Warrior>>,
+    warrior_query: Query<(&MapPosition, &Attribute<MovementPoints>), With<Warrior>>,
     mut map_query: MapQuery,
 ) {
     // An action is selected, don't highlight path
@@ -289,7 +214,7 @@ fn highlight_potential_movement(
                 if mouse_position.eq(warrior_position) {
                     let surroundings = warrior_position.get_surrounding_positions(
                         1,
-                        movement_points.0.value,
+                        movement_points.value(),
                         map_width,
                         map_height,
                     );
@@ -305,7 +230,7 @@ fn highlight_potential_movement(
                         );
 
                         if let Some((_, cost)) = path {
-                            if cost <= movement_points.0.value {
+                            if cost <= movement_points.value() {
                                 map_query.update_tile_sprite_color(
                                     map_id,
                                     highlight_layer_id,
@@ -324,137 +249,90 @@ fn highlight_potential_movement(
 }
 
 // /// Move the warrior on click if he can afford the cost of the path in movement points
-fn handle_warrior_action_on_click(
-    turn: Res<Turn>,
-    mut ev_clicked: EventReader<TileLeftClickedEvent>,
-    mut selected_action: ResMut<SelectedAction>,
-    mut warrior_query: Query<
-        (
-            &Weapon,
-            &mut MapPosition,
-            &mut ActionPoints,
-            &mut MovementPoints,
-            &mut Health,
-        ),
-        (With<Warrior>, Without<Tile>),
-    >,
-    mut map_query: MapQuery,
-) {
-    let (_, map, _) = map_query.map_queryset.q1().single();
-    let map_id = map.id;
-    let map_width = map.width;
-    let map_height = map.height;
+// fn handle_warrior_action_on_click(
+//     turn: Res<Turn>,
+//     mut ev_clicked: EventReader<TileLeftClickedEvent>,
+//     mut selected_action: ResMut<SelectedAction>,
+//     mut warrior_query: &mut Query<
+//         (
+//             &Name,
+//             &mut MapPosition,
+//             &Actions,
+//             &mut Attribute<Health>,
+//             &mut Attribute<Shield>,
+//             &mut Attribute<ActionPoints>,
+//             &mut Attribute<MovementPoints>,
+//         ),
+//         With<Warrior>,
+//     >,
+//     mut map_query: MapQuery,
+// ) {
+//     let (_, map, _) = map_query.map_queryset.q1().single();
+//     let map_id = map.id;
+//     let map_width = map.width;
+//     let map_height = map.height;
 
-    if let Some(index) = selected_action.0 {
-        let (_, cost, min_distance, max_distance) = match index {
-            0 => ("Slash", 3, 1, 2),
-            1 => ("Shoot", 5, 3, 5),
-            2 => ("Cripple", 3, 1, 2),
-            3 => ("Blind", 3, 1, 1),
-            4 => ("Push", 2, 1, 2),
-            5 => ("Teleport", 5, 2, 5),
-            6 => ("Shield", 3, 0, 0),
-            _ => ("Heal", 4, 0, 1),
-        };
+//     if let Some(index) = selected_action.0 {
+//         for click_event in ev_clicked.iter() {
+//             let warrior_entity = turn.get_current_warrior_entity().unwrap();
+//             let (_, mut position, actions, _, _, mut action_points, ..) =
+//                 warrior_query.get_mut(warrior_entity).unwrap();
 
-        for click_event in ev_clicked.iter() {
-            let warrior_entity = turn.get_current_warrior_entity().unwrap();
-            let (_, mut position, mut action_points, _, _) =
-                warrior_query.get_mut(warrior_entity).unwrap();
+//             let action = actions.0.get(index).unwrap();
+//             let distance_to_event = position.distance_to(&click_event.0);
 
-            let distance_to_event = position.distance_to(&click_event.0);
+//             if !action.range.can_reach(&position, &click_event.0) {
+//                 continue;
+//             }
 
-            if distance_to_event < min_distance {
-                continue;
-            }
+//             // TODO not all actions require line of sight ?
+//             if !map_query.line_of_sight_check(
+//                 map_id,
+//                 &position,
+//                 &click_event.0,
+//                 map_width,
+//                 map_height,
+//             ) {
+//                 continue;
+//             }
 
-            if distance_to_event > max_distance {
-                continue;
-            }
+//             action_points.drop(action.cost.value());
+//             action.execute(&position, &click_event.0, &mut map_query, warrior_query);
+//             selected_action.0 = None; // Deselect action automatically
+//         }
+//     } else {
+//         for ev in ev_clicked.iter() {
+//             let warrior_entity = turn.get_current_warrior_entity().unwrap();
+//             if let Ok((_, mut warrior_position, _, mut movement_points, ..)) =
+//                 warrior_query.get_mut(warrior_entity)
+//             {
+//                 let path =
+//                     map_query.pathfinding(map_id, &warrior_position, &ev.0, map_width, map_height);
 
-            if !map_query.line_of_sight_check(
-                map_id,
-                &position,
-                &click_event.0,
-                map_width,
-                map_height,
-            ) {
-                continue;
-            }
-
-            let direction = position.direction_to(&click_event.0);
-
-            if action_points.can_spend(cost) {
-                action_points.spend(cost);
-
-                if index == 5 {
-                    position.x = click_event.0.x;
-                    position.y = click_event.0.y;
-                }
-
-                for (_, mut position, mut ap, mut mp, mut health) in warrior_query.iter_mut() {
-                    if click_event.0.eq(&position) {
-                        match index {
-                            0 => health.hurt(170),
-                            1 => health.hurt(90),
-                            2 => mp.spend(2),
-                            3 => ap.spend(2),
-                            4 => {
-                                if let Some(direction) = direction {
-                                    let path = position.unchecked_path_torward(direction, 2);
-                                    let mut path_iter = path.iter();
-                                    while let Some(pos) = path_iter.next() {
-                                        if map_query.is_obstacle(map_id, pos, map_width, map_height)
-                                        {
-                                            break;
-                                        }
-                                        position.x = pos.x;
-                                        position.y = pos.y;
-                                    }
-                                }
-                            }
-                            6 => health.heal(120),
-                            _ => health.heal(120),
-                        }
-                    }
-                }
-            }
-
-            selected_action.0 = None; // Deselect action automatically
-        }
-    } else {
-        for ev in ev_clicked.iter() {
-            let warrior_entity = turn.get_current_warrior_entity().unwrap();
-            if let Ok((_, mut warrior_position, _, mut movement_points, _)) =
-                warrior_query.get_mut(warrior_entity)
-            {
-                let path =
-                    map_query.pathfinding(map_id, &warrior_position, &ev.0, map_width, map_height);
-
-                // TODO Replace the current sprite sheets by another one containing all 4 directions
-                // TODO Animate warrior movement along the path
-                // TODO Change warrior orientation when it changes direction
-                if let Some((_path, cost)) = path {
-                    if movement_points.can_spend(cost) {
-                        warrior_position.x = ev.0.x;
-                        warrior_position.y = ev.0.y;
-                        movement_points.spend(cost);
-                    }
-                }
-            }
-        }
-    }
-}
+//                 // TODO Replace the current sprite sheets by another one containing all 4 directions
+//                 // TODO Animate warrior movement along the path
+//                 // TODO Change warrior orientation when it changes direction
+//                 if let Some((_path, cost)) = path {
+//                     if movement_points.can_drop(cost) {
+//                         warrior_position.x = ev.0.x;
+//                         warrior_position.y = ev.0.y;
+//                         movement_points.drop(cost);
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// }
 
 /// Reset warrior action & movement points at the end of their turn
 fn reset_warrior_attributes_on_turn_end(
     mut ev_turn_ended: EventReader<TurnEnd>,
-    mut q: Query<(&mut ActionPoints, &mut MovementPoints), With<Warrior>>,
+    mut q: Query<(&mut Attribute<ActionPoints>, &mut Attribute<MovementPoints>), With<Warrior>>,
 ) {
     for ev in ev_turn_ended.iter() {
         let (mut ap, mut mp) = q.get_mut(ev.0).unwrap();
-        ap.reset();
-        mp.reset();
+        ap.rise_max();
+        mp.rise_max();
     }
 }
 
@@ -520,10 +398,10 @@ fn highlight_potential_action(
 fn despawn_warrior_on_death(
     mut commands: Commands,
     mut turn: ResMut<Turn>,
-    warrior_query: Query<(Entity, &Health), (With<Warrior>, Changed<Health>)>,
+    warrior_query: Query<(Entity, &Attribute<Health>), (With<Warrior>, Changed<Attribute<Health>>)>,
 ) {
     for (entity, health) in warrior_query.iter() {
-        if health.0.value == 0 {
+        if health.value() == 0 {
             let turn_index = turn.get_entity_index(entity);
 
             if let Some(turn_index) = turn_index {

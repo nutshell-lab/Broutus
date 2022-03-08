@@ -1,10 +1,16 @@
+use crate::game::map::MapPosition;
+
 use super::*;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
+#[derive(Reflect, Component, Default)]
+#[reflect(Component)]
+pub struct SelectedAction(pub Option<usize>);
+
 /// NewType representing a Warrior's action collection
-#[derive(Debug, Component)]
-pub struct Actions(Vec<Action>);
+#[derive(Debug, Clone, Deserialize, Serialize, Component)]
+pub struct Actions(pub Vec<Action>);
 
 impl Default for Actions {
     fn default() -> Self {
@@ -13,7 +19,7 @@ impl Default for Actions {
 }
 
 /// A Warrior action is usable in Arena mode, consuming ActionPoints
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Action {
     pub name: String,
     pub icon_key: String,
@@ -35,6 +41,7 @@ impl Action {
             (
                 &Name,
                 &mut super::super::MapPosition,
+                &Actions,
                 &mut Attribute<Health>,
                 &mut Attribute<Shield>,
                 &mut Attribute<ActionPoints>,
@@ -50,7 +57,7 @@ impl Action {
 
         for hit_position in hit_positions {
             // Process warriors on the given position
-            for (_, mut position, mut health, ..) in warrior_query.iter_mut() {
+            for (_, mut position, _, mut health, ..) in warrior_query.iter_mut() {
                 if position.ne(hit_position) {
                     continue;
                 }
@@ -97,7 +104,7 @@ impl Action {
 }
 
 /// The action Area Of Effect, representing the zone where the action effects will be applied
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
 pub enum ActionAoe {
     /// ☐☐☐☐☐☐ <br/>
     /// ☐☐☐☐☐☐ <br/>
@@ -142,7 +149,7 @@ impl Default for ActionAoe {
 }
 
 /// The action range represents the targetable cells from the attacker position
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
 pub enum ActionRange {
     Around {
         min_distance: u32,
@@ -167,8 +174,32 @@ impl Default for ActionRange {
     }
 }
 
+impl ActionRange {
+    pub fn can_reach(&self, from: &MapPosition, to: &MapPosition) -> bool {
+        let distance = from.distance_to(to);
+        match *self {
+            ActionRange::Around {
+                min_distance,
+                max_distance,
+            } => distance >= min_distance && distance <= max_distance,
+            ActionRange::Line {
+                min_distance,
+                max_distance,
+            } => {
+                distance >= min_distance
+                    && distance <= max_distance
+                    && (from.x == to.x || from.y == to.y)
+            }
+            ActionRange::Diagonal {
+                min_distance,
+                max_distance,
+            } => distance >= min_distance && distance <= max_distance && (to.x / to.y == 1), // TODO div 0
+        }
+    }
+}
+
 /// An effect is an outcome of an action execution
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
 pub enum ActionEffect {
     Nothing,
     Damage {

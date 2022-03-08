@@ -33,7 +33,7 @@
         min: MovementPoints(0),
         max: MovementPoints(1000),
     ),
-    actions: [
+    actions: Actions([
         Action(
             name: "Slash",
             icon_key: "action_slash",
@@ -61,5 +61,5 @@
             range: Around(min_distance: 2, max_distance: 5),
             effects: [Heal(amount: 460)]
         ),
-    ]
+    ])
 )

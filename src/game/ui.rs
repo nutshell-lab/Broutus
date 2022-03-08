@@ -1,8 +1,10 @@
 use super::color;
 use super::gameplay::*;
+use super::map::Map;
+use super::map::MapPosition;
+use super::map::MouseMapPosition;
 use super::GameState;
 use bevy::prelude::*;
-use bevy_asset_loader::AssetCollection;
 use bevy_egui::egui;
 use bevy_egui::egui::{Label, ProgressBar, RichText};
 use bevy_egui::EguiContext;
@@ -104,7 +106,7 @@ pub fn show_warrior_selection_ui(
 
                                         ui.label(RichText::new(warrior.name.as_str()).heading());
 
-                                        for action in warrior.actions.iter() {
+                                        for action in warrior.actions.0.iter() {
                                             ui.label(
                                                 RichText::new(action.name.as_str()).monospace(),
                                             );
@@ -127,38 +129,18 @@ pub fn show_warrior_selection_ui(
         });
 }
 
-// TODO actions unmock
-#[derive(AssetCollection)]
-pub struct ActionsAssets {
-    #[asset(path = "actions/blind.png")]
-    blind: Handle<Image>,
-
-    #[asset(path = "actions/cripple.png")]
-    cripple: Handle<Image>,
-
-    #[asset(path = "actions/heal.png")]
-    heal: Handle<Image>,
-
-    #[asset(path = "actions/push.png")]
-    push: Handle<Image>,
-
-    #[asset(path = "actions/shield.png")]
-    shield: Handle<Image>,
-
-    #[asset(path = "actions/shoot.png")]
-    shoot: Handle<Image>,
-
-    #[asset(path = "actions/slash.png")]
-    slash: Handle<Image>,
-
-    #[asset(path = "actions/teleport.png")]
-    teleport: Handle<Image>,
-}
-
 /// Display all infos about the turn system in a dedicated window
 pub fn show_turn_ui(
     turn: Res<Turn>,
-    warrior_query: Query<(&Name, &Health, &ActionPoints, &MovementPoints), With<Warrior>>,
+    warrior_query: Query<
+        (
+            &Name,
+            &Attribute<Health>,
+            &Attribute<ActionPoints>,
+            &Attribute<MovementPoints>,
+        ),
+        With<Warrior>,
+    >,
     mut egui_context: ResMut<EguiContext>,
     mut team_query: Query<&Team, With<Warrior>>,
 ) {
@@ -275,7 +257,7 @@ pub fn show_turn_button_ui(
 pub fn show_health_bar_ui(
     mut egui_context: ResMut<EguiContext>,
     turn: Res<Turn>,
-    warrior_query: Query<&Health, With<Warrior>>,
+    warrior_query: Query<&Attribute<Health>, With<Warrior>>,
 ) {
     egui::containers::Window::new("health_bar")
         .anchor(egui::Align2::CENTER_BOTTOM, [0.0, -120.0])
@@ -305,7 +287,7 @@ pub fn show_health_bar_ui(
 pub fn show_action_points_ui(
     mut egui_context: ResMut<EguiContext>,
     turn: Res<Turn>,
-    warrior_query: Query<&ActionPoints, With<Warrior>>,
+    warrior_query: Query<&Attribute<ActionPoints>, With<Warrior>>,
 ) {
     egui::containers::Window::new("action_points")
         .anchor(egui::Align2::CENTER_BOTTOM, [-280.0, -78.0])
@@ -322,7 +304,7 @@ pub fn show_action_points_ui(
         .show(egui_context.ctx_mut(), |ui| {
             let entity = turn.get_current_warrior_entity().unwrap();
             let action_points = warrior_query.get(entity).unwrap();
-            let text = RichText::new(format!("★ {}", action_points.0.value))
+            let text = RichText::new(format!("★ {}", action_points.value()))
                 .strong()
                 .heading()
                 .color(egui::Color32::BLACK);
@@ -334,7 +316,7 @@ pub fn show_action_points_ui(
 pub fn show_movement_points_ui(
     mut egui_context: ResMut<EguiContext>,
     turn: Res<Turn>,
-    warrior_query: Query<&MovementPoints, With<Warrior>>,
+    warrior_query: Query<&Attribute<MovementPoints>, With<Warrior>>,
 ) {
     egui::containers::Window::new("movement_points")
         .anchor(egui::Align2::CENTER_BOTTOM, [280.0, -78.0])
@@ -351,7 +333,7 @@ pub fn show_movement_points_ui(
         .show(egui_context.ctx_mut(), |ui| {
             let entity = turn.get_current_warrior_entity().unwrap();
             let movement_points = warrior_query.get(entity).unwrap();
-            let text = RichText::new(format!("🏃 {}", movement_points.0.value))
+            let text = RichText::new(format!("🏃 {}", movement_points.value()))
                 .strong()
                 .heading()
                 .color(egui::Color32::BLACK);
@@ -363,19 +345,13 @@ pub fn show_movement_points_ui(
 pub fn show_action_bar_ui(
     mut egui_context: ResMut<EguiContext>,
     mut selected_action: ResMut<SelectedAction>,
-    images: Res<ActionsAssets>,
+    icon_collection: Res<IconCollection>,
     turn: Res<Turn>,
-    warrior_query: Query<&ActionPoints, With<Warrior>>,
+    warrior_query: Query<&Attribute<ActionPoints>, With<Warrior>>,
 ) {
-    // TODO actions unmock
-    egui_context.set_egui_texture(0, images.slash.clone());
-    egui_context.set_egui_texture(1, images.shoot.clone());
-    egui_context.set_egui_texture(2, images.cripple.clone());
-    egui_context.set_egui_texture(3, images.blind.clone());
-    egui_context.set_egui_texture(4, images.push.clone());
-    egui_context.set_egui_texture(5, images.teleport.clone());
-    egui_context.set_egui_texture(6, images.shield.clone());
-    egui_context.set_egui_texture(7, images.heal.clone());
+    for (index, icon) in icon_collection.get_all().iter().enumerate() {
+        egui_context.set_egui_texture(index as u64, icon.clone());
+    }
 
     egui::containers::Window::new("action_bar")
         .anchor(egui::Align2::CENTER_BOTTOM, [0.0, -20.0])
@@ -420,11 +396,13 @@ pub fn show_action_bar_ui(
                             .map(|selected| selected == index)
                             .unwrap_or(false);
 
-                        let enabled = action_points.0.value >= cost; // TODO replace by the real action cost
+                        let enabled = action_points.value() >= cost; // TODO replace by the real action cost
                         let button = ui.add_enabled(
                             enabled,
                             egui::ImageButton::new(
-                                egui::TextureId::User(index as u64),
+                                egui::TextureId::User(
+                                    icon_collection.get_index("action_slash").unwrap() as u64,
+                                ),
                                 (48.0, 48.0),
                             )
                             .selected(is_selected),
@@ -520,7 +498,7 @@ pub fn handle_action_bar_shortcuts(
     mut selected_action: ResMut<SelectedAction>,
     keys: Res<Input<KeyCode>>,
     turn: Res<Turn>,
-    warrior_query: Query<&ActionPoints, With<Warrior>>,
+    warrior_query: Query<&Attribute<ActionPoints>, With<Warrior>>,
 ) {
     if keys.just_pressed(KeyCode::Escape) {
         selected_action.0 = None;
@@ -528,7 +506,7 @@ pub fn handle_action_bar_shortcuts(
 
     let entity = turn.get_current_warrior_entity().unwrap();
     let action_points = warrior_query.get(entity).unwrap();
-    let is_disabled = action_points.0.value < 3; // TODO replace by the real action cost, for each action
+    let is_disabled = action_points.value() < 3; // TODO replace by the real action cost, for each action
 
     if is_disabled {
         return;
@@ -634,7 +612,7 @@ pub fn show_warrior_ui(
     mouse_position: Res<MouseMapPosition>,
     selected_action: Res<SelectedAction>,
     map_query: Query<&Map>,
-    warrior_query: Query<(Entity, &Name, &Health, &MapPosition), With<Warrior>>,
+    warrior_query: Query<(Entity, &Name, &Attribute<Health>, &MapPosition), With<Warrior>>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
     mut egui_context: ResMut<EguiContext>,
     mut team_query: Query<&Team, With<Warrior>>,

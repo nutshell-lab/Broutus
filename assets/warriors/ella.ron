@@ -2,9 +2,9 @@
     name: "Ella",
     portrait_key: "ella",
     render: (
-        atlas_texture: "ella_idle",
+        atlas_texture: "ella",
         animations: {
-            "idle": (0, 14),
+            "idle": (27, 37),
             "moving": (15, 29),
             "attacked": (30, 44),
             "action_slash": (45, 59),
@@ -21,19 +21,19 @@
     shield: (
         value: Shield(0),
         min: Shield(0),
-        max: Shield(1000),
+        max: Shield(10000),
     ),
     action_points: (
-        value: ActionPoints(1000),
+        value: ActionPoints(8),
         min: ActionPoints(0),
-        max: ActionPoints(1000),
+        max: ActionPoints(8),
     ),
     movement_points: (
-        value: MovementPoints(1000),
+        value: MovementPoints(5),
         min: MovementPoints(0),
-        max: MovementPoints(1000),
+        max: MovementPoints(5),
     ),
-    actions: [
+    actions: Actions([
         Action(
             name: "Slash",
             icon_key: "action_slash",
@@ -61,5 +61,5 @@
             range: Around(min_distance: 2, max_distance: 5),
             effects: [TeleportSelf]
         ),
-    ]
+    ])
 )

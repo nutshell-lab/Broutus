@@ -5,7 +5,7 @@ use bevy::utils::HashMap;
 use bevy_asset_loader::AssetCollection;
 use serde::{Deserialize, Serialize};
 
-use super::{Action, ActionPoints, Attribute, Health, MovementPoints, Shield};
+use super::{Action, ActionPoints, Actions, Attribute, Health, MovementPoints, Shield};
 
 // TODO find a way to load a folder into as HashMap<String, Handle<..>>
 #[derive(AssetCollection, Reflect)]
@@ -157,7 +157,7 @@ pub struct WarriorAsset {
     pub shield: Attribute<Shield>,
     pub action_points: Attribute<ActionPoints>,
     pub movement_points: Attribute<MovementPoints>,
-    pub actions: Vec<Action>,
+    pub actions: Actions,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

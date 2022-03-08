@@ -11,17 +11,21 @@ pub struct AnimationTimer(pub Timer);
 #[reflect(Component)]
 pub struct SelectedAnimation {
     /// Currently selected animation
-    current_key: String,
+    pub current_key: String,
 
     /// Bound of each available animation (eg. idle 0-15, walk 16-45, attack 46-82)
-    animations: HashMap<String, (usize, usize)>,
+    pub animations: HashMap<String, (usize, usize)>,
 }
 
 impl SelectedAnimation {
     /// Get the next sprite index in the TextureAtlas based on the current index and the selected animation
     fn next(&self, index: usize) -> usize {
-        let (min, max) = self.animations.get(&self.current_key).unwrap();
-        index % max - min
+        let (min, max) = self
+            .animations
+            .get(&self.current_key)
+            .copied()
+            .unwrap_or((0, 1));
+        ((index.clamp(min - 1, max) + 1) % max).clamp(min, max)
     }
 }
 
@@ -69,5 +73,6 @@ pub fn update_warrior_world_position(
             tile_width,
             tile_height,
         );
+        transform.translation.y += 135. / 9.;
     }
 }

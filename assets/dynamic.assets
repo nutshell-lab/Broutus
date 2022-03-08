@@ -1,16 +1,16 @@
 ({
     "animations.ella": TextureAtlas(
-        path: "animations/knight_idle.png",
-        tile_size_x: 64.,
-        tile_size_y: 64.,
-        columns: 15,
+        path: "animations/knight.png",
+        tile_size_x: 135.,
+        tile_size_y: 135.,
+        columns: 43,
         rows: 1,
     ),
     "animations.edificadores": TextureAtlas(
-        path: "animations/knight_idle.png",
-        tile_size_x: 64.,
-        tile_size_y: 64.,
-        columns: 15,
+        path: "animations/knight.png",
+        tile_size_x: 135.,
+        tile_size_y: 135.,
+        columns: 43,
         rows: 1,
     ),
 

@@ -41,6 +41,10 @@ impl<T: AttributeValue + Copy + Clone + Default> Attribute<T> {
         }
     }
 
+    pub fn can_drop(&self, amount: u32) -> bool {
+        self.value() - self.min() >= amount
+    }
+
     /// Drop the value by the amount, bounded by min, returning the remaining amount
     pub fn drop(&mut self, amount: u32) -> u32 {
         let old_value = self.value();
@@ -68,6 +72,14 @@ impl<T: AttributeValue + Copy + Clone + Default> Attribute<T> {
 
     pub fn rise_max(&mut self) -> u32 {
         self.rise(self.max())
+    }
+
+    pub fn as_percentage(&self) -> f32 {
+        (self.value() - self.min()) as f32 / (self.max() - self.min()) as f32
+    }
+
+    pub fn as_text(&self) -> String {
+        format!("{} / {}", self.value(), self.max())
     }
 }
 
