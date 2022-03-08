@@ -31,7 +31,7 @@ impl Plugin for GameplayPlugin {
                     .with_system(animate_warrior_sprite)
                     .with_system(update_warrior_world_position)
                     .with_system(reset_warrior_attributes_on_turn_end)
-                    // .with_system(handle_warrior_action_on_click)
+                    .with_system(handle_warrior_action_on_click)
                     .with_system(despawn_warrior_on_death),
             )
             .add_system_set(
@@ -248,81 +248,85 @@ fn highlight_potential_movement(
     }
 }
 
-// /// Move the warrior on click if he can afford the cost of the path in movement points
-// fn handle_warrior_action_on_click(
-//     turn: Res<Turn>,
-//     mut ev_clicked: EventReader<TileLeftClickedEvent>,
-//     mut selected_action: ResMut<SelectedAction>,
-//     mut warrior_query: &mut Query<
-//         (
-//             &Name,
-//             &mut MapPosition,
-//             &Actions,
-//             &mut Attribute<Health>,
-//             &mut Attribute<Shield>,
-//             &mut Attribute<ActionPoints>,
-//             &mut Attribute<MovementPoints>,
-//         ),
-//         With<Warrior>,
-//     >,
-//     mut map_query: MapQuery,
-// ) {
-//     let (_, map, _) = map_query.map_queryset.q1().single();
-//     let map_id = map.id;
-//     let map_width = map.width;
-//     let map_height = map.height;
+/// Move the warrior on click if he can afford the cost of the path in movement points
+fn handle_warrior_action_on_click(
+    turn: Res<Turn>,
+    mut ev_clicked: EventReader<TileLeftClickedEvent>,
+    mut selected_action: ResMut<SelectedAction>,
+    mut warrior_query: Query<
+        (
+            &Name,
+            &mut MapPosition,
+            &Actions,
+            &mut Attribute<Health>,
+            &mut Attribute<Shield>,
+            &mut Attribute<ActionPoints>,
+            &mut Attribute<MovementPoints>,
+        ),
+        (With<Warrior>, Without<Tile>),
+    >,
+    mut map_query: MapQuery,
+) {
+    let (_, map, _) = map_query.map_queryset.q1().single();
+    let map_id = map.id;
+    let map_width = map.width;
+    let map_height = map.height;
 
-//     if let Some(index) = selected_action.0 {
-//         for click_event in ev_clicked.iter() {
-//             let warrior_entity = turn.get_current_warrior_entity().unwrap();
-//             let (_, mut position, actions, _, _, mut action_points, ..) =
-//                 warrior_query.get_mut(warrior_entity).unwrap();
+    if let Some(index) = selected_action.0 {
+        for click_event in ev_clicked.iter() {
+            let warrior_entity = turn.get_current_warrior_entity().unwrap();
+            let (_, position, actions, _, _, mut action_points, ..) =
+                warrior_query.get_mut(warrior_entity).unwrap();
 
-//             let action = actions.0.get(index).unwrap();
-//             let distance_to_event = position.distance_to(&click_event.0);
+            let action = actions.0.get(index).cloned().unwrap();
 
-//             if !action.range.can_reach(&position, &click_event.0) {
-//                 continue;
-//             }
+            if !action.range.can_reach(&position, &click_event.0) {
+                continue;
+            }
 
-//             // TODO not all actions require line of sight ?
-//             if !map_query.line_of_sight_check(
-//                 map_id,
-//                 &position,
-//                 &click_event.0,
-//                 map_width,
-//                 map_height,
-//             ) {
-//                 continue;
-//             }
+            // TODO not all actions require line of sight ?
+            if !map_query.line_of_sight_check(
+                map_id,
+                &position,
+                &click_event.0,
+                map_width,
+                map_height,
+            ) {
+                continue;
+            }
 
-//             action_points.drop(action.cost.value());
-//             action.execute(&position, &click_event.0, &mut map_query, warrior_query);
-//             selected_action.0 = None; // Deselect action automatically
-//         }
-//     } else {
-//         for ev in ev_clicked.iter() {
-//             let warrior_entity = turn.get_current_warrior_entity().unwrap();
-//             if let Ok((_, mut warrior_position, _, mut movement_points, ..)) =
-//                 warrior_query.get_mut(warrior_entity)
-//             {
-//                 let path =
-//                     map_query.pathfinding(map_id, &warrior_position, &ev.0, map_width, map_height);
+            action_points.drop(action.cost.value());
+            action.execute(
+                &position.clone(),
+                &click_event.0,
+                &mut map_query,
+                &mut warrior_query,
+            );
+            selected_action.0 = None; // Deselect action automatically
+        }
+    } else {
+        for ev in ev_clicked.iter() {
+            let warrior_entity = turn.get_current_warrior_entity().unwrap();
+            if let Ok((_, mut warrior_position, _, _, _, _, mut movement_points, ..)) =
+                warrior_query.get_mut(warrior_entity)
+            {
+                let path =
+                    map_query.pathfinding(map_id, &warrior_position, &ev.0, map_width, map_height);
 
-//                 // TODO Replace the current sprite sheets by another one containing all 4 directions
-//                 // TODO Animate warrior movement along the path
-//                 // TODO Change warrior orientation when it changes direction
-//                 if let Some((_path, cost)) = path {
-//                     if movement_points.can_drop(cost) {
-//                         warrior_position.x = ev.0.x;
-//                         warrior_position.y = ev.0.y;
-//                         movement_points.drop(cost);
-//                     }
-//                 }
-//             }
-//         }
-//     }
-// }
+                // TODO Replace the current sprite sheets by another one containing all 4 directions
+                // TODO Animate warrior movement along the path
+                // TODO Change warrior orientation when it changes direction
+                if let Some((_path, cost)) = path {
+                    if movement_points.can_drop(cost) {
+                        warrior_position.x = ev.0.x;
+                        warrior_position.y = ev.0.y;
+                        movement_points.drop(cost);
+                    }
+                }
+            }
+        }
+    }
+}
 
 /// Reset warrior action & movement points at the end of their turn
 fn reset_warrior_attributes_on_turn_end(

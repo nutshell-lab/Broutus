@@ -142,7 +142,7 @@ pub fn show_turn_ui(
         With<Warrior>,
     >,
     mut egui_context: ResMut<EguiContext>,
-    mut team_query: Query<&Team, With<Warrior>>,
+    team_query: Query<&Team, With<Warrior>>,
 ) {
     egui::containers::Window::new("turn_order")
         .anchor(egui::Align2::RIGHT_TOP, [-20.0, 20.0])
@@ -206,7 +206,7 @@ pub fn show_turn_button_ui(
     ev_turn_started: EventWriter<TurnStart>,
     ev_turn_ended: EventWriter<TurnEnd>,
     mut egui_context: ResMut<EguiContext>,
-    mut team_query: Query<&Team, With<Warrior>>,
+    team_query: Query<&Team, With<Warrior>>,
 ) {
     egui::containers::Window::new("next_turn_button")
         .anchor(egui::Align2::RIGHT_BOTTOM, [-20.0, -20.0])
@@ -347,7 +347,7 @@ pub fn show_action_bar_ui(
     mut selected_action: ResMut<SelectedAction>,
     icon_collection: Res<IconCollection>,
     turn: Res<Turn>,
-    warrior_query: Query<&Attribute<ActionPoints>, With<Warrior>>,
+    warrior_query: Query<(&Actions, &Attribute<ActionPoints>), With<Warrior>>,
 ) {
     for (index, icon) in icon_collection.get_all().iter().enumerate() {
         egui_context.set_egui_texture(index as u64, icon.clone());
@@ -370,38 +370,24 @@ pub fn show_action_bar_ui(
                 .spacing((5.0, 5.0))
                 .show(ui, |ui| {
                     let entity = turn.get_current_warrior_entity().unwrap();
-                    let action_points = warrior_query.get(entity).unwrap();
-
-                    let action_count = 8usize;
-                    // TODO actions unmock
-                    for index in 0..action_count {
+                    let (actions, action_points) = warrior_query.get(entity).unwrap();
+                    for (index, action) in actions.0.iter().enumerate() {
                         if index > 0 && index % 8 == 0 {
                             ui.end_row();
                         }
-
-                        // TODO actions unmock
-                        let (name, cost) = match index {
-                            0 => ("Slash", 3),
-                            1 => ("Shoot", 5),
-                            2 => ("Cripple", 3),
-                            3 => ("Blind", 3),
-                            4 => ("Push", 2),
-                            5 => ("Teleport", 5),
-                            6 => ("Shield", 3),
-                            _ => ("Heal", 4),
-                        };
 
                         let is_selected = selected_action
                             .0
                             .map(|selected| selected == index)
                             .unwrap_or(false);
 
-                        let enabled = action_points.value() >= cost; // TODO replace by the real action cost
+                        let enabled = action_points.can_drop(action.cost.value());
                         let button = ui.add_enabled(
                             enabled,
                             egui::ImageButton::new(
                                 egui::TextureId::User(
-                                    icon_collection.get_index("action_slash").unwrap() as u64,
+                                    icon_collection.get_index(action.icon_key.as_str()).unwrap()
+                                        as u64,
                                 ),
                                 (48.0, 48.0),
                             )
@@ -419,11 +405,16 @@ pub fn show_action_bar_ui(
                                 egui::Grid::new(format!("action_bar_grid_{}", index)).show(
                                     ui,
                                     |ui| {
-                                        ui.label(egui::RichText::new(name).heading());
                                         ui.label(
-                                            egui::RichText::new(format!("★ {}", cost))
-                                                .heading()
-                                                .color(color::ACTION_POINTS),
+                                            egui::RichText::new(action.name.as_str()).heading(),
+                                        );
+                                        ui.label(
+                                            egui::RichText::new(format!(
+                                                "★ {}",
+                                                action.cost.value()
+                                            ))
+                                            .heading()
+                                            .color(color::ACTION_POINTS),
                                         );
                                         ui.end_row();
 
@@ -478,7 +469,7 @@ pub fn show_action_bar_ui(
 
                     // Show keybindigs below
                     ui.end_row();
-                    for index in 0..action_count {
+                    for index in 0..actions.0.len() {
                         ui.with_layout(
                             egui::Layout::centered_and_justified(egui::Direction::LeftToRight),
                             |ui| {

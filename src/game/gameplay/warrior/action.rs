@@ -1,4 +1,4 @@
-use crate::game::map::MapPosition;
+use crate::game::map::{MapPosition, Tile};
 
 use super::*;
 use bevy::prelude::*;
@@ -47,7 +47,7 @@ impl Action {
                 &mut Attribute<ActionPoints>,
                 &mut Attribute<MovementPoints>,
             ),
-            With<Warrior>,
+            (With<Warrior>, Without<Tile>),
         >,
     ) {
         let hit_positions = match self.aoe {
