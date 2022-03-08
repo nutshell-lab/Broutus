@@ -57,7 +57,7 @@ impl Action {
 
                 for effect in self.effects.iter() {
                     // Implementation example
-                    if let ActionEffect::DamageHealthOrShield {
+                    if let ActionEffect::Damage {
                         amount,
                         erode,
                         crit_chance,
@@ -171,16 +171,22 @@ impl Default for ActionRange {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum ActionEffect {
     Nothing,
-    DamageHealthOrShield {
+    Damage {
         amount: u32,
         erode: f32,
         crit_mult: f32,
         crit_chance: f32,
     },
-    DamageHealthOrShieldOverTime {
+    DamageOverTime {
         amount: u32,
         erode: f32,
         duration: u32,
+    },
+    Heal {
+        amount: u32,
+    },
+    Shield {
+        amount: u32,
     },
     RemoveActionPoints {
         amount: u32,

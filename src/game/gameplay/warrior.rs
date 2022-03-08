@@ -54,7 +54,7 @@ impl WarriorBundle {
 
 #[derive(AssetCollection)]
 pub struct WarriorAssets {
-    #[asset(key = "animations.freddy")]
+    #[asset(key = "animations.ella")]
     pub idle: Handle<TextureAtlas>,
 }
 

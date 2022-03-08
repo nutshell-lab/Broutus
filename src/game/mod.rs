@@ -37,6 +37,7 @@ impl Plugin for GamePlugin {
             .with_collection::<gameplay::WarriorCollection>()
             .with_collection::<gameplay::AnimationCollection>()
             .with_collection::<gameplay::IconCollection>()
+            .with_collection::<gameplay::PortraitCollection>()
             .continue_to_state(GameState::Picking)
             .build(app);
 

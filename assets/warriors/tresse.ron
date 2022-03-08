@@ -1,7 +1,8 @@
 (
-    name: "Freddy",
+    name: "Tresse",
+    portrait_key: "tresse",
     render: (
-        atlas_texture: "freddy_idle",
+        atlas_texture: "tresse_idle",
         animations: {
             "idle": (0, 14),
             "moving": (15, 29),
@@ -34,31 +35,31 @@
     ),
     actions: [
         Action(
-            name: "Slash",
-            icon_key: "action_slash",
-            animation_key: "action_slash",
+            name: "Shoot",
+            icon_key: "action_shoot",
+            animation_key: "action_shoot",
             cost: ActionPoints(4),
             aoe: Cell,
             range: Around(min_distance: 1, max_distance: 2),
-            effects: [DamageHealthOrShield(amount: 150, erode: 0.1, crit_mult: 1.4, crit_chance: 0.12)]
+            effects: [Damage(amount: 150, erode: 0.1, crit_mult: 1.4, crit_chance: 0.12)]
         ),
         Action(
-            name: "Push",
-            icon_key: "action_push",
-            animation_key: "action_push",
-            cost: ActionPoints(2),
+            name: "Blind",
+            icon_key: "action_blind",
+            animation_key: "action_blind",
+            cost: ActionPoints(4),
             aoe: Cell,
             range: Line(min_distance: 1, max_distance: 2),
-            effects: [PushLinear(distance: 3)]
+            effects: [StealActionPoints(amount: 2)]
         ),
         Action(
-            name: "Teleport",
-            icon_key: "action_teleport",
-            animation_key: "action_teleport",
-            cost: ActionPoints(5),
+            name: "Cripple",
+            icon_key: "action_cripple",
+            animation_key: "action_cripple",
+            cost: ActionPoints(3),
             aoe: Cell,
-            range: Around(min_distance: 2, max_distance: 5),
-            effects: [TeleportSelf]
+            range: Around(min_distance: 1, max_distance: 3),
+            effects: [DamageOverTime(amount: 120, erode: 0.1, duration: 2)]
         ),
     ]
 )

@@ -10,8 +10,8 @@ use super::{Action, ActionPoints, Attribute, Health, MovementPoints, Shield};
 // TODO find a way to load a folder into as HashMap<String, Handle<..>>
 #[derive(AssetCollection, Reflect)]
 pub struct AnimationCollection {
-    #[asset(key = "animations.freddy")]
-    pub freddy: Handle<TextureAtlas>,
+    #[asset(key = "animations.ella")]
+    pub ella: Handle<TextureAtlas>,
 }
 
 impl AnimationCollection {
@@ -20,6 +20,69 @@ impl AnimationCollection {
         self.field(key)
             .and_then(|field| field.downcast_ref::<Handle<TextureAtlas>>())
             .cloned()
+    }
+}
+
+// TODO find a way to load a folder into as HashMap<String, Handle<..>>
+#[derive(AssetCollection, Reflect)]
+pub struct PortraitCollection {
+    #[asset(key = "portraits.edificadores")]
+    pub edificadores: Handle<Image>,
+
+    #[asset(key = "portraits.ella")]
+    pub ella: Handle<Image>,
+
+    #[asset(key = "portraits.laminas")]
+    pub laminas: Handle<Image>,
+
+    #[asset(key = "portraits.magal")]
+    pub magal: Handle<Image>,
+
+    #[asset(key = "portraits.milhafre")]
+    pub milhafre: Handle<Image>,
+
+    #[asset(key = "portraits.nunga")]
+    pub nunga: Handle<Image>,
+
+    #[asset(key = "portraits.spy")]
+    pub spy: Handle<Image>,
+
+    #[asset(key = "portraits.tempest")]
+    pub tempest: Handle<Image>,
+
+    #[asset(key = "portraits.tenan")]
+    pub tenan: Handle<Image>,
+
+    #[asset(key = "portraits.tresse")]
+    pub tresse: Handle<Image>,
+
+    #[asset(key = "portraits.ungido")]
+    pub ungido: Handle<Image>,
+}
+
+impl PortraitCollection {
+    /// Get an image handle giving a portrait key
+    pub fn get(&self, key: &str) -> Option<Handle<Image>> {
+        self.field(key)
+            .and_then(|field| field.downcast_ref::<Handle<Image>>())
+            .cloned()
+    }
+
+    pub fn get_index(&self, key: &str) -> Option<usize> {
+        if let Some(right) = self.get(key) {
+            self.get_all().iter().position(|left| left.eq(&right))
+        } else {
+            None
+        }
+    }
+
+    pub fn get_all(&self) -> Vec<Handle<Image>> {
+        self.iter_fields()
+            .map(|field| field.downcast_ref::<Handle<Image>>())
+            .filter(|res| res.is_some())
+            .map(|res| res.unwrap())
+            .cloned()
+            .collect()
     }
 }
 
@@ -88,6 +151,7 @@ pub struct WarriorCollection {
 #[uuid = "e51081d0-6168-4881-a1c6-1249b2000e7f"]
 pub struct WarriorAsset {
     pub name: String,
+    pub portrait_key: String,
     pub render: WarriorAssetRender,
     pub health: Attribute<Health>,
     pub shield: Attribute<Shield>,
@@ -121,7 +185,7 @@ impl AssetLoader for WarriorAssetLoader {
     }
 
     fn extensions(&self) -> &[&str] {
-        static EXTENSIONS: &[&str] = &["warrior"];
+        static EXTENSIONS: &[&str] = &["ron"];
         EXTENSIONS
     }
 }

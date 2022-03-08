@@ -11,6 +11,7 @@ mod weapon;
 
 pub use warrior_new::AnimationCollection;
 pub use warrior_new::IconCollection;
+pub use warrior_new::PortraitCollection;
 pub use warrior_new::WarriorAsset;
 pub use warrior_new::WarriorAssetLoader;
 pub use warrior_new::WarriorCollection;

@@ -14,9 +14,14 @@ pub fn show_warrior_selection_ui(
     warriors: Res<Assets<WarriorAsset>>,
     warrior_collection: Res<WarriorCollection>,
     icon_collection: Res<IconCollection>,
+    portraits_collection: Res<PortraitCollection>,
 ) {
     for (index, icon) in icon_collection.get_all().iter().enumerate() {
-        egui_context.set_egui_texture(index as u64, icon.clone());
+        egui_context.set_egui_texture(10 + index as u64, icon.clone());
+    }
+
+    for (index, icon) in portraits_collection.get_all().iter().enumerate() {
+        egui_context.set_egui_texture(100 + index as u64, icon.clone());
     }
 
     let window = windows.get_primary().unwrap();
@@ -83,44 +88,41 @@ pub fn show_warrior_selection_ui(
                         .corner_radius(5.0),
                 )
                 .show_inside(ui, |ui| {
-                    egui::Grid::new("warrior_selection_grid")
-                        .spacing((20.0, 20.0))
-                        .num_columns(warriors.len())
-                        .show(ui, |ui| {
-                            ui.columns(warriors.len(), |ui| {
-                                for (index, warrior_handle) in
-                                    warrior_collection.warriors.iter().enumerate()
-                                {
-                                    egui::Frame::default()
-                                        .fill(color::HIGHLIGHT_BORDER.into())
-                                        .show(&mut ui[index], |ui| {
-                                            if let Some(warrior) = warriors.get(warrior_handle) {
-                                                ui.label(
-                                                    RichText::new(warrior.name.as_str()).heading(),
+                    ui.horizontal_top(|ui| {
+                        for warrior_handle in warrior_collection.warriors.iter() {
+                            ui.vertical(|ui| {
+                                egui::Frame::default().show(ui, |ui| {
+                                    if let Some(warrior) = warriors.get(warrior_handle) {
+                                        if let Some(texture_id) = portraits_collection
+                                            .get_index(warrior.portrait_key.as_str())
+                                        {
+                                            ui.image(
+                                                egui::TextureId::User(100 + texture_id as u64),
+                                                (325., 370.),
+                                            );
+                                        }
+
+                                        ui.label(RichText::new(warrior.name.as_str()).heading());
+
+                                        for action in warrior.actions.iter() {
+                                            ui.label(
+                                                RichText::new(action.name.as_str()).monospace(),
+                                            );
+
+                                            if let Some(texture_id) =
+                                                icon_collection.get_index(action.icon_key.as_str())
+                                            {
+                                                ui.image(
+                                                    egui::TextureId::User(10 + texture_id as u64),
+                                                    (64., 64.),
                                                 );
-
-                                                for action in warrior.actions.iter() {
-                                                    ui.label(
-                                                        RichText::new(action.name.as_str())
-                                                            .monospace(),
-                                                    );
-
-                                                    if let Some(texture_id) = icon_collection
-                                                        .get_index(action.icon_key.as_str())
-                                                    {
-                                                        ui.image(
-                                                            egui::TextureId::User(
-                                                                texture_id as u64,
-                                                            ),
-                                                            (64., 64.),
-                                                        );
-                                                    }
-                                                }
                                             }
-                                        });
-                                }
+                                        }
+                                    }
+                                });
                             });
-                        });
+                        }
+                    });
                 });
         });
 }

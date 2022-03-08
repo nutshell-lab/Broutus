@@ -1,0 +1,65 @@
+(
+    name: "Edificadores",
+    portrait_key: "edificadores",
+    render: (
+        atlas_texture: "ella_idle",
+        animations: {
+            "idle": (0, 14),
+            "moving": (15, 29),
+            "attacked": (30, 44),
+            "action_slash": (45, 59),
+            "action_push": (60, 74),
+            "action_jump": (75, 89),
+            "action_trap": (90, 104),
+        }
+    ),
+    health: (
+        value: Health(800),
+        min: Health(0),
+        max: Health(1000),
+    ),
+    shield: (
+        value: Shield(0),
+        min: Shield(0),
+        max: Shield(1000),
+    ),
+    action_points: (
+        value: ActionPoints(1000),
+        min: ActionPoints(0),
+        max: ActionPoints(1000),
+    ),
+    movement_points: (
+        value: MovementPoints(1000),
+        min: MovementPoints(0),
+        max: MovementPoints(1000),
+    ),
+    actions: [
+        Action(
+            name: "Cripple",
+            icon_key: "action_cripple",
+            animation_key: "action_cripple",
+            cost: ActionPoints(5),
+            aoe: Cell,
+            range: Around(min_distance: 3, max_distance: 6),
+            effects: [Damage(amount: 110, erode: 0.1, crit_mult: 1.3, crit_chance: 0.11)]
+        ),
+        Action(
+            name: "Shield",
+            icon_key: "action_shield",
+            animation_key: "action_shield",
+            cost: ActionPoints(2),
+            aoe: Cell,
+            range: Line(min_distance: 1, max_distance: 2),
+            effects: [Shield(amount: 340)]
+        ),
+        Action(
+            name: "Teleport",
+            icon_key: "action_teleport",
+            animation_key: "action_teleport",
+            cost: ActionPoints(5),
+            aoe: Cell,
+            range: Around(min_distance: 2, max_distance: 5),
+            effects: [TeleportSelf]
+        ),
+    ]
+)
