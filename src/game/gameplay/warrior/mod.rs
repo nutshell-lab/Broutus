@@ -27,6 +27,7 @@ pub struct WarriorBundle {
     action_points: Attribute<ActionPoints>,
     movement_points: Attribute<MovementPoints>,
     actions: Actions,
+    active_effects: ActiveEffects,
 
     // TODO add animation collection ? How to load it ?
     // Redering
@@ -48,6 +49,7 @@ impl WarriorBundle {
             action_points: asset.action_points.clone(),
             movement_points: asset.movement_points.clone(),
             actions: Actions(asset.actions.0.to_vec()),
+            active_effects: ActiveEffects::default(),
 
             sprite: SpriteSheetBundle {
                 texture_atlas: animation_collection

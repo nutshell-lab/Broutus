@@ -5,7 +5,7 @@ use bevy::utils::HashMap;
 use bevy_asset_loader::AssetCollection;
 use serde::{Deserialize, Serialize};
 
-use super::{Action, ActionPoints, Actions, Attribute, Health, MovementPoints, Shield};
+use super::{ActionPoints, Actions, Attribute, Health, MovementPoints, Shield};
 
 // TODO find a way to load a folder into as HashMap<String, Handle<..>>
 #[derive(AssetCollection, Reflect)]

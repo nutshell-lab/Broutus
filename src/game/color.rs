@@ -33,4 +33,6 @@ pub const ACTION_POINTS: Color = Color(247, 181, 56);
 pub const MOVEMENT_POINTS: Color = Color(74, 191, 178);
 pub const TEAM_A_COLOR: Color = Color(91, 195, 235);
 pub const TEAM_B_COLOR: Color = Color(91, 209, 125);
-pub const TEAM_SPEC_COLOR: Color = Color(255, 255, 255);
+pub const ACTION_GOOD: Color = Color(4, 167, 119);
+pub const ACTION_BAD: Color = Color(255, 113, 91);
+pub const ACTION_NEUTRAL: Color = Color(203, 203, 212);

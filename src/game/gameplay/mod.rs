@@ -1,3 +1,5 @@
+use std::ops::Sub;
+
 use super::color;
 use super::GameState;
 use bevy::prelude::*;
@@ -32,6 +34,7 @@ impl Plugin for GameplayPlugin {
                     .with_system(update_warrior_world_position)
                     .with_system(reset_warrior_attributes_on_turn_end)
                     .with_system(handle_warrior_action_on_click)
+                    .with_system(apply_active_effects)
                     .with_system(despawn_warrior_on_death),
             )
             .add_system_set(
@@ -258,6 +261,7 @@ fn handle_warrior_action_on_click(
             &Name,
             &mut MapPosition,
             &Actions,
+            &mut ActiveEffects,
             &mut Attribute<Health>,
             &mut Attribute<Shield>,
             &mut Attribute<ActionPoints>,
@@ -275,7 +279,7 @@ fn handle_warrior_action_on_click(
     if let Some(index) = selected_action.0 {
         for click_event in ev_clicked.iter() {
             let warrior_entity = turn.get_current_warrior_entity().unwrap();
-            let (_, position, actions, _, _, mut action_points, ..) =
+            let (_, position, actions, _, _, _, mut action_points, ..) =
                 warrior_query.get_mut(warrior_entity).unwrap();
 
             let action = actions.0.get(index).cloned().unwrap();
@@ -307,7 +311,7 @@ fn handle_warrior_action_on_click(
     } else {
         for ev in ev_clicked.iter() {
             let warrior_entity = turn.get_current_warrior_entity().unwrap();
-            if let Ok((_, mut warrior_position, _, _, _, _, mut movement_points, ..)) =
+            if let Ok((_, mut warrior_position, _, _, _, _, _, mut movement_points, ..)) =
                 warrior_query.get_mut(warrior_entity)
             {
                 let path =
@@ -328,6 +332,43 @@ fn handle_warrior_action_on_click(
     }
 }
 
+fn apply_active_effects(
+    mut ev_turn_started: EventReader<TurnStart>,
+    mut warrior_query: Query<
+        (
+            &Name,
+            &mut MapPosition,
+            &mut ActiveEffects,
+            &mut Attribute<Health>,
+            &mut Attribute<Shield>,
+            &mut Attribute<ActionPoints>,
+            &mut Attribute<MovementPoints>,
+        ),
+        (With<Warrior>, Without<Tile>),
+    >,
+) {
+    for ev in ev_turn_started.iter() {
+        let (_, _, mut effects, mut health, mut shield, ..) = warrior_query.get_mut(ev.0).unwrap();
+        for effect in effects.0.iter_mut() {
+            match effect {
+                ActionEffect::DamageOverTime {
+                    amount,
+                    erode,
+                    ref mut duration,
+                } => {
+                    if *duration > 0 {
+                        let remaining = shield.drop(*amount);
+                        health.drop(remaining);
+                        health.erode(remaining, *erode);
+                        *duration -= 1;
+                    }
+                }
+                _ => (),
+            }
+        }
+    }
+}
+
 /// Reset warrior action & movement points at the end of their turn
 fn reset_warrior_attributes_on_turn_end(
     mut ev_turn_ended: EventReader<TurnEnd>,
@@ -341,28 +382,17 @@ fn reset_warrior_attributes_on_turn_end(
 }
 
 /// Highlight the targetable cells with the current action
+// TODO only compute on selected_action changed
 fn highlight_potential_action(
     turn: Res<Turn>,
     mouse_position: Res<MouseMapPosition>,
     selected_action: Res<SelectedAction>,
-    warrior_query: Query<&MapPosition, With<Warrior>>,
+    warrior_query: Query<(&MapPosition, &Actions), With<Warrior>>,
     mut map_query: MapQuery,
 ) {
     if selected_action.0.is_none() {
         return;
     }
-
-    // TODO actions unmock
-    let (_, min_distance, max_distance) = match selected_action.0.unwrap() {
-        0 => ("Slash", 1, 2),
-        1 => ("Shoot", 3, 5),
-        2 => ("Cripple", 1, 2),
-        3 => ("Blind", 1, 1),
-        4 => ("Push", 1, 2),
-        5 => ("Teleport", 2, 5),
-        6 => ("Shield", 0, 0),
-        _ => ("Heal", 0, 1),
-    };
 
     let (_, map, _) = map_query.map_queryset.q1().single();
     let map_id = map.id;
@@ -371,16 +401,22 @@ fn highlight_potential_action(
     let map_height = map.height;
 
     let warrior_entity = turn.get_current_warrior_entity().unwrap();
-    let warrior_position = warrior_query.get(warrior_entity).unwrap();
-    let surroundings = warrior_position.get_surrounding_positions(
-        min_distance,
-        max_distance,
-        map.width,
-        map.height,
-    );
+    let (warrior_position, warrior_actions) = warrior_query.get(warrior_entity).unwrap();
+    let action = warrior_actions
+        .0
+        .get(selected_action.0.unwrap())
+        .cloned()
+        .unwrap();
 
-    for position in surroundings {
-        if map_query.line_of_sight_check(map_id, warrior_position, &position, map_width, map_height)
+    for position in map.all_positions() {
+        if action.range.can_reach(&warrior_position, &position)
+            && map_query.line_of_sight_check(
+                map_id,
+                warrior_position,
+                &position,
+                map_width,
+                map_height,
+            )
         {
             let alpha = mouse_position
                 .0

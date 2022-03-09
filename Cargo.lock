@@ -879,6 +879,7 @@ dependencies = [
  "bevy_asset_loader",
  "bevy_egui",
  "pathfinding",
+ "rand",
  "ron",
  "serde",
  "tiled",

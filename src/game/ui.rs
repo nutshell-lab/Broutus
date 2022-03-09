@@ -9,6 +9,34 @@ use bevy_egui::egui;
 use bevy_egui::egui::{Label, ProgressBar, RichText};
 use bevy_egui::EguiContext;
 
+fn icon_index(collection: &Res<IconCollection>, key: &str) -> Option<egui::TextureId> {
+    collection
+        .get_index(key)
+        .map(|i| egui::TextureId::User(i as u64 + 1))
+}
+
+fn portrait_index(collection: &Res<PortraitCollection>, key: &str) -> Option<egui::TextureId> {
+    collection
+        .get_index(key)
+        .map(|i| egui::TextureId::User(i as u64 + 100))
+}
+
+/// Setup ui resources (like bind loaded textures)
+pub fn setup_ui(
+    mut egui_context: ResMut<EguiContext>,
+    icon_collection: Res<IconCollection>,
+    portraits_collection: Res<PortraitCollection>,
+) {
+    for (index, icon) in icon_collection.get_all().iter().enumerate() {
+        egui_context.set_egui_texture(1 + index as u64, icon.clone());
+    }
+
+    for (index, icon) in portraits_collection.get_all().iter().enumerate() {
+        egui_context.set_egui_texture(100 + index as u64, icon.clone());
+    }
+}
+
+/// Print team the selection screen
 pub fn show_warrior_selection_ui(
     mut egui_context: ResMut<EguiContext>,
     mut game_state: ResMut<State<GameState>>,
@@ -18,14 +46,6 @@ pub fn show_warrior_selection_ui(
     icon_collection: Res<IconCollection>,
     portraits_collection: Res<PortraitCollection>,
 ) {
-    for (index, icon) in icon_collection.get_all().iter().enumerate() {
-        egui_context.set_egui_texture(10 + index as u64, icon.clone());
-    }
-
-    for (index, icon) in portraits_collection.get_all().iter().enumerate() {
-        egui_context.set_egui_texture(100 + index as u64, icon.clone());
-    }
-
     let window = windows.get_primary().unwrap();
 
     egui::containers::Window::new("warrior_selection")
@@ -95,14 +115,14 @@ pub fn show_warrior_selection_ui(
                             ui.vertical(|ui| {
                                 egui::Frame::default().show(ui, |ui| {
                                     if let Some(warrior) = warriors.get(warrior_handle) {
-                                        if let Some(texture_id) = portraits_collection
-                                            .get_index(warrior.portrait_key.as_str())
-                                        {
-                                            ui.image(
-                                                egui::TextureId::User(100 + texture_id as u64),
-                                                (325., 370.),
-                                            );
-                                        }
+                                        ui.image(
+                                            portrait_index(
+                                                &portraits_collection,
+                                                warrior.portrait_key.as_str(),
+                                            )
+                                            .unwrap(),
+                                            (325., 370.),
+                                        );
 
                                         ui.label(RichText::new(warrior.name.as_str()).heading());
 
@@ -111,14 +131,14 @@ pub fn show_warrior_selection_ui(
                                                 RichText::new(action.name.as_str()).monospace(),
                                             );
 
-                                            if let Some(texture_id) =
-                                                icon_collection.get_index(action.icon_key.as_str())
-                                            {
-                                                ui.image(
-                                                    egui::TextureId::User(10 + texture_id as u64),
-                                                    (64., 64.),
-                                                );
-                                            }
+                                            ui.image(
+                                                icon_index(
+                                                    &icon_collection,
+                                                    action.icon_key.as_str(),
+                                                )
+                                                .unwrap(),
+                                                (64., 64.),
+                                            );
                                         }
                                     }
                                 });
@@ -349,10 +369,6 @@ pub fn show_action_bar_ui(
     turn: Res<Turn>,
     warrior_query: Query<(&Actions, &Attribute<ActionPoints>), With<Warrior>>,
 ) {
-    for (index, icon) in icon_collection.get_all().iter().enumerate() {
-        egui_context.set_egui_texture(index as u64, icon.clone());
-    }
-
     egui::containers::Window::new("action_bar")
         .anchor(egui::Align2::CENTER_BOTTOM, [0.0, -20.0])
         .collapsible(false)
@@ -368,7 +384,7 @@ pub fn show_action_bar_ui(
         .show(egui_context.ctx_mut(), |ui| {
             egui::Grid::new("action_bar_grid")
                 .spacing((5.0, 5.0))
-                .show(ui, |ui| {
+                .show(ui, |mut ui| {
                     let entity = turn.get_current_warrior_entity().unwrap();
                     let (actions, action_points) = warrior_query.get(entity).unwrap();
                     for (index, action) in actions.0.iter().enumerate() {
@@ -385,10 +401,7 @@ pub fn show_action_bar_ui(
                         let button = ui.add_enabled(
                             enabled,
                             egui::ImageButton::new(
-                                egui::TextureId::User(
-                                    icon_collection.get_index(action.icon_key.as_str()).unwrap()
-                                        as u64,
-                                ),
+                                icon_index(&icon_collection, action.icon_key.as_str()).unwrap(),
                                 (48.0, 48.0),
                             )
                             .selected(is_selected),
@@ -401,69 +414,7 @@ pub fn show_action_bar_ui(
 
                         // Display action details in a toolip on hover
                         if button.hovered() {
-                            egui::show_tooltip(ui.ctx(), egui::Id::new("action_tooltip"), |ui| {
-                                egui::Grid::new(format!("action_bar_grid_{}", index)).show(
-                                    ui,
-                                    |ui| {
-                                        ui.label(
-                                            egui::RichText::new(action.name.as_str()).heading(),
-                                        );
-                                        ui.label(
-                                            egui::RichText::new(format!(
-                                                "★ {}",
-                                                action.cost.value()
-                                            ))
-                                            .heading()
-                                            .color(color::ACTION_POINTS),
-                                        );
-                                        ui.end_row();
-
-                                        // TODO actions unmock
-                                        match index {
-                                            0 => ui.label(
-                                                egui::RichText::new("-170 health")
-                                                    .strong()
-                                                    .color(color::HEALTH),
-                                            ),
-                                            1 => ui.label(
-                                                egui::RichText::new("-90 health")
-                                                    .strong()
-                                                    .color(color::HEALTH),
-                                            ),
-                                            2 => ui.label(
-                                                egui::RichText::new("-2 mp")
-                                                    .strong()
-                                                    .color(color::MOVEMENT_POINTS),
-                                            ),
-                                            3 => ui.label(
-                                                egui::RichText::new("-2 ap")
-                                                    .strong()
-                                                    .color(color::ACTION_POINTS),
-                                            ),
-                                            4 => ui.label(
-                                                egui::RichText::new("push target 2 tiles away")
-                                                    .strong()
-                                                    .color(color::MOVEMENT_POINTS),
-                                            ),
-                                            5 => ui.label(
-                                                egui::RichText::new("teleport yourself to target")
-                                                    .strong()
-                                                    .color(color::MOVEMENT_POINTS),
-                                            ),
-                                            6 => ui.label(
-                                                egui::RichText::new("+20 armor for 2 turns")
-                                                    .strong()
-                                                    .color(color::ACTION_POINTS),
-                                            ),
-                                            _ => ui.label(
-                                                egui::RichText::new("+120 health")
-                                                    .strong()
-                                                    .color(color::HEALTH),
-                                            ),
-                                        };
-                                    },
-                                )
-                            });
+                            action.show_tooltip_ui(&mut ui);
                         }
                     }
 
@@ -606,7 +557,7 @@ pub fn show_warrior_ui(
     warrior_query: Query<(Entity, &Name, &Attribute<Health>, &MapPosition), With<Warrior>>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
     mut egui_context: ResMut<EguiContext>,
-    mut team_query: Query<&Team, With<Warrior>>,
+    team_query: Query<&Team, With<Warrior>>,
 ) {
     if map_query.is_empty() {
         return;

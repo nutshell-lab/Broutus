@@ -47,6 +47,7 @@ impl Plugin for GamePlugin {
             .add_system_set(
                 SystemSet::on_update(GameState::Menu), // .with_system(ui::show_main_menu)
             )
+            .add_system_set(SystemSet::on_enter(GameState::Picking).with_system(ui::setup_ui)) // TODO move this before menu
             .add_system_set(
                 SystemSet::on_update(GameState::Picking).with_system(ui::show_warrior_selection_ui),
             )

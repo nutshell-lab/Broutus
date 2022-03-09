@@ -85,7 +85,7 @@ impl<T: AttributeValue + Copy + Clone + Default> Attribute<T> {
 
 impl Attribute<Health> {
     pub fn erode(&mut self, amount: u32, erode: f32) {
-        let erosion = (amount as f32 - erode).round() as u32;
+        let erosion = (amount as f32 * erode).round() as u32;
         let new_max = self
             .max
             .value()

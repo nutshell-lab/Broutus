@@ -39,6 +39,18 @@ pub struct Map {
     pub spawn_team_b_layer: u32,
 }
 
+impl Map {
+    pub fn all_positions(&self) -> Vec<MapPosition> {
+        let mut positions = Vec::new();
+        for x in 0..(self.width - 1) {
+            for y in 0..(self.height - 1) {
+                positions.push(MapPosition::new(x, y));
+            }
+        }
+        positions
+    }
+}
+
 #[derive(Default, Bundle)]
 pub struct MapBundle {
     pub map: Map,

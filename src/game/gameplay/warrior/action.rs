@@ -1,7 +1,11 @@
-use crate::game::map::{MapPosition, Tile};
+use crate::game::{
+    color,
+    map::{MapPosition, Tile},
+};
 
 use super::*;
 use bevy::prelude::*;
+use bevy_inspector_egui::egui;
 use serde::{Deserialize, Serialize};
 
 #[derive(Reflect, Component, Default)]
@@ -13,6 +17,16 @@ pub struct SelectedAction(pub Option<usize>);
 pub struct Actions(pub Vec<Action>);
 
 impl Default for Actions {
+    fn default() -> Self {
+        Self(Vec::new())
+    }
+}
+
+/// NewType representing a Warrior's action collection
+#[derive(Debug, Clone, Deserialize, Serialize, Component)]
+pub struct ActiveEffects(pub Vec<ActionEffect>);
+
+impl Default for ActiveEffects {
     fn default() -> Self {
         Self(Vec::new())
     }
@@ -42,6 +56,7 @@ impl Action {
                 &Name,
                 &mut super::super::MapPosition,
                 &Actions,
+                &mut ActiveEffects,
                 &mut Attribute<Health>,
                 &mut Attribute<Shield>,
                 &mut Attribute<ActionPoints>,
@@ -50,6 +65,8 @@ impl Action {
             (With<Warrior>, Without<Tile>),
         >,
     ) {
+        use rand::prelude::*;
+        let mut rng = rand::thread_rng();
         let hit_positions = match self.aoe {
             ActionAoe::Cell => vec![to_position],
             _ => vec![],
@@ -57,7 +74,9 @@ impl Action {
 
         for hit_position in hit_positions {
             // Process warriors on the given position
-            for (_, mut position, _, mut health, ..) in warrior_query.iter_mut() {
+            for (_, mut position, _, mut effects, mut health, mut shield, mut ap, mut mp) in
+                warrior_query.iter_mut()
+            {
                 if position.ne(hit_position) {
                     continue;
                 }
@@ -71,12 +90,51 @@ impl Action {
                         crit_mult,
                     } = effect
                     {
-                        let is_crit = *crit_chance >= 1.0;
+                        let is_crit = *crit_chance >= rng.gen();
                         let mutl = if is_crit { *crit_mult } else { 1.0 };
                         let final_amount = (*amount as f32 * mutl).round() as u32;
 
-                        health.erode(final_amount, *erode);
-                        health.drop(final_amount);
+                        let remaining = shield.drop(final_amount);
+                        health.drop(remaining);
+                        health.erode(remaining, *erode);
+                    }
+
+                    if let ActionEffect::DamageOverTime { .. } = effect {
+                        effects.0.push(effect.clone());
+                    }
+
+                    if let ActionEffect::Heal { amount } = effect {
+                        health.rise(*amount);
+                    }
+
+                    if let ActionEffect::Shield { amount } = effect {
+                        shield.rise(*amount);
+                    }
+
+                    if let ActionEffect::RemoveActionPoints { amount } = effect {
+                        ap.drop(*amount);
+                    }
+
+                    if let ActionEffect::StealActionPoints { amount } = effect {
+                        ap.drop(*amount);
+                        // TODO How to access to the attacker ?
+                    }
+
+                    if let ActionEffect::RemoveMovementPoints { amount } = effect {
+                        mp.drop(*amount);
+                    }
+
+                    if let ActionEffect::StealMovementPoints { amount } = effect {
+                        ap.drop(*amount);
+                        // TODO How to access to the attacker ?
+                    }
+
+                    if let ActionEffect::TeleportSelf = effect {
+                        // TODO How to access to the attacker ?
+                    }
+
+                    if let ActionEffect::TeleportSwitch = effect {
+                        // TODO How to access to the attacker ?
                     }
 
                     // Implementation example
@@ -100,6 +158,28 @@ impl Action {
                 }
             }
         }
+    }
+
+    pub fn show_tooltip_ui(&self, ui: &mut egui::Ui) {
+        egui::show_tooltip(
+            ui.ctx(),
+            egui::Id::new(format!("action_tooltip_{}", self.name)),
+            |ui| {
+                egui::Grid::new(format!("action_tooltip_{}_grid", self.name)).show(ui, |mut ui| {
+                    ui.label(egui::RichText::new(self.name.as_str()).heading());
+                    ui.label(
+                        egui::RichText::new(format!("★ {}", self.cost.value()))
+                            .heading()
+                            .color(color::ACTION_POINTS),
+                    );
+                    ui.end_row();
+
+                    for effect in self.effects.iter() {
+                        effect.show_description_ui(&mut ui);
+                    }
+                })
+            },
+        );
     }
 }
 
@@ -236,13 +316,103 @@ pub enum ActionEffect {
     PushLinear {
         distance: u32,
     },
-    PushDiagonal {
-        distance: u32,
-    },
 }
 
 impl Default for ActionEffect {
     fn default() -> Self {
         Self::Nothing
+    }
+}
+
+impl ActionEffect {
+    pub fn show_description_ui(self, ui: &mut egui::Ui) {
+        match self {
+            ActionEffect::Nothing => (),
+            ActionEffect::Damage { amount, .. } => {
+                ui.label(
+                    egui::RichText::new(format!("removes {} health", amount))
+                        .strong()
+                        .color(color::ACTION_BAD),
+                );
+            }
+            ActionEffect::DamageOverTime {
+                amount, duration, ..
+            } => {
+                ui.label(
+                    egui::RichText::new(format!(
+                        "removes {} health, for {} turns",
+                        amount, duration
+                    ))
+                    .strong()
+                    .color(color::ACTION_BAD),
+                );
+            }
+            ActionEffect::Heal { amount, .. } => {
+                ui.label(
+                    egui::RichText::new(format!("restores {} health", amount))
+                        .strong()
+                        .color(color::ACTION_GOOD),
+                );
+            }
+            ActionEffect::Shield { amount, .. } => {
+                ui.label(
+                    egui::RichText::new(format!("gives {} shield", amount))
+                        .strong()
+                        .color(color::ACTION_GOOD),
+                );
+            }
+            ActionEffect::RemoveActionPoints { amount, .. } => {
+                ui.label(
+                    egui::RichText::new(format!("removes {} action points", amount))
+                        .strong()
+                        .color(color::ACTION_BAD),
+                );
+            }
+            ActionEffect::StealActionPoints { amount, .. } => {
+                ui.label(
+                    egui::RichText::new(format!("steals {} action points", amount))
+                        .strong()
+                        .color(color::ACTION_BAD),
+                );
+            }
+            ActionEffect::RemoveMovementPoints { amount, .. } => {
+                ui.label(
+                    egui::RichText::new(format!("removes {} movement points", amount))
+                        .strong()
+                        .color(color::ACTION_BAD),
+                );
+            }
+            ActionEffect::StealMovementPoints { amount, .. } => {
+                ui.label(
+                    egui::RichText::new(format!("steals {} movement points", amount))
+                        .strong()
+                        .color(color::ACTION_BAD),
+                );
+            }
+            ActionEffect::TeleportSwitch => {
+                ui.label(
+                    egui::RichText::new(format!("switches places with the target"))
+                        .strong()
+                        .color(color::ACTION_NEUTRAL),
+                );
+            }
+            ActionEffect::TeleportSelf => {
+                ui.label(
+                    egui::RichText::new(format!("teleports yoursef to the target"))
+                        .strong()
+                        .color(color::ACTION_NEUTRAL),
+                );
+            }
+            ActionEffect::PushLinear { distance } => {
+                ui.label(
+                    egui::RichText::new(format!(
+                        "pushes the target {} tiles away from you",
+                        distance
+                    ))
+                    .strong()
+                    .color(color::ACTION_NEUTRAL),
+                );
+            }
+        }
     }
 }
