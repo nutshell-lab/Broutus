@@ -256,19 +256,17 @@ fn handle_warrior_action_on_click(
     turn: Res<Turn>,
     mut ev_clicked: EventReader<TileLeftClickedEvent>,
     mut selected_action: ResMut<SelectedAction>,
-    mut warrior_query: Query<
-        (
-            &Name,
-            &mut MapPosition,
-            &Actions,
-            &mut ActiveEffects,
-            &mut Attribute<Health>,
-            &mut Attribute<Shield>,
-            &mut Attribute<ActionPoints>,
-            &mut Attribute<MovementPoints>,
-        ),
-        (With<Warrior>, Without<Tile>),
-    >,
+    mut warrior_query: Query<(
+        &Warrior,
+        &Name,
+        &mut MapPosition,
+        &Actions,
+        &mut ActiveEffects,
+        &mut Attribute<Health>,
+        &mut Attribute<Shield>,
+        &mut Attribute<ActionPoints>,
+        &mut Attribute<MovementPoints>,
+    )>,
     mut map_query: MapQuery,
 ) {
     let (_, map, _) = map_query.map_queryset.q1().single();
@@ -279,7 +277,7 @@ fn handle_warrior_action_on_click(
     if let Some(index) = selected_action.0 {
         for click_event in ev_clicked.iter() {
             let warrior_entity = turn.get_current_warrior_entity().unwrap();
-            let (_, position, actions, _, _, _, mut action_points, ..) =
+            let (_, _, position, actions, _, _, _, mut action_points, ..) =
                 warrior_query.get_mut(warrior_entity).unwrap();
 
             let action = actions.0.get(index).cloned().unwrap();
@@ -289,13 +287,7 @@ fn handle_warrior_action_on_click(
             }
 
             // TODO not all actions require line of sight ?
-            if !map_query.line_of_sight_check(
-                map_id,
-                &position,
-                &click_event.0,
-                map_width,
-                map_height,
-            ) {
+            if !map_query.line_of_sight_check(map_id, &position, &click_event.0) {
                 continue;
             }
 
@@ -311,7 +303,7 @@ fn handle_warrior_action_on_click(
     } else {
         for ev in ev_clicked.iter() {
             let warrior_entity = turn.get_current_warrior_entity().unwrap();
-            if let Ok((_, mut warrior_position, _, _, _, _, _, mut movement_points, ..)) =
+            if let Ok((_, _, mut warrior_position, _, _, _, _, _, mut movement_points, ..)) =
                 warrior_query.get_mut(warrior_entity)
             {
                 let path =
@@ -336,6 +328,7 @@ fn apply_active_effects(
     mut ev_turn_started: EventReader<TurnStart>,
     mut warrior_query: Query<
         (
+            &Warrior,
             &Name,
             &mut MapPosition,
             &mut ActiveEffects,
@@ -344,11 +337,10 @@ fn apply_active_effects(
             &mut Attribute<ActionPoints>,
             &mut Attribute<MovementPoints>,
         ),
-        (With<Warrior>, Without<Tile>),
     >,
 ) {
     for ev in ev_turn_started.iter() {
-        let (_, _, mut effects, mut health, mut shield, ..) = warrior_query.get_mut(ev.0).unwrap();
+        let (_, _, _, mut effects, mut health, mut shield, ..) = warrior_query.get_mut(ev.0).unwrap();
         for effect in effects.0.iter_mut() {
             match effect {
                 ActionEffect::DamageOverTime {
@@ -397,8 +389,6 @@ fn highlight_potential_action(
     let (_, map, _) = map_query.map_queryset.q1().single();
     let map_id = map.id;
     let highlight_layer_id = map.highlight_layer;
-    let map_width = map.width;
-    let map_height = map.height;
 
     let warrior_entity = turn.get_current_warrior_entity().unwrap();
     let (warrior_position, warrior_actions) = warrior_query.get(warrior_entity).unwrap();
@@ -410,13 +400,7 @@ fn highlight_potential_action(
 
     for position in map.all_positions() {
         if action.range.can_reach(&warrior_position, &position)
-            && map_query.line_of_sight_check(
-                map_id,
-                warrior_position,
-                &position,
-                map_width,
-                map_height,
-            )
+            && map_query.line_of_sight_check(map_id, warrior_position, &position)
         {
             let alpha = mouse_position
                 .0

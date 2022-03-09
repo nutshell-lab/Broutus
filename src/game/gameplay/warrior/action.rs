@@ -51,19 +51,17 @@ impl Action {
         from_position: &super::super::MapPosition,
         to_position: &super::super::MapPosition,
         map_query: &mut super::super::MapQuery,
-        warrior_query: &mut Query<
-            (
-                &Name,
-                &mut super::super::MapPosition,
-                &Actions,
-                &mut ActiveEffects,
-                &mut Attribute<Health>,
-                &mut Attribute<Shield>,
-                &mut Attribute<ActionPoints>,
-                &mut Attribute<MovementPoints>,
-            ),
-            (With<Warrior>, Without<Tile>),
-        >,
+        warrior_query: &mut Query<(
+            &Warrior,
+            &Name,
+            &mut super::super::MapPosition,
+            &Actions,
+            &mut ActiveEffects,
+            &mut Attribute<Health>,
+            &mut Attribute<Shield>,
+            &mut Attribute<ActionPoints>,
+            &mut Attribute<MovementPoints>,
+        )>,
     ) {
         use rand::prelude::*;
         let mut rng = rand::thread_rng();
@@ -72,12 +70,38 @@ impl Action {
             _ => vec![],
         };
 
-        for hit_position in hit_positions {
-            // Process warriors on the given position
-            for (_, mut position, _, mut effects, mut health, mut shield, mut ap, mut mp) in
-                warrior_query.iter_mut()
-            {
-                if position.ne(hit_position) {
+        // TODO BUG the non-duplication of the pairs make the attacker the attacked sometimes, call it left / right instead of attacked / attacker
+        let mut combinations = warrior_query.iter_combinations_mut();
+        while let Some(
+            [(
+                _,
+                attacker_name,
+                mut attacker_position,
+                mut attacker_actions,
+                mut attacker_effects,
+                mut attacker_health,
+                mut attacker_shield,
+                mut attacker_ap,
+                mut attacker_mp,
+            ), (
+                _,
+                attacked_name,
+                mut attacked_position,
+                mut attacked_actions,
+                mut attacked_effects,
+                mut attacked_health,
+                mut attacked_shield,
+                mut attacked_ap,
+                mut attacked_mp,
+            )],
+        ) = combinations.fetch_next()
+        {
+            if from_position.ne(&attacker_position) {
+                continue;
+            }
+
+            for hit_position in hit_positions.iter() {
+                if attacked_position.ne(hit_position) {
                     continue;
                 }
 
@@ -94,64 +118,70 @@ impl Action {
                         let mutl = if is_crit { *crit_mult } else { 1.0 };
                         let final_amount = (*amount as f32 * mutl).round() as u32;
 
-                        let remaining = shield.drop(final_amount);
-                        health.drop(remaining);
-                        health.erode(remaining, *erode);
+                        let remaining = attacked_shield.drop(final_amount);
+                        println!("Remaining {}", remaining);
+                        attacked_health.drop(remaining);
+                        attacked_health.erode(remaining, *erode);
                     }
 
                     if let ActionEffect::DamageOverTime { .. } = effect {
-                        effects.0.push(effect.clone());
+                        attacked_effects.0.push(effect.clone());
                     }
 
                     if let ActionEffect::Heal { amount } = effect {
-                        health.rise(*amount);
+                        attacked_health.rise(*amount);
                     }
 
                     if let ActionEffect::Shield { amount } = effect {
-                        shield.rise(*amount);
+                        attacked_shield.rise(*amount);
                     }
 
                     if let ActionEffect::RemoveActionPoints { amount } = effect {
-                        ap.drop(*amount);
+                        attacked_ap.drop(*amount);
                     }
 
                     if let ActionEffect::StealActionPoints { amount } = effect {
-                        ap.drop(*amount);
-                        // TODO How to access to the attacker ?
+                        let remaining = attacked_ap.drop(*amount);
+                        attacker_ap.rise(amount - remaining);
                     }
 
                     if let ActionEffect::RemoveMovementPoints { amount } = effect {
-                        mp.drop(*amount);
+                        attacked_mp.drop(*amount);
                     }
 
                     if let ActionEffect::StealMovementPoints { amount } = effect {
-                        ap.drop(*amount);
-                        // TODO How to access to the attacker ?
+                        let remaining = attacked_mp.drop(*amount);
+                        attacker_mp.rise(amount - remaining);
                     }
 
                     if let ActionEffect::TeleportSelf = effect {
-                        // TODO How to access to the attacker ?
+                        attacker_position.x = hit_position.x;
+                        attacker_position.y = hit_position.y;
                     }
 
                     if let ActionEffect::TeleportSwitch = effect {
-                        // TODO How to access to the attacker ?
+                        let MapPosition { x, y } = attacked_position.clone();
+                        attacked_position.x = attacker_position.x;
+                        attacked_position.y = attacker_position.y;
+                        attacker_position.x = x;
+                        attacker_position.y = y;
                     }
 
-                    // Implementation example
                     if let ActionEffect::PushLinear { distance } = effect {
-                        if let Some(direction) = from_position.direction_to(&to_position) {
-                            let path = position.unchecked_path_torward(direction, *distance);
+                        if let Some(direction) = from_position.direction_to(&hit_position) {
+                            let path = hit_position.unchecked_path_torward(direction, *distance);
                             let mut path_iter = path.iter();
                             while let Some(next_position) = path_iter.next() {
-                                // TODO retreive these values nicely
-                                if map_query.is_obstacle(0u32, next_position, 20, 12) {
+                                if map_query.is_obstacle(0u32, next_position) {
                                     let remaining_length = path_iter.count() as u32;
                                     let damages = 20 * remaining_length;
-                                    health.drop(damages);
+                                    let remaining = attacked_shield.drop(damages);
+                                    attacked_health.drop(remaining);
+                                    attacked_health.erode(remaining, 0.1); // TODO include erosion to Attribute::<Heatlh>.drop ?
                                     break;
                                 }
-                                position.x = next_position.x;
-                                position.y = next_position.y;
+                                attacked_position.x = next_position.x;
+                                attacked_position.y = next_position.y;
                             }
                         }
                     }

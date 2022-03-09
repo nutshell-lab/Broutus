@@ -10,7 +10,7 @@ pub use asset::*;
 pub use attribute::*;
 pub use render::*;
 
-#[derive(Default, Component)]
+#[derive(Default, Clone, Copy, Component)]
 pub struct Warrior;
 
 #[derive(Default, Bundle)]

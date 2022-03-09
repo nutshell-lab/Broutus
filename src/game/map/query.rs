@@ -1,3 +1,5 @@
+use crate::game::gameplay::Warrior;
+
 use super::*;
 use bevy::ecs::system::SystemParam;
 
@@ -30,7 +32,7 @@ pub struct MapQuery<'w, 's> {
                     &'static mut TextureAtlasSprite,
                     &'static mut Visibility,
                 ),
-                With<Tile>,
+                (With<Tile>, Without<Warrior>),
             >,
             QueryState<
                 (
@@ -39,7 +41,7 @@ pub struct MapQuery<'w, 's> {
                     &'static TextureAtlasSprite,
                     &'static Visibility,
                 ),
-                With<Tile>,
+                (With<Tile>, Without<Warrior>),
             >,
         ),
     >,
@@ -185,29 +187,20 @@ impl<'w, 's> MapQuery<'w, 's> {
         map_id: u32,
         me: &MapPosition,
         target: &MapPosition,
-        map_width: u32,
-        map_height: u32,
     ) -> bool {
         me.line_to(&target)
             .iter()
-            .all(|position| !self.is_obstacle(map_id, position, map_width, map_height))
+            .all(|position| !self.is_obstacle(map_id, position))
     }
 
     /// Is a map position an obstacle ?
-    pub fn is_obstacle(
-        &mut self,
-        map_id: u32,
-        position: &MapPosition,
-        map_width: u32,
-        map_height: u32,
-    ) -> bool {
-        if !position.is_in_map_bounds(map_width, map_height) {
-            return true;
-        }
-
+    pub fn is_obstacle(&mut self, map_id: u32, position: &MapPosition) -> bool {
         for (_, map, _) in self.map_queryset.q1().iter() {
             if map.id.ne(&map_id) {
                 continue;
+            }
+            if !position.is_in_map_bounds(map.width, map.height) {
+                return true;
             }
 
             let obstacle_layer = map.obstacle_layer;
@@ -236,8 +229,8 @@ impl<'w, 's> MapQuery<'w, 's> {
 
         neightbours
             .iter()
-            .filter(|&position| position.x < map_width && position.y < map_height)
-            .filter(|&position| !self.is_obstacle(map_id, position, map_width, map_height))
+            .filter(|&position| position.is_in_map_bounds(map_width, map_height))
+            .filter(|&position| !self.is_obstacle(map_id, position))
             .map(|&position| (position, 1))
             .collect()
     }

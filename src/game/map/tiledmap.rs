@@ -75,7 +75,7 @@ pub struct LayerBundle {
     pub visibility: Visibility,
 }
 
-#[derive(Reflect, Component, Default)]
+#[derive(Reflect, Component, Default, Clone, Copy)]
 #[reflect(Component)]
 pub struct Tile;
 
