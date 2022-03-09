@@ -71,6 +71,7 @@ impl Action {
         };
 
         // TODO BUG the non-duplication of the pairs make the attacker the attacked sometimes, call it left / right instead of attacked / attacker
+        // TODO reverse the order, match effects, then iterates on positions, then on warriors, keeping intermediates state if necessary to update attacker at the end
         let mut combinations = warrior_query.iter_combinations_mut();
         while let Some(
             [(
