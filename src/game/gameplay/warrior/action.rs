@@ -1,7 +1,4 @@
-use crate::game::{
-    color,
-    map::{MapPosition, Tile},
-};
+use crate::game::{color, map::MapPosition};
 
 use super::*;
 use bevy::prelude::*;
@@ -55,6 +52,7 @@ impl Action {
             &Warrior,
             &Name,
             &mut super::super::MapPosition,
+            &mut MapPositionPath,
             &Actions,
             &mut ActiveEffects,
             &mut Attribute<Health>,
@@ -62,6 +60,7 @@ impl Action {
             &mut Attribute<ActionPoints>,
             &mut Attribute<MovementPoints>,
         )>,
+        ev_warrior: &mut WarriorEventWriterQuery,
     ) {
         use rand::prelude::*;
         let mut rng = rand::thread_rng();
@@ -78,6 +77,7 @@ impl Action {
                 _,
                 attacker_name,
                 mut attacker_position,
+                mut attacker_position_path,
                 mut attacker_actions,
                 mut attacker_effects,
                 mut attacker_health,
@@ -88,6 +88,7 @@ impl Action {
                 _,
                 attacked_name,
                 mut attacked_position,
+                mut attacked_position_path,
                 mut attacked_actions,
                 mut attacked_effects,
                 mut attacked_health,

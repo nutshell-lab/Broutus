@@ -1,5 +1,3 @@
-use std::ops::Sub;
-
 use super::color;
 use super::GameState;
 use bevy::prelude::*;
@@ -25,16 +23,24 @@ impl Plugin for GameplayPlugin {
             .register_type::<AnimationTimer>()
             .add_event::<TurnStart>()
             .add_event::<TurnEnd>()
+            .add_event::<Damage>()
+            .add_event::<Heal>()
+            .add_event::<DrainHealth>()
+            .add_event::<Move>()
             .add_system_set(SystemSet::on_enter(GameState::Arena).with_system(spawn_warriors))
             .add_system_set(
                 SystemSet::on_update(GameState::Arena)
                     .with_system(run_turn_timer)
                     .with_system(reset_turn_timer)
                     .with_system(animate_warrior_sprite)
-                    .with_system(update_warrior_world_position)
+                    .with_system(update_warrior_position)
                     .with_system(reset_warrior_attributes_on_turn_end)
                     .with_system(handle_warrior_action_on_click)
                     .with_system(apply_active_effects)
+                    .with_system(process_damage_event)
+                    .with_system(process_heal_event)
+                    .with_system(process_drain_health_event)
+                    .with_system(process_move_event)
                     .with_system(despawn_warrior_on_death),
             )
             .add_system_set(
@@ -80,15 +86,18 @@ fn spawn_warriors(
         .spawn_bundle(WarriorBundle::new(
             edificadores_asset,
             &animation_collection,
+            &team_a,
+            MapPosition::new(17, 5),
         ))
-        .insert(MapPosition::new(17, 5))
-        .insert(team_a.clone())
         .id();
 
     let ella = commands
-        .spawn_bundle(WarriorBundle::new(ella_asset, &animation_collection))
-        .insert(MapPosition::new(2, 5))
-        .insert(team_b.clone())
+        .spawn_bundle(WarriorBundle::new(
+            ella_asset,
+            &animation_collection,
+            &team_b,
+            MapPosition::new(2, 5),
+        ))
         .id();
 
     // Insert turn system resource
@@ -255,11 +264,13 @@ fn highlight_potential_movement(
 fn handle_warrior_action_on_click(
     turn: Res<Turn>,
     mut ev_clicked: EventReader<TileLeftClickedEvent>,
+    mut ev_warrior: WarriorEventWriterQuery,
     mut selected_action: ResMut<SelectedAction>,
     mut warrior_query: Query<(
         &Warrior,
         &Name,
         &mut MapPosition,
+        &mut MapPositionPath,
         &Actions,
         &mut ActiveEffects,
         &mut Attribute<Health>,
@@ -277,7 +288,7 @@ fn handle_warrior_action_on_click(
     if let Some(index) = selected_action.0 {
         for click_event in ev_clicked.iter() {
             let warrior_entity = turn.get_current_warrior_entity().unwrap();
-            let (_, _, position, actions, _, _, _, mut action_points, ..) =
+            let (_, _, position, _, actions, _, _, _, mut action_points, ..) =
                 warrior_query.get_mut(warrior_entity).unwrap();
 
             let action = actions.0.get(index).cloned().unwrap();
@@ -297,14 +308,26 @@ fn handle_warrior_action_on_click(
                 &click_event.0,
                 &mut map_query,
                 &mut warrior_query,
+                &mut ev_warrior,
             );
             selected_action.0 = None; // Deselect action automatically
         }
     } else {
         for ev in ev_clicked.iter() {
             let warrior_entity = turn.get_current_warrior_entity().unwrap();
-            if let Ok((_, _, mut warrior_position, _, _, _, _, _, mut movement_points, ..)) =
-                warrior_query.get_mut(warrior_entity)
+            if let Ok((
+                _,
+                _,
+                mut warrior_position,
+                mut warrior_path,
+                _,
+                _,
+                _,
+                _,
+                _,
+                mut movement_points,
+                ..,
+            )) = warrior_query.get_mut(warrior_entity)
             {
                 let path =
                     map_query.pathfinding(map_id, &warrior_position, &ev.0, map_width, map_height);
@@ -312,11 +335,11 @@ fn handle_warrior_action_on_click(
                 // TODO Replace the current sprite sheets by another one containing all 4 directions
                 // TODO Animate warrior movement along the path
                 // TODO Change warrior orientation when it changes direction
-                if let Some((_path, cost)) = path {
+                if let Some((path, cost)) = path {
                     if movement_points.can_drop(cost) {
-                        warrior_position.x = ev.0.x;
-                        warrior_position.y = ev.0.y;
+                        println!("Pushing path {:?}", path);
                         movement_points.drop(cost);
+                        warrior_path.set(path);
                     }
                 }
             }
@@ -326,21 +349,20 @@ fn handle_warrior_action_on_click(
 
 fn apply_active_effects(
     mut ev_turn_started: EventReader<TurnStart>,
-    mut warrior_query: Query<
-        (
-            &Warrior,
-            &Name,
-            &mut MapPosition,
-            &mut ActiveEffects,
-            &mut Attribute<Health>,
-            &mut Attribute<Shield>,
-            &mut Attribute<ActionPoints>,
-            &mut Attribute<MovementPoints>,
-        ),
-    >,
+    mut warrior_query: Query<(
+        &Warrior,
+        &Name,
+        &mut MapPosition,
+        &mut ActiveEffects,
+        &mut Attribute<Health>,
+        &mut Attribute<Shield>,
+        &mut Attribute<ActionPoints>,
+        &mut Attribute<MovementPoints>,
+    )>,
 ) {
     for ev in ev_turn_started.iter() {
-        let (_, _, _, mut effects, mut health, mut shield, ..) = warrior_query.get_mut(ev.0).unwrap();
+        let (_, _, _, mut effects, mut health, mut shield, ..) =
+            warrior_query.get_mut(ev.0).unwrap();
         for effect in effects.0.iter_mut() {
             match effect {
                 ActionEffect::DamageOverTime {

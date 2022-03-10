@@ -9,6 +9,7 @@ rust-version = "1.58.0"
 [dependencies]
 bevy = { version = "0.6", features = ["render", "dynamic"] }
 bevy_asset_loader = { git = "https://github.com/NiklasEi/bevy_asset_loader", features = ["render", "dynamic_assets"] }
+bevy_tweening = "0.3.3"
 bevy-inspector-egui = { version = "0.8" }
 bevy_egui = { version = "0.11" }
 pathfinding = { version = "3.0" }

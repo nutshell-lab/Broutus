@@ -3,14 +3,14 @@
         path: "animations/knight.png",
         tile_size_x: 135.,
         tile_size_y: 135.,
-        columns: 43,
+        columns: 45,
         rows: 1,
     ),
     "animations.edificadores": TextureAtlas(
         path: "animations/knight.png",
         tile_size_x: 135.,
         tile_size_y: 135.,
-        columns: 43,
+        columns: 45,
         rows: 1,
     ),
 

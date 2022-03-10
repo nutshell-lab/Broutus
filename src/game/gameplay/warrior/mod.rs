@@ -1,17 +1,41 @@
 mod action;
 mod asset;
 mod attribute;
+mod events;
 mod render;
+
+use std::time::Duration;
 
 use bevy::prelude::*;
 
 pub use action::*;
 pub use asset::*;
 pub use attribute::*;
+use bevy_tweening::{lens::TransformPositionLens, Animator, EaseFunction, Tween, TweeningType};
+pub use events::*;
 pub use render::*;
+
+use crate::game::map::MapPosition;
+
+use super::Team;
 
 #[derive(Default, Clone, Copy, Component)]
 pub struct Warrior;
+
+/// Stores the current path *reversed*
+#[derive(Default, Component)]
+pub struct MapPositionPath(Vec<MapPosition>);
+
+impl MapPositionPath {
+    pub fn pop(&mut self) -> Option<MapPosition> {
+        self.0.pop()
+    }
+
+    pub fn set(&mut self, path: Vec<MapPosition>) {
+        self.0 = path;
+        self.0.reverse();
+    }
+}
 
 #[derive(Default, Bundle)]
 pub struct WarriorBundle {
@@ -20,6 +44,10 @@ pub struct WarriorBundle {
 
     // Meta
     name: Name,
+    team: Team,
+    position: MapPosition,
+    path: MapPositionPath,
+    animator: Animator<Transform>,
 
     // Gameplay
     health: Attribute<Health>,
@@ -38,11 +66,28 @@ pub struct WarriorBundle {
 }
 
 impl WarriorBundle {
-    pub fn new(asset: &WarriorAsset, animation_collection: &Res<AnimationCollection>) -> Self {
+    pub fn new(
+        asset: &WarriorAsset,
+        animation_collection: &Res<AnimationCollection>,
+        team: &Team,
+        position: MapPosition,
+    ) -> Self {
         WarriorBundle {
             _w: Warrior,
 
             name: Name::new(asset.name.clone()),
+            team: team.clone(),
+            position,
+            path: MapPositionPath(vec![position]),
+            animator: Animator::new(Tween::new(
+                EaseFunction::CubicIn,
+                TweeningType::Once,
+                Duration::from_millis(700),
+                TransformPositionLens {
+                    start: Vec3::new(0., 0., 0.),
+                    end: Vec3::new(0., 0., 0.),
+                },
+            )),
 
             health: asset.health.clone(),
             shield: asset.shield.clone(),

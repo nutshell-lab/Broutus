@@ -1,7 +1,10 @@
-use super::super::{Map, MapPosition};
-use super::Warrior;
+use std::time::Duration;
+
+use super::super::{Map, MapPosition, MapPositionPath};
 use bevy::prelude::*;
 use bevy::utils::HashMap;
+use bevy_tweening::lens::TransformPositionLens;
+use bevy_tweening::{Animator, EaseFunction, Sequence, Tween, TweeningType};
 
 #[derive(Reflect, Component, Default)]
 #[reflect(Component)]
@@ -47,9 +50,18 @@ pub fn animate_warrior_sprite(
 }
 
 /// Update the warrior's Transform based on it's MapPosition
-pub fn update_warrior_world_position(
+pub fn update_warrior_position(
     map_query: Query<&Map>,
-    mut warrior_query: Query<(&mut Transform, &MapPosition), (With<Warrior>, Changed<MapPosition>)>,
+    mut warrior_query: Query<
+        (
+            &Transform,
+            &mut MapPosition,
+            &mut MapPositionPath,
+            &mut Animator<Transform>,
+            &mut SelectedAnimation,
+        ),
+        Or<(Changed<MapPositionPath>, Changed<Animator<Transform>>)>,
+    >,
 ) {
     if map_query.is_empty() {
         return;
@@ -65,14 +77,37 @@ pub fn update_warrior_world_position(
     let tile_width = map.tile_width as f32;
     let tile_height = map.tile_height as f32;
 
-    for (mut transform, position) in warrior_query.iter_mut() {
-        transform.translation = position.to_xyz(
-            obstacle_layer_id,
-            map_width,
-            map_height,
-            tile_width,
-            tile_height,
-        );
-        transform.translation.y += 135. / 9.;
+    for (transform, mut position, mut path, mut animator, mut animation) in warrior_query.iter_mut()
+    {
+        if animator.progress() == 1.0 {
+            if let Some(next_position) = path.0.pop() {
+                position.x = next_position.x;
+                position.y = next_position.y;
+
+                let mut translation = next_position.to_xyz(
+                    obstacle_layer_id,
+                    map_width,
+                    map_height,
+                    tile_width,
+                    tile_height,
+                );
+                translation.y += 135. / 9.;
+                let tween = Tween::new(
+                    EaseFunction::CircularInOut,
+                    TweeningType::Once,
+                    Duration::from_millis(300),
+                    TransformPositionLens {
+                        start: transform.translation.clone(),
+                        end: translation,
+                    },
+                );
+
+                animator.set_tweenable(tween);
+                animation.current_key = "moving".to_string();
+            } else {
+                animation.current_key = "idle".to_string();
+                continue;
+            }
+        }
     }
 }
