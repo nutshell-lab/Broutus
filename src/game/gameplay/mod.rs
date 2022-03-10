@@ -293,8 +293,13 @@ fn handle_warrior_action_on_click(
                 continue;
             }
 
-            // TODO not all actions require line of sight ?
-            if !map_query.line_of_sight_check(map_id, &position, &click_event.0) {
+            let ckeck_los = match action.range {
+                ActionRange::Around { check_los, .. } => check_los,
+                ActionRange::Line { check_los, .. } => check_los,
+                ActionRange::Diagonal { check_los, .. } => check_los,
+                _ => true,
+            };
+            if ckeck_los && !map_query.line_of_sight_check(map_id, &position, &click_event.0) {
                 continue;
             }
 
@@ -404,6 +409,13 @@ fn highlight_potential_action(
         .cloned()
         .unwrap();
 
+    let check_los = match action.range {
+        ActionRange::Around { check_los, .. } => check_los,
+        ActionRange::Line { check_los, .. } => check_los,
+        ActionRange::Diagonal { check_los, .. } => check_los,
+        _ => true,
+    };
+
     if let Some(mouse_position) = mouse_position.0 {
         let all_positions = map.all_positions();
         let hit_positions = action
@@ -412,7 +424,8 @@ fn highlight_potential_action(
 
         for position in all_positions {
             if action.range.can_reach(&warrior_position, &position)
-                && map_query.line_of_sight_check(map_id, warrior_position, &position)
+                && (!check_los
+                    || map_query.line_of_sight_check(map_id, warrior_position, &position))
             {
                 map_query.update_tile_sprite_color(
                     map_id,
@@ -426,7 +439,8 @@ fn highlight_potential_action(
         }
 
         if action.range.can_reach(&warrior_position, &mouse_position)
-            && map_query.line_of_sight_check(map_id, warrior_position, &mouse_position)
+            && (!check_los
+                || map_query.line_of_sight_check(map_id, warrior_position, &mouse_position))
         {
             for position in hit_positions {
                 map_query.update_tile_sprite_color(

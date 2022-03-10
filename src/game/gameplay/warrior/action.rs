@@ -1,6 +1,6 @@
 use crate::game::{
     color,
-    map::{MapPosition, MapPositionDirection, MapQuery},
+    map::{MapPosition, MapQuery},
 };
 
 use super::*;
@@ -226,25 +226,28 @@ impl ActionAoe {
 
     pub fn show_description_ui(self, ui: &mut egui::Ui) {
         match self {
-            ActionAoe::Cell => {
+            ActionAoe::Cell => {}
+            ActionAoe::Zone {
+                min_distance,
+                max_distance,
+            } => {
                 ui.label(
-                    egui::RichText::new(format!("target a single cell"))
+                    egui::RichText::new(format!("target {}-{}", min_distance, max_distance))
                         .strong()
                         .color(color::ACTION_NEUTRAL),
                 );
             }
-            ActionAoe::Zone { .. } => {
+            ActionAoe::Cross {
+                min_distance,
+                max_distance,
+            } => {
                 ui.label(
-                    egui::RichText::new(format!("target a group of cells in circle"))
-                        .strong()
-                        .color(color::ACTION_NEUTRAL),
-                );
-            }
-            ActionAoe::Cross { .. } => {
-                ui.label(
-                    egui::RichText::new(format!("target a group of cells in cross"))
-                        .strong()
-                        .color(color::ACTION_NEUTRAL),
+                    egui::RichText::new(format!(
+                        "target {}-{}, in line only",
+                        min_distance, max_distance
+                    ))
+                    .strong()
+                    .color(color::ACTION_NEUTRAL),
                 );
             }
         }
@@ -257,14 +260,17 @@ pub enum ActionRange {
     Around {
         min_distance: u32,
         max_distance: u32,
+        check_los: bool,
     },
     Line {
         min_distance: u32,
         max_distance: u32,
+        check_los: bool,
     },
     Diagonal {
         min_distance: u32,
         max_distance: u32,
+        check_los: bool,
     },
 }
 
@@ -273,6 +279,7 @@ impl Default for ActionRange {
         Self::Around {
             min_distance: 0,
             max_distance: 0,
+            check_los: true,
         }
     }
 }
@@ -284,10 +291,12 @@ impl ActionRange {
             ActionRange::Around {
                 min_distance,
                 max_distance,
+                ..
             } => distance >= min_distance && distance <= max_distance,
             ActionRange::Line {
                 min_distance,
                 max_distance,
+                ..
             } => {
                 distance >= min_distance
                     && distance <= max_distance
@@ -296,7 +305,12 @@ impl ActionRange {
             ActionRange::Diagonal {
                 min_distance,
                 max_distance,
-            } => distance >= min_distance && distance <= max_distance && (to.x / to.y == 1), // TODO div 0
+                ..
+            } => {
+                distance >= min_distance
+                    && distance <= max_distance
+                    && (from.x + to.y == from.y + to.x || from.x + from.y == to.x + to.y)
+            }
         }
     }
 }
@@ -304,23 +318,50 @@ impl ActionRange {
 impl ActionRange {
     pub fn show_description_ui(self, ui: &mut egui::Ui) {
         match self {
-            ActionRange::Around { .. } => {
+            ActionRange::Around {
+                min_distance,
+                max_distance,
+                check_los,
+            } => {
+                let mut text = format!("range {}-{}", min_distance, max_distance);
+                if !check_los {
+                    text.push_str(", no line of sight");
+                }
+
                 ui.label(
-                    egui::RichText::new(format!("target a cell around you"))
+                    egui::RichText::new(text)
                         .strong()
                         .color(color::ACTION_NEUTRAL),
                 );
             }
-            ActionRange::Line { .. } => {
+            ActionRange::Line {
+                min_distance,
+                max_distance,
+                check_los,
+            } => {
+                let mut text = format!("range {}-{}, in line only", min_distance, max_distance);
+                if !check_los {
+                    text.push_str(", no line of sight");
+                }
+
                 ui.label(
-                    egui::RichText::new(format!("target a cell orthogonally"))
+                    egui::RichText::new(text)
                         .strong()
                         .color(color::ACTION_NEUTRAL),
                 );
             }
-            ActionRange::Diagonal { .. } => {
+            ActionRange::Diagonal {
+                min_distance,
+                max_distance,
+                check_los,
+            } => {
+                let mut text = format!("range {}-{}, in diagonal only", min_distance, max_distance);
+                if !check_los {
+                    text.push_str(", no line of sight");
+                }
+
                 ui.label(
-                    egui::RichText::new(format!("target a cell diagonally"))
+                    egui::RichText::new(text)
                         .strong()
                         .color(color::ACTION_NEUTRAL),
                 );

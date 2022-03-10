@@ -158,11 +158,8 @@ pub fn show_warrior_selection_ui(
                         let warrior = warriors.get(warrior_handle).unwrap();
 
                         ui.image(
-                            portrait_index(
-                                &portraits_collection,
-                                warrior.portrait_key.as_str(),
-                            )
-                            .unwrap(),
+                            portrait_index(&portraits_collection, warrior.portrait_key.as_str())
+                                .unwrap(),
                             (162.5, 185.),
                         );
 
@@ -177,8 +174,8 @@ pub fn show_warrior_selection_ui(
 
                                 ui.label(RichText::new(action.name.as_str()).monospace());
 
-                                action.range.show_description_ui(ui);
                                 action.aoe.show_description_ui(ui);
+                                action.range.show_description_ui(ui);
                                 for effect in action.effects.iter() {
                                     effect.show_description_ui(ui);
                                 }

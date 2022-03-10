@@ -40,7 +40,7 @@
             animation_key: "action_shoot",
             cost: ActionPoints(4),
             aoe: Zone(min_distance: 0, max_distance: 1),
-            range: Around(min_distance: 2, max_distance: 5),
+            range: Around(min_distance: 2, max_distance: 5, check_los: true),
             effects: [Damage(amount: 120, erode: 0.1, crit_mult: 1.4, crit_chance: 0.12)]
         ),
         Action(
@@ -49,7 +49,7 @@
             animation_key: "action_cripple",
             cost: ActionPoints(3),
             aoe: Cell,
-            range: Around(min_distance: 3, max_distance: 6),
+            range: Around(min_distance: 3, max_distance: 6, check_los: true),
             effects: [
                 Damage(amount: 20, erode: 0.1, crit_mult: 1.3, crit_chance: 0.11),
                 DamageOverTime(amount: 30, erode: 0.1, duration: 2)
@@ -61,7 +61,7 @@
             animation_key: "action_shield",
             cost: ActionPoints(2),
             aoe: Cell,
-            range: Line(min_distance: 0, max_distance: 1),
+            range: Line(min_distance: 0, max_distance: 1, check_los: true),
             effects: [Shield(amount: 90)]
         ),
         Action(
@@ -70,7 +70,7 @@
             animation_key: "action_teleport",
             cost: ActionPoints(5),
             aoe: Cell,
-            range: Around(min_distance: 2, max_distance: 5),
+            range: Around(min_distance: 2, max_distance: 5, check_los: true),
             effects: [TeleportSelf]
         ),
     ])

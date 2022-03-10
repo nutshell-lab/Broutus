@@ -40,7 +40,7 @@
             animation_key: "action_slash",
             cost: ActionPoints(4),
             aoe: Cell,
-            range: Around(min_distance: 1, max_distance: 2),
+            range: Around(min_distance: 1, max_distance: 2, check_los: true),
             effects: [Damage(amount: 150, erode: 0.1, crit_mult: 1.4, crit_chance: 0.12)]
         ),
         Action(
@@ -49,7 +49,7 @@
             animation_key: "action_blind",
             cost: ActionPoints(4),
             aoe: Cell,
-            range: Line(min_distance: 1, max_distance: 2),
+            range: Line(min_distance: 1, max_distance: 2, check_los: true),
             effects: [StealActionPoints(amount: 2)]
         ),
         Action(
@@ -58,7 +58,7 @@
             animation_key: "action_heal",
             cost: ActionPoints(5),
             aoe: Cell,
-            range: Around(min_distance: 2, max_distance: 5),
+            range: Around(min_distance: 2, max_distance: 5, check_los: true),
             effects: [Heal(amount: 460)]
         ),
     ])
