@@ -35,13 +35,13 @@
     ),
     actions: Actions([
         Action(
-            name: "Slash",
-            icon_key: "action_slash",
-            animation_key: "action_slash",
+            name: "Shoot",
+            icon_key: "action_shoot",
+            animation_key: "action_shoot",
             cost: ActionPoints(4),
-            aoe: Cell,
-            range: Around(min_distance: 1, max_distance: 2),
-            effects: [Damage(amount: 170, erode: 0.1, crit_mult: 1.4, crit_chance: 0.12)]
+            aoe: Zone(min_distance: 0, max_distance: 1),
+            range: Around(min_distance: 2, max_distance: 5),
+            effects: [Damage(amount: 120, erode: 0.1, crit_mult: 1.4, crit_chance: 0.12)]
         ),
         Action(
             name: "Cripple",

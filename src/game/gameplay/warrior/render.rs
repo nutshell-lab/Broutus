@@ -4,7 +4,7 @@ use super::super::{Map, MapPosition, MapPositionPath};
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use bevy_tweening::lens::TransformPositionLens;
-use bevy_tweening::{Animator, EaseFunction, Sequence, Tween, TweeningType};
+use bevy_tweening::{Animator, EaseFunction, Tween, TweeningType};
 
 #[derive(Reflect, Component, Default)]
 #[reflect(Component)]

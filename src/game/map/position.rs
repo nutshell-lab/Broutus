@@ -1,6 +1,9 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
-#[derive(Reflect, Component, Default, Debug, Clone, Copy, Hash, Eq, PartialEq)]
+#[derive(
+    Reflect, Component, Default, Debug, Clone, Copy, Hash, Eq, PartialEq, Deserialize, Serialize,
+)]
 #[reflect(Component)]
 pub struct MapPosition {
     pub x: u32,
@@ -109,7 +112,7 @@ impl MapPosition {
 
     /// Get all positions in the reach of the given position, excluding the given position
     pub fn is_in_map_bounds(self, map_width: u32, map_height: u32) -> bool {
-        self.x != 0 && self.y != 0 && self.x < map_width && self.y < map_height
+        self.x < map_width && self.y < map_height
     }
 
     /// Get the direction of a target from the current position, only straight, no diagonals.

@@ -4,14 +4,13 @@ mod attribute;
 mod events;
 mod render;
 
-use std::time::Duration;
-
 use bevy::prelude::*;
+use bevy_tweening::{lens::TransformPositionLens, Animator, EaseFunction, Tween, TweeningType};
+use std::time::Duration;
 
 pub use action::*;
 pub use asset::*;
 pub use attribute::*;
-use bevy_tweening::{lens::TransformPositionLens, Animator, EaseFunction, Tween, TweeningType};
 pub use events::*;
 pub use render::*;
 

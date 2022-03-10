@@ -2,6 +2,7 @@ use crate::game::map::MapPosition;
 
 use super::Attribute;
 use super::Health;
+use super::MapPositionPath;
 use super::Shield;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
@@ -60,11 +61,10 @@ pub fn process_heal_event(
     }
 }
 
-pub fn process_move_event(mut events: EventReader<Move>, mut warrior: Query<&mut MapPosition>) {
+pub fn process_move_event(mut events: EventReader<Move>, mut warrior: Query<&mut MapPositionPath>) {
     for Move(entity, to) in events.iter() {
-        if let Ok(mut position) = warrior.get_mut(*entity) {
-            position.x = to.x;
-            position.y = to.y;
+        if let Ok(mut path) = warrior.get_mut(*entity) {
+            path.0.push(to.clone())
         }
     }
 }

@@ -105,7 +105,7 @@ pub trait AttributeValue {
 
 /// NewType representing a Warrior's action points quantity
 #[derive(Debug, Copy, Clone, Default, Deserialize, Serialize)]
-pub struct ActionPoints(pub u32);
+pub struct ActionPoints(u32);
 
 impl AttributeValue for ActionPoints {
     fn value(&self) -> u32 {
@@ -118,7 +118,7 @@ impl AttributeValue for ActionPoints {
 
 /// NewType representing a Warrior's movement points quantity
 #[derive(Debug, Copy, Clone, Default, Deserialize, Serialize)]
-pub struct MovementPoints(pub u32);
+pub struct MovementPoints(u32);
 
 impl AttributeValue for MovementPoints {
     fn value(&self) -> u32 {
@@ -131,7 +131,7 @@ impl AttributeValue for MovementPoints {
 
 /// NewType representing a Warrior's health quantity
 #[derive(Debug, Copy, Clone, Default, Deserialize, Serialize)]
-pub struct Health(pub u32);
+pub struct Health(u32);
 
 impl AttributeValue for Health {
     fn value(&self) -> u32 {
@@ -144,7 +144,7 @@ impl AttributeValue for Health {
 
 /// NewType representing a Warrior's shield quantity
 #[derive(Debug, Copy, Clone, Default, Deserialize, Serialize)]
-pub struct Shield(pub u32);
+pub struct Shield(u32);
 
 impl AttributeValue for Shield {
     fn value(&self) -> u32 {

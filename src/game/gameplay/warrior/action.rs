@@ -1,4 +1,7 @@
-use crate::game::{color, map::MapPosition};
+use crate::game::{
+    color,
+    map::{MapPosition, MapPositionDirection, MapQuery},
+};
 
 use super::*;
 use bevy::prelude::*;
@@ -45,147 +48,83 @@ impl Action {
     /// Execute all action effects one by one
     pub fn execute(
         &self,
-        from_position: &super::super::MapPosition,
-        to_position: &super::super::MapPosition,
-        map_query: &mut super::super::MapQuery,
-        warrior_query: &mut Query<(
-            &Warrior,
-            &Name,
-            &mut super::super::MapPosition,
-            &mut MapPositionPath,
-            &Actions,
-            &mut ActiveEffects,
-            &mut Attribute<Health>,
-            &mut Attribute<Shield>,
-            &mut Attribute<ActionPoints>,
-            &mut Attribute<MovementPoints>,
-        )>,
+        from_position: &MapPosition,
+        to_position: &MapPosition,
+        mut map_query: &mut MapQuery,
+        warrior_query: &mut Query<(Entity, &Warrior, &MapPosition)>,
         ev_warrior: &mut WarriorEventWriterQuery,
     ) {
         use rand::prelude::*;
         let mut rng = rand::thread_rng();
-        let hit_positions = match self.aoe {
-            ActionAoe::Cell => vec![to_position],
-            _ => vec![],
-        };
 
-        // TODO BUG the non-duplication of the pairs make the attacker the attacked sometimes, call it left / right instead of attacked / attacker
-        // TODO reverse the order, match effects, then iterates on positions, then on warriors, keeping intermediates state if necessary to update attacker at the end
-        let mut combinations = warrior_query.iter_combinations_mut();
-        while let Some(
-            [(
-                _,
-                attacker_name,
-                mut attacker_position,
-                mut attacker_position_path,
-                mut attacker_actions,
-                mut attacker_effects,
-                mut attacker_health,
-                mut attacker_shield,
-                mut attacker_ap,
-                mut attacker_mp,
-            ), (
-                _,
-                attacked_name,
-                mut attacked_position,
-                mut attacked_position_path,
-                mut attacked_actions,
-                mut attacked_effects,
-                mut attacked_health,
-                mut attacked_shield,
-                mut attacked_ap,
-                mut attacked_mp,
-            )],
-        ) = combinations.fetch_next()
-        {
-            if from_position.ne(&attacker_position) {
-                continue;
-            }
+        let hit_positions = self.aoe.compute_hit_positions(to_position, &mut map_query);
 
-            for hit_position in hit_positions.iter() {
-                if attacked_position.ne(hit_position) {
-                    continue;
-                }
-
-                for effect in self.effects.iter() {
-                    // Implementation example
-                    if let ActionEffect::Damage {
-                        amount,
-                        erode,
-                        crit_chance,
-                        crit_mult,
-                    } = effect
-                    {
-                        let is_crit = *crit_chance >= rng.gen();
-                        let mutl = if is_crit { *crit_mult } else { 1.0 };
-                        let final_amount = (*amount as f32 * mutl).round() as u32;
-
-                        let remaining = attacked_shield.drop(final_amount);
-                        println!("Remaining {}", remaining);
-                        attacked_health.drop(remaining);
-                        attacked_health.erode(remaining, *erode);
-                    }
-
-                    if let ActionEffect::DamageOverTime { .. } = effect {
-                        attacked_effects.0.push(effect.clone());
-                    }
-
-                    if let ActionEffect::Heal { amount } = effect {
-                        attacked_health.rise(*amount);
-                    }
-
-                    if let ActionEffect::Shield { amount } = effect {
-                        attacked_shield.rise(*amount);
-                    }
-
-                    if let ActionEffect::RemoveActionPoints { amount } = effect {
-                        attacked_ap.drop(*amount);
-                    }
-
-                    if let ActionEffect::StealActionPoints { amount } = effect {
-                        let remaining = attacked_ap.drop(*amount);
-                        attacker_ap.rise(amount - remaining);
-                    }
-
-                    if let ActionEffect::RemoveMovementPoints { amount } = effect {
-                        attacked_mp.drop(*amount);
-                    }
-
-                    if let ActionEffect::StealMovementPoints { amount } = effect {
-                        let remaining = attacked_mp.drop(*amount);
-                        attacker_mp.rise(amount - remaining);
-                    }
-
-                    if let ActionEffect::TeleportSelf = effect {
-                        attacker_position.x = hit_position.x;
-                        attacker_position.y = hit_position.y;
-                    }
-
-                    if let ActionEffect::TeleportSwitch = effect {
-                        let MapPosition { x, y } = attacked_position.clone();
-                        attacked_position.x = attacker_position.x;
-                        attacked_position.y = attacker_position.y;
-                        attacker_position.x = x;
-                        attacker_position.y = y;
-                    }
-
-                    if let ActionEffect::PushLinear { distance } = effect {
-                        if let Some(direction) = from_position.direction_to(&hit_position) {
-                            let path = hit_position.unchecked_path_torward(direction, *distance);
-                            let mut path_iter = path.iter();
-                            while let Some(next_position) = path_iter.next() {
-                                if map_query.is_obstacle(0u32, next_position) {
-                                    let remaining_length = path_iter.count() as u32;
-                                    let damages = 20 * remaining_length;
-                                    let remaining = attacked_shield.drop(damages);
-                                    attacked_health.drop(remaining);
-                                    attacked_health.erode(remaining, 0.1); // TODO include erosion to Attribute::<Heatlh>.drop ?
-                                    break;
-                                }
-                                attacked_position.x = next_position.x;
-                                attacked_position.y = next_position.y;
-                            }
+        for effect in self.effects.iter() {
+            match effect {
+                &ActionEffect::Nothing => (),
+                &ActionEffect::Damage {
+                    amount,
+                    crit_chance,
+                    crit_mult,
+                    erode,
+                } => {
+                    for (entity, _w, position) in warrior_query.iter() {
+                        if hit_positions.contains(&position) {
+                            let is_crit = crit_chance >= rng.gen();
+                            let mutl = if is_crit { crit_mult } else { 1.0 };
+                            let amount = (amount as f32 * mutl).round() as u32;
+                            ev_warrior.ew_damage.send(Damage(entity, amount, erode));
                         }
+                    }
+                }
+                &ActionEffect::DamageOverTime {
+                    amount,
+                    duration,
+                    erode,
+                } => {}
+                &ActionEffect::Heal { amount } => {
+                    for (entity, _w, position) in warrior_query.iter() {
+                        if hit_positions.contains(&position) {
+                            ev_warrior.ew_heal.send(Heal(entity, amount));
+                        }
+                    }
+                }
+                &ActionEffect::Shield { amount } => {}
+                &ActionEffect::RemoveActionPoints { amount } => {}
+                &ActionEffect::RemoveMovementPoints { amount } => {}
+                &ActionEffect::StealActionPoints { amount } => {}
+                &ActionEffect::StealMovementPoints { amount } => {}
+                &ActionEffect::Push { distance } => {}
+                &ActionEffect::WalkTo { to } => (),
+                &ActionEffect::TeleportSelf => {
+                    let warrior = warrior_query
+                        .iter()
+                        .find(|(_, _, &position)| position.eq(from_position))
+                        .unwrap();
+
+                    let is_empty = warrior_query
+                        .iter()
+                        .filter(|(_, _, &position)| position.eq(to_position))
+                        .count()
+                        == 0;
+
+                    if is_empty {
+                        ev_warrior.ew_move.send(Move(warrior.0, *to_position));
+                    }
+                }
+                &ActionEffect::TeleportSwitch => {
+                    let left = warrior_query
+                        .iter()
+                        .find(|(_, _, &position)| position.eq(from_position))
+                        .unwrap();
+
+                    let right = warrior_query
+                        .iter()
+                        .find(|(_, _, &position)| position.eq(to_position));
+
+                    if let Some(right) = right {
+                        ev_warrior.ew_move.send(Move(left.0, *right.2));
+                        ev_warrior.ew_move.send(Move(right.0, *left.2));
                     }
                 }
             }
@@ -235,28 +174,80 @@ pub enum ActionAoe {
         max_distance: u32,
     },
 
-    /// ☐☐☐☐☐☐ &nbsp; ☐☐☐☐☐☐ &nbsp; ☐☐☐☐☐☐ &nbsp; ☐☐☐☐☐☐  <br/>
-    /// ☐☐☐☐☐☐ &nbsp; ☐☐☐☐☐☐ &nbsp; ☐☐☐☐☐☐ &nbsp; ☐☐☐☐☐☐  <br/>
-    /// ⇰☐☐☒☒☒ &nbsp; ⇰☒☒☒☐☐ &nbsp; ⇰☒☒☐☒☒ &nbsp; ⇰☐☐☐☒☒  <br/>
-    /// ☐☐☐☐☐☐ &nbsp; ☐☐☐☐☐☐ &nbsp; ☐☐☐☐☐☐ &nbsp; ☐☐☐☐☐☐  <br/>
-    /// ☐☐☐☐☐☐ &nbsp; ☐☐☐☐☐☐ &nbsp; ☐☐☐☐☐☐ &nbsp; ☐☐☐☐☐☐  <br/>
-    Line {
-        distance: u32,
-        forward_length: u32,
-        away_length: u32,
-    },
-
     /// ☐☐☐☒☐☐ &nbsp; ☐☐☐☒☐☐ <br/>
     /// ☐☐☐☒☐☐ &nbsp; ☐☐☐☒☐☐ <br/>
     /// ⇰☒☒☒☒☒ &nbsp; ⇰☒☒☐☒☒ <br/>
     /// ☐☐☐☒☐☐ &nbsp; ☐☐☐☒☐☐ <br/>
     /// ☐☐☐☒☐☐ &nbsp; ☐☐☐☒☐☐ <br/>
-    Cross { min_length: u32, max_length: u32 },
+    Cross {
+        min_distance: u32,
+        max_distance: u32,
+    },
 }
 
 impl Default for ActionAoe {
     fn default() -> Self {
         Self::Cell
+    }
+}
+
+impl ActionAoe {
+    pub fn compute_hit_positions(
+        &self,
+        target_position: &MapPosition,
+        map_query: &mut MapQuery,
+    ) -> Vec<MapPosition> {
+        let (_, map, _) = map_query.map_queryset.q1().single();
+        match *self {
+            ActionAoe::Cell => vec![target_position.clone()],
+            ActionAoe::Zone {
+                min_distance,
+                max_distance,
+            } => target_position
+                .get_surrounding_positions(min_distance, max_distance, map.width, map.height)
+                .iter()
+                .copied()
+                .filter(|position| !map_query.is_obstacle(0u32, position))
+                .collect::<Vec<_>>(),
+            ActionAoe::Cross {
+                min_distance,
+                max_distance,
+            } => target_position
+                .get_surrounding_positions(min_distance, max_distance, map.width, map.height)
+                .iter()
+                .copied()
+                .filter(|position| !map_query.is_obstacle(0u32, position))
+                .filter(|position| {
+                    position.x == target_position.x || position.y == target_position.y
+                })
+                .collect::<Vec<_>>(),
+        }
+    }
+
+    pub fn show_description_ui(self, ui: &mut egui::Ui) {
+        match self {
+            ActionAoe::Cell => {
+                ui.label(
+                    egui::RichText::new(format!("target a single cell"))
+                        .strong()
+                        .color(color::ACTION_NEUTRAL),
+                );
+            }
+            ActionAoe::Zone { .. } => {
+                ui.label(
+                    egui::RichText::new(format!("target a group of cells in circle"))
+                        .strong()
+                        .color(color::ACTION_NEUTRAL),
+                );
+            }
+            ActionAoe::Cross { .. } => {
+                ui.label(
+                    egui::RichText::new(format!("target a group of cells in cross"))
+                        .strong()
+                        .color(color::ACTION_NEUTRAL),
+                );
+            }
+        }
     }
 }
 
@@ -310,6 +301,34 @@ impl ActionRange {
     }
 }
 
+impl ActionRange {
+    pub fn show_description_ui(self, ui: &mut egui::Ui) {
+        match self {
+            ActionRange::Around { .. } => {
+                ui.label(
+                    egui::RichText::new(format!("target a cell around you"))
+                        .strong()
+                        .color(color::ACTION_NEUTRAL),
+                );
+            }
+            ActionRange::Line { .. } => {
+                ui.label(
+                    egui::RichText::new(format!("target a cell orthogonally"))
+                        .strong()
+                        .color(color::ACTION_NEUTRAL),
+                );
+            }
+            ActionRange::Diagonal { .. } => {
+                ui.label(
+                    egui::RichText::new(format!("target a cell diagonally"))
+                        .strong()
+                        .color(color::ACTION_NEUTRAL),
+                );
+            }
+        }
+    }
+}
+
 /// An effect is an outcome of an action execution
 #[derive(Debug, Copy, Clone, Deserialize, Serialize)]
 pub enum ActionEffect {
@@ -343,11 +362,14 @@ pub enum ActionEffect {
     StealMovementPoints {
         amount: u32,
     },
-    TeleportSelf,
-    TeleportSwitch,
-    PushLinear {
+    Push {
         distance: u32,
     },
+    WalkTo {
+        to: MapPosition,
+    },
+    TeleportSelf,
+    TeleportSwitch,
 }
 
 impl Default for ActionEffect {
@@ -360,6 +382,7 @@ impl ActionEffect {
     pub fn show_description_ui(self, ui: &mut egui::Ui) {
         match self {
             ActionEffect::Nothing => (),
+            ActionEffect::WalkTo { to } => {}
             ActionEffect::Damage { amount, .. } => {
                 ui.label(
                     egui::RichText::new(format!("removes {} health", amount))
@@ -435,7 +458,7 @@ impl ActionEffect {
                         .color(color::ACTION_NEUTRAL),
                 );
             }
-            ActionEffect::PushLinear { distance } => {
+            ActionEffect::Push { distance } => {
                 ui.label(
                     egui::RichText::new(format!(
                         "pushes the target {} tiles away from you",

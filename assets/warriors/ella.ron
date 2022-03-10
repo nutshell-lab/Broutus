@@ -59,7 +59,7 @@
             cost: ActionPoints(2),
             aoe: Cell,
             range: Line(min_distance: 1, max_distance: 2),
-            effects: [PushLinear(distance: 3)]
+            effects: [Push(distance: 3)]
         ),
         Action(
             name: "Teleport",
@@ -68,7 +68,7 @@
             cost: ActionPoints(5),
             aoe: Cell,
             range: Around(min_distance: 2, max_distance: 5),
-            effects: [TeleportSelf]
+            effects: [TeleportSwitch]
         ),
     ])
 )

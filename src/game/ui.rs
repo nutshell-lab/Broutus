@@ -78,7 +78,7 @@ pub fn show_warrior_selection_ui(
                 .show_inside(ui, |ui| {
                     ui.centered_and_justified(|ui| {
                         ui.add(egui::Label::new(
-                            egui::RichText::new("Pick your fighters").heading(),
+                            egui::RichText::new("DRAFT").monospace().heading(),
                         ));
                     })
                 });
@@ -101,7 +101,11 @@ pub fn show_warrior_selection_ui(
                     })
                 });
 
-            egui::CentralPanel::default()
+            let mut warrior_index = None;
+
+            egui::SidePanel::left("warrior_selection_left_panel")
+                .resizable(false)
+                .min_width(200.)
                 .frame(
                     egui::containers::Frame::default()
                         .margin((10.0, 10.0))
@@ -111,40 +115,76 @@ pub fn show_warrior_selection_ui(
                 )
                 .show_inside(ui, |ui| {
                     ui.horizontal_top(|ui| {
-                        for warrior_handle in warrior_collection.warriors.iter() {
+                        for (index, warrior_handle) in
+                            warrior_collection.warriors.iter().enumerate()
+                        {
                             ui.vertical(|ui| {
                                 egui::Frame::default().show(ui, |ui| {
                                     if let Some(warrior) = warriors.get(warrior_handle) {
-                                        ui.image(
-                                            portrait_index(
-                                                &portraits_collection,
-                                                warrior.portrait_key.as_str(),
-                                            )
-                                            .unwrap(),
-                                            (325., 370.),
-                                        );
-
-                                        ui.label(RichText::new(warrior.name.as_str()).heading());
-
-                                        for action in warrior.actions.0.iter() {
-                                            ui.label(
-                                                RichText::new(action.name.as_str()).monospace(),
-                                            );
-
-                                            ui.image(
-                                                icon_index(
-                                                    &icon_collection,
-                                                    action.icon_key.as_str(),
+                                        if ui
+                                            .image(
+                                                portrait_index(
+                                                    &portraits_collection,
+                                                    warrior.portrait_key.as_str(),
                                                 )
                                                 .unwrap(),
-                                                (64., 64.),
-                                            );
+                                                (81.25, 92.5),
+                                            )
+                                            .hovered()
+                                        {
+                                            warrior_index = Some(index);
                                         }
                                     }
                                 });
                             });
                         }
                     });
+                });
+
+            egui::SidePanel::right("warrior_selection_right_panel")
+                .resizable(false)
+                .min_width(500.)
+                .frame(
+                    egui::containers::Frame::default()
+                        .margin((10.0, 10.0))
+                        .fill(egui::Color32::from_white_alpha(0))
+                        .stroke(egui::Stroke::none())
+                        .corner_radius(5.0),
+                )
+                .show_inside(ui, |ui| {
+                    if let Some(warrior_index) = warrior_index {
+                        let warrior_handle =
+                            warrior_collection.warriors.get(warrior_index).unwrap();
+                        let warrior = warriors.get(warrior_handle).unwrap();
+
+                        ui.image(
+                            portrait_index(
+                                &portraits_collection,
+                                warrior.portrait_key.as_str(),
+                            )
+                            .unwrap(),
+                            (162.5, 185.),
+                        );
+
+                        ui.label(RichText::new(warrior.name.as_str()).heading());
+
+                        ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
+                            for action in warrior.actions.0.iter() {
+                                ui.image(
+                                    icon_index(&icon_collection, action.icon_key.as_str()).unwrap(),
+                                    (64., 64.),
+                                );
+
+                                ui.label(RichText::new(action.name.as_str()).monospace());
+
+                                action.range.show_description_ui(ui);
+                                action.aoe.show_description_ui(ui);
+                                for effect in action.effects.iter() {
+                                    effect.show_description_ui(ui);
+                                }
+                            }
+                        });
+                    }
                 });
         });
 }

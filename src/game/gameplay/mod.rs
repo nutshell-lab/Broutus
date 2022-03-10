@@ -266,17 +266,14 @@ fn handle_warrior_action_on_click(
     mut ev_clicked: EventReader<TileLeftClickedEvent>,
     mut ev_warrior: WarriorEventWriterQuery,
     mut selected_action: ResMut<SelectedAction>,
-    mut warrior_query: Query<(
-        &Warrior,
-        &Name,
-        &mut MapPosition,
-        &mut MapPositionPath,
-        &Actions,
-        &mut ActiveEffects,
-        &mut Attribute<Health>,
-        &mut Attribute<Shield>,
-        &mut Attribute<ActionPoints>,
-        &mut Attribute<MovementPoints>,
+    mut warrior_query: QuerySet<(
+        QueryState<(Entity, &Warrior, &MapPosition)>,
+        QueryState<(&MapPosition, &mut Attribute<ActionPoints>, &Actions)>,
+        QueryState<(
+            &MapPosition,
+            &mut Attribute<MovementPoints>,
+            &mut MapPositionPath,
+        )>,
     )>,
     mut map_query: MapQuery,
 ) {
@@ -288,11 +285,10 @@ fn handle_warrior_action_on_click(
     if let Some(index) = selected_action.0 {
         for click_event in ev_clicked.iter() {
             let warrior_entity = turn.get_current_warrior_entity().unwrap();
-            let (_, _, position, _, actions, _, _, _, mut action_points, ..) =
-                warrior_query.get_mut(warrior_entity).unwrap();
+            let mut query = warrior_query.q1();
+            let (position, mut action_points, actions) = query.get_mut(warrior_entity).unwrap();
 
             let action = actions.0.get(index).cloned().unwrap();
-
             if !action.range.can_reach(&position, &click_event.0) {
                 continue;
             }
@@ -307,7 +303,7 @@ fn handle_warrior_action_on_click(
                 &position.clone(),
                 &click_event.0,
                 &mut map_query,
-                &mut warrior_query,
+                &mut warrior_query.q0(),
                 &mut ev_warrior,
             );
             selected_action.0 = None; // Deselect action automatically
@@ -315,31 +311,19 @@ fn handle_warrior_action_on_click(
     } else {
         for ev in ev_clicked.iter() {
             let warrior_entity = turn.get_current_warrior_entity().unwrap();
-            if let Ok((
-                _,
-                _,
-                mut warrior_position,
-                mut warrior_path,
-                _,
-                _,
-                _,
-                _,
-                _,
-                mut movement_points,
-                ..,
-            )) = warrior_query.get_mut(warrior_entity)
+            if let Ok((warrior_position, mut movement_points, mut path)) =
+                warrior_query.q2().get_mut(warrior_entity)
             {
-                let path =
+                let computed_path =
                     map_query.pathfinding(map_id, &warrior_position, &ev.0, map_width, map_height);
 
                 // TODO Replace the current sprite sheets by another one containing all 4 directions
                 // TODO Animate warrior movement along the path
                 // TODO Change warrior orientation when it changes direction
-                if let Some((path, cost)) = path {
+                if let Some((computed_path, cost)) = computed_path {
                     if movement_points.can_drop(cost) {
-                        println!("Pushing path {:?}", path);
                         movement_points.drop(cost);
-                        warrior_path.set(path);
+                        path.set(computed_path);
                     }
                 }
             }
@@ -420,23 +404,40 @@ fn highlight_potential_action(
         .cloned()
         .unwrap();
 
-    for position in map.all_positions() {
-        if action.range.can_reach(&warrior_position, &position)
-            && map_query.line_of_sight_check(map_id, warrior_position, &position)
+    if let Some(mouse_position) = mouse_position.0 {
+        let all_positions = map.all_positions();
+        let hit_positions = action
+            .aoe
+            .compute_hit_positions(&mouse_position, &mut map_query);
+
+        for position in all_positions {
+            if action.range.can_reach(&warrior_position, &position)
+                && map_query.line_of_sight_check(map_id, warrior_position, &position)
+            {
+                map_query.update_tile_sprite_color(
+                    map_id,
+                    highlight_layer_id,
+                    &position,
+                    bevy::render::color::Color::from(color::HEALTH)
+                        .set_a(0.6)
+                        .as_rgba(),
+                );
+            }
+        }
+
+        if action.range.can_reach(&warrior_position, &mouse_position)
+            && map_query.line_of_sight_check(map_id, warrior_position, &mouse_position)
         {
-            let alpha = mouse_position
-                .0
-                .filter(|mouse| mouse.eq(&position))
-                .map(|_| 0.9)
-                .unwrap_or(0.6);
-            map_query.update_tile_sprite_color(
-                map_id,
-                highlight_layer_id,
-                &position,
-                bevy::render::color::Color::from(color::HEALTH)
-                    .set_a(alpha)
-                    .as_rgba(),
-            );
+            for position in hit_positions {
+                map_query.update_tile_sprite_color(
+                    map_id,
+                    highlight_layer_id,
+                    &position,
+                    bevy::render::color::Color::from(color::HEALTH)
+                        .set_a(0.9)
+                        .as_rgba(),
+                );
+            }
         }
     }
 }
