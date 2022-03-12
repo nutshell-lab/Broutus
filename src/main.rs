@@ -7,8 +7,8 @@ mod game;
 fn main() {
     App::new()
         .insert_resource(WindowDescriptor {
-            width: 1920.0,
-            height: 1080.0,
+            width: 2560.0,
+            height: 1440.0,
             title: String::from("Broutus"),
             ..Default::default()
         })

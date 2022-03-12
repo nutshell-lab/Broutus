@@ -14,18 +14,6 @@
         rows: 1,
     ),
 
-    "portraits.edificadores": File(path: "portraits/will-marconi-edificadores.png"),
-    "portraits.ella": File(path: "portraits/will-marconi-ella.png"),
-    "portraits.laminas": File(path: "portraits/will-marconi-laminas.png"),
-    "portraits.magal": File(path: "portraits/will-marconi-magal.png"),
-    "portraits.milhafre": File(path: "portraits/will-marconi-milhafre.png"),
-    "portraits.nunga": File(path: "portraits/will-marconi-nunga.png"),
-    "portraits.spy": File(path: "portraits/will-marconi-spy.png"),
-    "portraits.tempest": File(path: "portraits/will-marconi-tempest.png"),
-    "portraits.tenan": File(path: "portraits/will-marconi-tenan.png"),
-    "portraits.tresse": File(path: "portraits/will-marconi-tresse.png"),
-    "portraits.ungido": File(path: "portraits/will-marconi-ungido.png"),
-
     "icons.action_blind": File(path: "actions/blind.png"),
     "icons.action_cripple": File(path: "actions/cripple.png"),
     "icons.action_heal": File(path: "actions/heal.png"),

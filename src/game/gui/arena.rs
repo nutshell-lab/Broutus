@@ -1,5 +1,6 @@
 use super::icon_index;
 use super::widgets::*;
+use super::IconCollection;
 use crate::game::color;
 use crate::game::gameplay::*;
 use crate::game::map::*;
@@ -134,9 +135,13 @@ pub fn show_turn_button_ui(
                 }
 
                 let timer_percentage = turn_timer.0.percent_left();
-                ui.visuals_mut().selection.bg_fill = color.into();
-                ui.visuals_mut().extreme_bg_color = color::DEFAULT_BG.into();
-                ui.add(ProgressBar::new(timer_percentage));
+                ui.add(
+                    LightProgressBar::new(timer_percentage)
+                        .desired_height(6.)
+                        .fg_color(color)
+                        .bg_color(color::DEFAULT_BG_LIGHTER)
+                        .bg_stroke(Stroke::new(1.0, color::HIGHLIGHT_BORDER)),
+                );
             });
         });
 }

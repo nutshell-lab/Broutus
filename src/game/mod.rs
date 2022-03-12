@@ -39,11 +39,10 @@ impl Plugin for GamePlugin {
 
         AssetLoader::new(GameState::Loading)
             .with_asset_collection_file("dynamic.assets")
+            .with_collection::<gui::IconCollection>()
             .with_collection::<map::MapsAssets>()
             .with_collection::<gameplay::WarriorCollection>()
             .with_collection::<gameplay::AnimationCollection>()
-            .with_collection::<gameplay::IconCollection>()
-            .with_collection::<gameplay::PortraitCollection>()
             .continue_to_state(GameState::Menu)
             .build(app);
 
@@ -51,7 +50,9 @@ impl Plugin for GamePlugin {
             .add_plugin(WorldInspectorPlugin::new())
             .add_plugin(map::TiledmapPlugin)
             .add_plugin(gameplay::GameplayPlugin)
-            .add_system_set(SystemSet::on_update(GameState::Loading).with_system(gui::show_splash))
+            .add_system_set(
+                SystemSet::on_update(GameState::Loading).with_system(gui::splash::show_splash),
+            )
             .add_system_set(
                 SystemSet::on_exit(GameState::Loading)
                     .with_system(setup_camera)
@@ -79,7 +80,7 @@ impl Plugin for GamePlugin {
 /// Spawn the main camera
 fn setup_camera(mut commands: Commands) {
     commands.spawn_bundle(OrthographicCameraBundle {
-        transform: Transform::identity().with_translation((250.0, -490.0, 1000.0 - 0.1).into()),
+        transform: Transform::identity().with_translation((0.0, -600.0, 1000.0 - 0.1).into()),
         // .with_scale((1.2, 1.2, 1.0).into()),
         ..OrthographicCameraBundle::new_2d()
     });

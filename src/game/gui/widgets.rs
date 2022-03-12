@@ -21,6 +21,8 @@ pub struct LightProgressBar {
     desired_width: Option<f32>,
     desired_height: Option<f32>,
     corner_radius: Option<f32>,
+    fg_stroke: Option<Stroke>,
+    bg_stroke: Option<Stroke>,
 }
 
 impl LightProgressBar {
@@ -36,6 +38,8 @@ impl LightProgressBar {
             desired_width: None,
             desired_height: None,
             corner_radius: None,
+            fg_stroke: None,
+            bg_stroke: None,
         }
     }
 
@@ -45,49 +49,61 @@ impl LightProgressBar {
         self
     }
 
-    /// A custom text to display on the progress bar.
+    /// Enable percentage text.
     pub fn percentage_text(mut self) -> Self {
         self.text = Some(LightProgressBarText::Percentage);
         self
     }
 
-    /// The desired width of the bar. Will use all horizontal space if not set.
+    /// The desired stroke of the inner bar. Default to none.
+    pub fn fg_stroke(mut self, fg_stroke: Stroke) -> Self {
+        self.fg_stroke = Some(fg_stroke.into());
+        self
+    }
+
+    /// The desired stroke of the outer bar. Default to none.
+    pub fn bg_stroke(mut self, bg_stroke: Stroke) -> Self {
+        self.bg_stroke = Some(bg_stroke.into());
+        self
+    }
+
+    /// The desired color of the outer bar. Default to DARK_BLUE.
     pub fn fg_color(mut self, fg_color: impl Into<Color32>) -> Self {
         self.fg_color = Some(fg_color.into());
         self
     }
 
-    /// The desired width of the bar. Will use all horizontal space if not set.
+    /// The desired color of the outer bar. Default to LIGHT_GRAY.
     pub fn bg_color(mut self, bg_color: impl Into<Color32>) -> Self {
         self.bg_color = Some(bg_color.into());
         self
     }
 
-    /// The desired text color.
+    /// The desired text color. Default to DARK_GRAY.
     pub fn text_color(mut self, text_color: impl Into<Color32>) -> Self {
         self.text_color = Some(text_color.into());
         self
     }
 
-    /// A custom text to display on the progress bar.
+    /// The desired text allignement. Default to Left.
     pub fn text_align(mut self, align: LightProgressBarTextAlign) -> Self {
         self.text_align = Some(align);
         self
     }
 
-    /// The desired width of the bar. Will use all horizontal space if not set.
+    /// The desired width of the bar. Default to all the horizontal space.
     pub fn desired_width(mut self, desired_width: f32) -> Self {
         self.desired_width = Some(desired_width);
         self
     }
 
-    /// The desired height of the bar. Will use 4.0px if not set.
+    /// The desired height of the bar. Default to 4.0px.
     pub fn desired_height(mut self, desired_height: f32) -> Self {
         self.desired_height = Some(desired_height);
         self
     }
 
-    /// The desired height of the bar. Will use 4.0px if not set.
+    /// The desired corner radius of the bars. Default to 0.
     pub fn corner_radius(mut self, corner_radius: f32) -> Self {
         self.corner_radius = Some(corner_radius);
         self
@@ -106,12 +122,17 @@ impl Widget for LightProgressBar {
             desired_width,
             desired_height,
             corner_radius,
+            fg_stroke,
+            bg_stroke,
         } = self;
 
         let fg_color = fg_color.unwrap_or(Color32::DARK_BLUE);
         let bg_color = bg_color.unwrap_or(Color32::LIGHT_GRAY);
         let text_color = text_color.unwrap_or(Color32::DARK_GRAY);
         let text_align = text_align.unwrap_or(LightProgressBarTextAlign::Left);
+
+        let fg_stroke = fg_stroke.unwrap_or(Stroke::none());
+        let bg_stroke = bg_stroke.unwrap_or(Stroke::none());
         let corner_radius = corner_radius.unwrap_or(0.0);
 
         let desired_width =
@@ -126,7 +147,7 @@ impl Widget for LightProgressBar {
 
         if ui.is_rect_visible(response.rect) {
             ui.painter()
-                .rect(outer_rect, corner_radius, bg_color, Stroke::none());
+                .rect(outer_rect, corner_radius, bg_color, bg_stroke);
 
             if progress > 0.0 {
                 let inner_rect = Rect::from_min_size(
@@ -138,7 +159,7 @@ impl Widget for LightProgressBar {
                 );
 
                 ui.painter()
-                    .rect(inner_rect, corner_radius, fg_color, Stroke::none());
+                    .rect(inner_rect, corner_radius, fg_color, fg_stroke);
             }
 
             if let Some(text) = text {

@@ -67,8 +67,8 @@
             animation_key: "action_teleport",
             cost: ActionPoints(5),
             aoe: Cell,
-            range: Diagonal(min_distance: 2, max_distance: 6, check_los: false),
-            effects: [TeleportSwitch]
+            range: Around(min_distance: 2, max_distance: 6, check_los: true),
+            effects: [TeleportSelf]
         ),
     ])
 )

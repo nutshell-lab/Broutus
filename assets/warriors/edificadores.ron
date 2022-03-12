@@ -65,13 +65,13 @@
             effects: [Shield(amount: 90)]
         ),
         Action(
-            name: "Teleport",
+            name: "Teleport Switch",
             icon_key: "action_teleport",
             animation_key: "action_teleport",
             cost: ActionPoints(5),
             aoe: Cell,
-            range: Around(min_distance: 2, max_distance: 5, check_los: true),
-            effects: [TeleportSelf]
+            range: Diagonal(min_distance: 2, max_distance: 6, check_los: false),
+            effects: [TeleportSwitch]
         ),
     ])
 )

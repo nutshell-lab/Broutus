@@ -26,6 +26,7 @@ pub const BG_TEXT: Color = Color(243, 243, 247);
 pub const WHITE_BG: Color = Color(255, 255, 255);
 pub const DEFAULT_BG: Color = Color(36, 35, 49);
 pub const DEFAULT_BG_LIGHTER: Color = Color(70, 68, 95);
+pub const DEFAULT_BG_LIGHTEST: Color = Color(96, 93, 131);
 pub const TEXT_LIGHT: Color = Color(231, 235, 238);
 pub const HIGHLIGHT_BORDER: Color = Color(195, 197, 213);
 

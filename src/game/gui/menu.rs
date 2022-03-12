@@ -27,19 +27,19 @@ pub fn show_main_menu(
         .show(egui_context.ctx_mut(), |ui| {
             ui.centered_and_justified(|ui| {
                 ui.vertical_centered_justified(|ui| {
-                    ui.image(egui::TextureId::User(0), (768., 480.));
+                    ui.image(egui::TextureId::User(1), (768., 480.));
                     let start = ui.add(egui::ImageButton::new(
-                        egui::TextureId::User(1),
+                        egui::TextureId::User(2),
                         (152., 47.),
                     ));
                     ui.add_space(30.0);
                     let options = ui.add(egui::ImageButton::new(
-                        egui::TextureId::User(2),
+                        egui::TextureId::User(3),
                         (203., 52.),
                     ));
                     ui.add_space(30.0);
                     let exit = ui.add(egui::ImageButton::new(
-                        egui::TextureId::User(3),
+                        egui::TextureId::User(4),
                         (119., 54.),
                     ));
 
