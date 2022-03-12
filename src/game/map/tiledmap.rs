@@ -11,8 +11,10 @@ use super::MapPosition;
 
 #[derive(AssetCollection)]
 pub struct MapsAssets {
-    #[asset(key = "maps.simple")]
-    simple: Handle<Tiledmap>,
+    // #[asset(key = "maps.simple")]
+    // simple: Handle<Tiledmap>,
+    #[asset(key = "maps.test")]
+    test: Handle<Tiledmap>,
 }
 
 #[derive(TypeUuid)]
@@ -21,6 +23,8 @@ pub struct Tiledmap {
     pub id: u32,
     pub inner: tiled::Map,
     pub tileset: Handle<Image>,
+    pub tileset_width: u32,
+    pub tileset_height: u32,
 }
 
 #[derive(Reflect, Component, Default)]
@@ -31,12 +35,7 @@ pub struct Map {
     pub height: u32,
     pub tile_width: u32,
     pub tile_height: u32,
-    pub layers: HashMap<u32, Entity>,
-    pub ground_layer: u32,
-    pub highlight_layer: u32,
-    pub obstacle_layer: u32,
-    pub spawn_team_a_layer: u32,
-    pub spawn_team_b_layer: u32,
+    pub tiles: HashMap<(u32, u32, u32), Entity>,
 }
 
 impl Map {
@@ -60,20 +59,9 @@ pub struct MapBundle {
     pub visibility: Visibility,
 }
 
-#[derive(Reflect, Component, Default)]
+#[derive(Reflect, Component, Default, Clone, Copy)]
 #[reflect(Component)]
-pub struct Layer {
-    pub id: u32,
-    pub tiles: HashMap<(u32, u32), Entity>,
-}
-
-#[derive(Default, Bundle)]
-pub struct LayerBundle {
-    pub layer: Layer,
-    pub transform: Transform,
-    pub global_transform: GlobalTransform,
-    pub visibility: Visibility,
-}
+pub struct LayerIndex(pub u32);
 
 #[derive(Reflect, Component, Default, Clone, Copy)]
 #[reflect(Component)]
@@ -82,6 +70,7 @@ pub struct Tile;
 #[derive(Default, Bundle)]
 pub struct TileBundle {
     pub tile: Tile,
+    pub layer: LayerIndex,
     pub position: MapPosition,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
@@ -112,7 +101,10 @@ impl AssetLoader for TiledmapLoader {
             let mut dependencies = Vec::new();
 
             let tileset = &map.tilesets.first().expect("Missing tileset");
-            let tile_path = root_dir.join(tileset.images.first().unwrap().source.as_str());
+            let image = tileset.images.first().unwrap();
+            let image_width = image.width;
+            let image_height = image.height;
+            let tile_path = root_dir.join(image.source.as_str());
             let asset_path = AssetPath::new(tile_path, None);
             let texture: Handle<Image> = load_context.get_handle(asset_path.clone());
 
@@ -122,6 +114,8 @@ impl AssetLoader for TiledmapLoader {
                 id: 0,
                 inner: map,
                 tileset: texture,
+                tileset_width: image_width as u32,
+                tileset_height: image_height as u32,
             });
             load_context.set_default_asset(loaded_asset.with_dependencies(dependencies));
             Ok(())
@@ -142,8 +136,8 @@ pub fn spawn_tiledmap(
 ) {
     let map_entity = commands.spawn().id();
 
-    if let Some(tiledmap) = tiledmaps.get(maps_assets.simple.clone()) {
-        let mut layer_entities = HashMap::default();
+    if let Some(tiledmap) = tiledmaps.get(maps_assets.test.clone()) {
+        let mut tiles_entities = HashMap::default();
 
         let tileset = tiledmap
             .inner
@@ -153,17 +147,13 @@ pub fn spawn_tiledmap(
         let texture_atlas = TextureAtlas::from_grid(
             tiledmap.tileset.clone(),
             Vec2::new(tileset.tile_width as f32, tileset.tile_height as f32),
-            tileset.tilecount.unwrap_or(1) as usize,
-            1,
+            (tiledmap.tileset_width / tileset.tile_width) as usize,
+            (tiledmap.tileset_height / tileset.tile_height) as usize,
         );
         let texture_atlas_handle = texture_atlases.add(texture_atlas);
 
         for (layer_index, layer) in tiledmap.inner.layers.iter().enumerate() {
-            let mut tile_entities = HashMap::default();
             let layer_index = layer_index as u32;
-            let layer_entity = commands.spawn().insert(Name::new("layer")).id();
-            layer_entities.insert(layer_index, layer_entity);
-            commands.entity(map_entity).add_child(layer_entity);
 
             if let tiled::LayerData::Finite(tiles_y) = &layer.tiles {
                 for (tile_y, tiles_x) in tiles_y.iter().enumerate() {
@@ -174,53 +164,41 @@ pub fn spawn_tiledmap(
                         let (x, y) = (tile_x as u32, tile_y as u32);
                         let tile_entity = commands
                             .spawn()
-                            .insert(Name::new(format!("tile ({:02},{:02})", x, y)))
+                            .insert(Name::new(format!(
+                                "{} - tile ({:02},{:02})",
+                                layer_index, x, y
+                            )))
                             .id();
 
-                        let map_position = MapPosition::new(x, y);
-                        let world_position = super::project_iso(
-                            &map_position,
-                            tiledmap.inner.tile_width as f32,
-                            tiledmap.inner.tile_height as f32,
-                        );
+                        let mut sprite = TextureAtlasSprite::new(tile.gid as usize - 1);
+                        // Set obstacle a little transparent
+                        sprite.color = if layer_index == 2 {
+                            Color::rgba(1., 1., 1., 0.85)
+                        } else {
+                            Color::rgba(1., 1., 1., 1.)
+                        };
 
-                        tile_entities.insert((x, y), tile_entity);
-                        commands.entity(layer_entity).add_child(tile_entity);
+                        tiles_entities.insert((layer_index, x, y), tile_entity);
+                        commands.entity(map_entity).add_child(tile_entity);
                         commands
                             .entity(tile_entity)
                             .insert_bundle(TileBundle {
                                 position: MapPosition { x, y },
                                 tile: Tile,
+                                layer: LayerIndex(layer_index),
                                 ..Default::default()
                             })
                             .insert_bundle(SpriteSheetBundle {
                                 texture_atlas: texture_atlas_handle.clone(),
-                                sprite: TextureAtlasSprite::new(tile.gid as usize - 1),
+                                sprite: sprite,
                                 visibility: Visibility {
                                     is_visible: layer.visible,
                                 },
-                                transform: Transform::from_xyz(
-                                    world_position.x,
-                                    world_position.y,
-                                    map_position.to_relative_z(
-                                        tiles_x.len() as u32 + 1,
-                                        tiles_y.len() as u32 + 1,
-                                    ),
-                                ),
                                 ..Default::default()
                             });
                     }
                 }
             }
-
-            commands.entity(layer_entity).insert_bundle(LayerBundle {
-                transform: Transform::from_xyz(0.0, 0.0, layer_index as f32),
-                layer: Layer {
-                    id: layer_index,
-                    tiles: tile_entities,
-                },
-                ..Default::default()
-            });
         }
 
         commands
@@ -228,19 +206,14 @@ pub fn spawn_tiledmap(
             .insert(Name::new("simple"))
             .insert_bundle(MapBundle {
                 transform: Transform::from_xyz(0.0, 0.0, 0.0),
-                tiledmap: maps_assets.simple.clone(),
+                tiledmap: maps_assets.test.clone(),
                 map: Map {
                     id: tiledmap.id,
                     width: tiledmap.inner.width,
                     height: tiledmap.inner.height,
                     tile_width: tiledmap.inner.tile_width,
                     tile_height: tiledmap.inner.tile_height,
-                    layers: layer_entities,
-                    ground_layer: 0,
-                    highlight_layer: 1,
-                    obstacle_layer: 2,
-                    spawn_team_a_layer: 3,
-                    spawn_team_b_layer: 4,
+                    tiles: tiles_entities,
                 },
                 ..Default::default()
             });

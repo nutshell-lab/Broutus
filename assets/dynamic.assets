@@ -36,4 +36,5 @@
     "icons.action_teleport": File(path: "actions/teleport.png"),
 
     "maps.simple": File(path: "maps/simple.tmx"),
+    "maps.test": File(path: "maps/test.tmx"),
 })

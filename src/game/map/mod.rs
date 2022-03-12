@@ -18,7 +18,7 @@ pub use mouse::MouseMapPosition;
 pub use mouse::PreviousMouseMapPosition;
 pub use position::*;
 pub use query::MapQuery;
-pub use tiledmap::Layer;
+pub use tiledmap::LayerIndex;
 pub use tiledmap::Map;
 pub use tiledmap::MapsAssets;
 pub use tiledmap::Tile;
@@ -30,8 +30,8 @@ impl Plugin for TiledmapPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<MapPosition>()
             .register_type::<Map>()
-            .register_type::<Layer>()
             .register_type::<Tile>()
+            .register_type::<LayerIndex>()
             .init_resource::<MouseMapPosition>()
             .init_resource::<PreviousMouseMapPosition>()
             .add_event::<TileLeftClickedEvent>()

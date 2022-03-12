@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use super::{LayerIndex, Map};
+
 #[derive(
     Reflect, Component, Default, Debug, Clone, Copy, Hash, Eq, PartialEq, Deserialize, Serialize,
 )]
@@ -19,20 +21,14 @@ impl MapPosition {
         (self.x + self.y) as f32 / (map_width - 1 + map_height - 1) as f32
     }
 
-    pub fn to_xyz(
-        self,
-        layer_index: u32,
-        map_width: u32,
-        map_height: u32,
-        tile_width: f32,
-        tile_height: f32,
-    ) -> Vec3 {
-        let coords = super::super::map::project_iso(&self, tile_width, tile_height);
+    pub fn to_xyz(self, map: &Map, layer_index: &LayerIndex) -> Vec3 {
+        let coords =
+            super::super::map::project_iso(&self, map.tile_width as f32, map.tile_height as f32);
 
         Vec3::new(
             coords.x,
             coords.y,
-            self.to_relative_z(map_width, map_height) + layer_index as f32,
+            self.to_relative_z(map.width, map.height) + layer_index.0 as f32,
         )
     }
 

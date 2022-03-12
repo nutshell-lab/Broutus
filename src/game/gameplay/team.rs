@@ -9,10 +9,6 @@ impl Team {
         Self(side, color)
     }
 
-    pub fn side(&self) -> TeamSide {
-        self.0
-    }
-
     pub fn color(&self) -> Color {
         self.1
     }

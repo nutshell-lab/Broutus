@@ -197,7 +197,7 @@ impl ActionAoe {
         target_position: &MapPosition,
         map_query: &mut MapQuery,
     ) -> Vec<MapPosition> {
-        let (_, map, _) = map_query.map_queryset.q1().single();
+        let map = map_query.map.single();
         match *self {
             ActionAoe::Cell => vec![target_position.clone()],
             ActionAoe::Zone {

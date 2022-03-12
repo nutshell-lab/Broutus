@@ -40,8 +40,8 @@
             animation_key: "action_shoot",
             cost: ActionPoints(4),
             aoe: Zone(min_distance: 0, max_distance: 1),
-            range: Around(min_distance: 2, max_distance: 5, check_los: true),
-            effects: [Damage(amount: 120, erode: 0.1, crit_mult: 1.4, crit_chance: 0.12)]
+            range: Around(min_distance: 2, max_distance: 6, check_los: true),
+            effects: [Damage(amount: 120, erode: 0.1, crit_mult: 1.4, crit_chance: 0.30)]
         ),
         Action(
             name: "Cripple",

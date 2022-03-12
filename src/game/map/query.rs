@@ -5,22 +5,7 @@ use bevy::ecs::system::SystemParam;
 
 #[derive(SystemParam)]
 pub struct MapQuery<'w, 's> {
-    pub map_queryset: QuerySet<
-        'w,
-        's,
-        (
-            QueryState<(Entity, &'static mut Map, &'static Children)>,
-            QueryState<(Entity, &'static Map, &'static Children)>,
-        ),
-    >,
-    pub layer_queryset: QuerySet<
-        'w,
-        's,
-        (
-            QueryState<(Entity, &'static mut Layer, &'static Children)>,
-            QueryState<(Entity, &'static Layer, &'static Children)>,
-        ),
-    >,
+    pub map: Query<'w, 's, &'static Map>,
     pub tile_queryset: QuerySet<
         'w,
         's,
@@ -28,6 +13,7 @@ pub struct MapQuery<'w, 's> {
             QueryState<
                 (
                     Entity,
+                    &'static LayerIndex,
                     &'static MapPosition,
                     &'static mut TextureAtlasSprite,
                     &'static mut Visibility,
@@ -37,6 +23,7 @@ pub struct MapQuery<'w, 's> {
             QueryState<
                 (
                     Entity,
+                    &'static LayerIndex,
                     &'static MapPosition,
                     &'static TextureAtlasSprite,
                     &'static Visibility,
@@ -48,95 +35,21 @@ pub struct MapQuery<'w, 's> {
 }
 
 impl<'w, 's> MapQuery<'w, 's> {
-    // pub fn get_map_entity(&mut self, map_id: u32) -> Option<Entity> {
-    //     for (entity, map, _) in self.map_queryset.q1().iter() {
-    //         if map.id.ne(&map_id) {
-    //             continue;
-    //         }
-
-    //         return Some(entity);
-    //     }
-    //     None
-    // }
-
-    // pub fn get_map(&mut self, map_id: u32) -> Option<&Map> {
-    //     for (entity, map, _) in self.map_queryset.q1().iter() {
-    //         if map.id.ne(&map_id) {
-    //             continue;
-    //         }
-    //         return Some(map);
-    //     }
-    //     None
-    // }
-
-    // pub fn get_layer_entity(&mut self, map_id: u32, layer_id: u32) -> Option<Entity> {
-    //     for (_, map, layers) in self.map_queryset.q1().iter() {
-    //         if map.id.ne(&map_id) {
-    //             continue;
-    //         }
-
-    //         for (layer_entity, layer, _) in self.layer_queryset.q1().iter() {
-    //             if layer.id.ne(&layer_id) {
-    //                 continue;
-    //             }
-    //             if !layers.contains(&layer_entity) {
-    //                 continue;
-    //             }
-
-    //             return Some(layer_entity);
-    //         }
-    //     }
-    //     None
-    // }
-
-    /// Get the tile Entity at the given position for the given map_id and layer_id
-    pub fn get_tile_entity_at(
-        &mut self,
-        map_id: u32,
-        layer_id: u32,
-        position: &MapPosition,
-    ) -> Option<Entity> {
-        for (_, map, layers) in self.map_queryset.q1().iter() {
-            if map.id.ne(&map_id) {
-                continue;
-            }
-
-            for (layer_entity, layer, _) in self.layer_queryset.q1().iter() {
-                if layer.id.ne(&layer_id) {
-                    continue;
-                }
-                if !layers.contains(&layer_entity) {
-                    continue;
-                }
-
-                return layer.tiles.get(&(position.x, position.y)).copied();
-            }
-        }
-        None
-    }
-
     /// Get the tile Entity at the given position for the given map_id and layer_id
     pub fn hide_all_tiles(&mut self, map_id: u32, layer_id: u32) {
-        for (_, map, layers) in self.map_queryset.q1().iter() {
+        for map in self.map.iter() {
             if map.id.ne(&map_id) {
                 continue;
             }
 
-            for (layer_entity, layer, tiles) in self.layer_queryset.q1().iter() {
-                if layer.id.ne(&layer_id) {
-                    continue;
-                }
-                if !layers.contains(&layer_entity) {
+            let mut query = self.tile_queryset.q0();
+            for ((layer, _, _), &tile_entity) in map.tiles.iter() {
+                if layer.ne(&layer_id) {
                     continue;
                 }
 
-                for (tile_entity, _, _, mut visibility) in self.tile_queryset.q0().iter_mut() {
-                    if !tiles.contains(&tile_entity) {
-                        continue;
-                    }
-
-                    visibility.is_visible = false;
-                }
+                let (_, _, _, _, mut visibility) = query.get_mut(tile_entity).unwrap();
+                visibility.is_visible = false;
             }
         }
     }
@@ -149,33 +62,17 @@ impl<'w, 's> MapQuery<'w, 's> {
         position: &MapPosition,
         color: Color,
     ) -> Option<Entity> {
-        for (_, map, layers) in self.map_queryset.q1().iter() {
+        for map in self.map.iter() {
             if map.id.ne(&map_id) {
                 continue;
             }
 
-            for (layer_entity, layer, tiles) in self.layer_queryset.q1().iter() {
-                if layer.id.ne(&layer_id) {
-                    continue;
-                }
-                if !layers.contains(&layer_entity) {
-                    continue;
-                }
-
-                for (tile_entity, tile_position, mut sprite, mut visibility) in
-                    self.tile_queryset.q0().iter_mut()
-                {
-                    if !tiles.contains(&tile_entity) {
-                        continue;
-                    }
-                    if position.ne(tile_position) {
-                        continue;
-                    }
-
-                    sprite.color = color;
-                    visibility.is_visible = true;
-                    return Some(tile_entity);
-                }
+            let mut query = self.tile_queryset.q0();
+            if let Some(tile_entity) = map.tiles.get(&(layer_id, position.x, position.y)) {
+                let (_, _, _, mut sprite, mut visibility) = query.get_mut(*tile_entity).unwrap();
+                sprite.color = color;
+                visibility.is_visible = true;
+                return Some(*tile_entity);
             }
         }
         None
@@ -195,7 +92,9 @@ impl<'w, 's> MapQuery<'w, 's> {
 
     /// Is a map position an obstacle ?
     pub fn is_obstacle(&mut self, map_id: u32, position: &MapPosition) -> bool {
-        for (_, map, _) in self.map_queryset.q1().iter() {
+        let obstacle_layer_id = 2u32;
+
+        for map in self.map.iter() {
             if map.id.ne(&map_id) {
                 continue;
             }
@@ -203,10 +102,10 @@ impl<'w, 's> MapQuery<'w, 's> {
                 return true;
             }
 
-            let obstacle_layer = map.obstacle_layer;
-            let tile_entity = self.get_tile_entity_at(map_id, obstacle_layer, position);
-
-            return tile_entity.is_some();
+            return map
+                .tiles
+                .get(&(obstacle_layer_id, position.x, position.y))
+                .is_some();
         }
         false
     }

@@ -87,7 +87,7 @@ fn spawn_warriors(
             edificadores_asset,
             &animation_collection,
             &team_a,
-            MapPosition::new(17, 5),
+            MapPosition::new(1, 1),
         ))
         .id();
 
@@ -96,7 +96,7 @@ fn spawn_warriors(
             ella_asset,
             &animation_collection,
             &team_b,
-            MapPosition::new(2, 5),
+            MapPosition::new(14, 14),
         ))
         .id();
 
@@ -110,9 +110,7 @@ fn spawn_warriors(
 
 /// Clean tile highlighting with white color
 fn unhighlight_all_tiles(mut map_query: MapQuery) {
-    let map_id = 0u32;
-    let layer_id = 1u32;
-    map_query.hide_all_tiles(map_id, layer_id);
+    map_query.hide_all_tiles(0u32, 1u32);
 }
 
 /// Set tile tiles to the warrior team color at the higghtlith layer
@@ -157,9 +155,9 @@ fn compute_and_highlight_path(
         return;
     }
 
-    let (_, map, _) = map_query.map_queryset.q1().single();
+    let map = map_query.map.single();
     let map_id = map.id;
-    let highlight_layer_id = map.highlight_layer;
+    let highlight_layer_id = 1; // map.highlight_layer;
     let map_width = map.width;
     let map_height = map.height;
 
@@ -213,9 +211,9 @@ fn highlight_potential_movement(
         return;
     }
 
-    let (_, map, _) = map_query.map_queryset.q1().single();
+    let map = map_query.map.single();
     let map_id = map.id;
-    let highlight_layer_id = map.highlight_layer;
+    let highlight_layer_id = 1; //map.highlight_layer;
     let map_width = map.width;
     let map_height = map.height;
 
@@ -277,7 +275,7 @@ fn handle_warrior_action_on_click(
     )>,
     mut map_query: MapQuery,
 ) {
-    let (_, map, _) = map_query.map_queryset.q1().single();
+    let map = map_query.map.single();
     let map_id = map.id;
     let map_width = map.width;
     let map_height = map.height;
@@ -397,9 +395,9 @@ fn highlight_potential_action(
         return;
     }
 
-    let (_, map, _) = map_query.map_queryset.q1().single();
+    let map = map_query.map.single();
     let map_id = map.id;
-    let highlight_layer_id = map.highlight_layer;
+    let highlight_layer_id = 1; //map.highlight_layer;
 
     let warrior_entity = turn.get_current_warrior_entity().unwrap();
     let (warrior_position, warrior_actions) = warrior_query.get(warrior_entity).unwrap();
@@ -416,27 +414,26 @@ fn highlight_potential_action(
         _ => true,
     };
 
+    let all_positions = map.all_positions();
+    for position in all_positions {
+        if action.range.can_reach(&warrior_position, &position)
+            && (!check_los || map_query.line_of_sight_check(map_id, warrior_position, &position))
+        {
+            map_query.update_tile_sprite_color(
+                map_id,
+                highlight_layer_id,
+                &position,
+                bevy::render::color::Color::from(color::HEALTH)
+                    .set_a(0.6)
+                    .as_rgba(),
+            );
+        }
+    }
+
     if let Some(mouse_position) = mouse_position.0 {
-        let all_positions = map.all_positions();
         let hit_positions = action
             .aoe
             .compute_hit_positions(&mouse_position, &mut map_query);
-
-        for position in all_positions {
-            if action.range.can_reach(&warrior_position, &position)
-                && (!check_los
-                    || map_query.line_of_sight_check(map_id, warrior_position, &position))
-            {
-                map_query.update_tile_sprite_color(
-                    map_id,
-                    highlight_layer_id,
-                    &position,
-                    bevy::render::color::Color::from(color::HEALTH)
-                        .set_a(0.6)
-                        .as_rgba(),
-                );
-            }
-        }
 
         if action.range.can_reach(&warrior_position, &mouse_position)
             && (!check_los

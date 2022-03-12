@@ -14,7 +14,7 @@ pub use attribute::*;
 pub use events::*;
 pub use render::*;
 
-use crate::game::map::MapPosition;
+use crate::game::map::{LayerIndex, MapPosition};
 
 use super::Team;
 
@@ -45,6 +45,7 @@ pub struct WarriorBundle {
     name: Name,
     team: Team,
     position: MapPosition,
+    layer: LayerIndex,
     path: MapPositionPath,
     animator: Animator<Transform>,
 
@@ -77,11 +78,12 @@ impl WarriorBundle {
             name: Name::new(asset.name.clone()),
             team: team.clone(),
             position,
+            layer: LayerIndex(2),
             path: MapPositionPath(vec![position]),
             animator: Animator::new(Tween::new(
-                EaseFunction::CubicIn,
+                EaseFunction::CircularInOut,
                 TweeningType::Once,
-                Duration::from_millis(700),
+                Duration::from_millis(10),
                 TransformPositionLens {
                     start: Vec3::new(0., 0., 0.),
                     end: Vec3::new(0., 0., 0.),

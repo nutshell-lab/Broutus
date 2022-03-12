@@ -1,5 +1,6 @@
 use super::color;
 use super::gameplay::*;
+use super::map::LayerIndex;
 use super::map::Map;
 use super::map::MapPosition;
 use super::map::MouseMapPosition;
@@ -476,10 +477,11 @@ pub fn show_action_bar_ui(
 pub fn handle_action_bar_shortcuts(
     mut selected_action: ResMut<SelectedAction>,
     keys: Res<Input<KeyCode>>,
+    buttons: Res<Input<MouseButton>>,
     turn: Res<Turn>,
     warrior_query: Query<&Attribute<ActionPoints>, With<Warrior>>,
 ) {
-    if keys.just_pressed(KeyCode::Escape) {
+    if keys.just_pressed(KeyCode::Escape) || buttons.just_pressed(MouseButton::Right) {
         selected_action.0 = None;
     }
 
@@ -612,13 +614,7 @@ pub fn show_warrior_ui(
                 continue;
             }
 
-            let world_position = position.to_xyz(
-                0u32,
-                map.width,
-                map.height,
-                map.tile_width as f32,
-                map.tile_height as f32,
-            );
+            let world_position = position.to_xyz(map, &LayerIndex(4));
 
             if let Some(hover_position) =
                 camera.world_to_screen(windows.as_ref(), camera_transform, world_position)

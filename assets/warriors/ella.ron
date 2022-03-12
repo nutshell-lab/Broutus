@@ -41,7 +41,7 @@
             cost: ActionPoints(4),
             aoe: Cell,
             range: Around(min_distance: 1, max_distance: 2, check_los: true),
-            effects: [Damage(amount: 150, erode: 0.1, crit_mult: 1.4, crit_chance: 0.12)]
+            effects: [Damage(amount: 150, erode: 0.1, crit_mult: 2.5, crit_chance: 0.05)]
         ),
         Action(
             name: "Heal",

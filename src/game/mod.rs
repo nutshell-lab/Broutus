@@ -1,6 +1,13 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
 use bevy_asset_loader::AssetLoader;
 use bevy_inspector_egui::WorldInspectorPlugin;
+use bevy_tweening::{
+    lens::TransformPositionLens, Animator, EaseFunction, Tween, TweeningType,
+};
+
+use self::map::{LayerIndex, Map, MapPosition};
 
 mod color;
 mod gameplay;
@@ -61,7 +68,9 @@ impl Plugin for GamePlugin {
                     .with_system(ui::show_action_bar_ui)
                     .with_system(ui::handle_action_bar_shortcuts)
                     .with_system(ui::show_battlelog_ui)
-                    .with_system(ui::show_warrior_ui),
+                    .with_system(ui::show_warrior_ui)
+                    .with_system(map_position_update)
+                    .with_system(map_position_update_smoolthy::<200>),
             )
             .add_system_set(
                 SystemSet::on_update(GameState::Paused), // .with_system(ui::show_pause_menu)
@@ -76,4 +85,55 @@ fn setup_camera(mut commands: Commands) {
         // .with_scale((1.2, 1.2, 1.0).into()),
         ..OrthographicCameraBundle::new_2d()
     });
+}
+
+pub fn map_position_update_smoolthy<const DURATION: u64>(
+    map_query: Query<&Map>,
+    mut query: Query<
+        (
+            &Transform,
+            &MapPosition,
+            &LayerIndex,
+            &mut Animator<Transform>,
+        ),
+        Or<(Changed<MapPosition>, Changed<LayerIndex>)>,
+    >,
+) {
+    if map_query.is_empty() {
+        return;
+    }
+
+    let map = map_query.single();
+    for (transform, position, layer_index, mut animator) in query.iter_mut() {
+        // Could we append the new tween at the end of the current Animator's Sequence ?
+        animator.set_tweenable(Tween::new(
+            EaseFunction::CircularInOut,
+            TweeningType::Once,
+            Duration::from_millis(DURATION),
+            TransformPositionLens {
+                start: transform.translation.clone(),
+                end: position.to_xyz(map, layer_index),
+            },
+        ));
+    }
+}
+
+pub fn map_position_update(
+    map_query: Query<&Map>,
+    mut query: Query<
+        (&mut Transform, &MapPosition, &LayerIndex),
+        (
+            Without<Animator<Transform>>,
+            Or<(Changed<MapPosition>, Changed<LayerIndex>)>,
+        ),
+    >,
+) {
+    if map_query.is_empty() {
+        return;
+    }
+
+    let map = map_query.single();
+    for (mut transform, position, layer_index) in query.iter_mut() {
+        transform.translation = position.to_xyz(map, layer_index);
+    }
 }
