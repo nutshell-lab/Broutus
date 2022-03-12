@@ -56,7 +56,7 @@ pub fn show_splash(
 fn icon_index(collection: &Res<IconCollection>, key: &str) -> Option<egui::TextureId> {
     collection
         .get_index(key)
-        .map(|i| egui::TextureId::User(i as u64 + 1))
+        .map(|i| egui::TextureId::User(i as u64 + 10))
 }
 
 fn portrait_index(collection: &Res<PortraitCollection>, key: &str) -> Option<egui::TextureId> {
@@ -66,16 +66,22 @@ fn portrait_index(collection: &Res<PortraitCollection>, key: &str) -> Option<egu
 }
 
 /// Setup ui resources (like bind loaded textures)
-pub fn setup_ui(
+pub fn map_gui_textures(
     mut egui_context: ResMut<EguiContext>,
-    icon_collection: Res<IconCollection>,
-    portraits_collection: Res<PortraitCollection>,
+    startup: Res<StartupCollection>,
+    icons: Res<IconCollection>,
+    portraits: Res<PortraitCollection>,
 ) {
-    for (index, icon) in icon_collection.get_all().iter().enumerate() {
-        egui_context.set_egui_texture(1 + index as u64, icon.clone());
+    egui_context.set_egui_texture(0, startup.splash.clone());
+    egui_context.set_egui_texture(1, startup.start.clone());
+    egui_context.set_egui_texture(2, startup.options.clone());
+    egui_context.set_egui_texture(3, startup.exit.clone());
+
+    for (index, handle) in icons.get_all().iter().enumerate() {
+        egui_context.set_egui_texture(10 + index as u64, handle.clone());
     }
 
-    for (index, icon) in portraits_collection.get_all().iter().enumerate() {
-        egui_context.set_egui_texture(100 + index as u64, icon.clone());
+    for (index, handle) in portraits.get_all().iter().enumerate() {
+        egui_context.set_egui_texture(100 + index as u64, handle.clone());
     }
 }

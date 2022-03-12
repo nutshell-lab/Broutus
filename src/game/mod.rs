@@ -55,7 +55,7 @@ impl Plugin for GamePlugin {
             .add_system_set(
                 SystemSet::on_exit(GameState::Loading)
                     .with_system(setup_camera)
-                    .with_system(gui::setup_ui),
+                    .with_system(gui::map_gui_textures),
             )
             .add_system_set(
                 SystemSet::on_update(GameState::Menu).with_system(gui::menu::show_main_menu),

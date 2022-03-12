@@ -1,4 +1,3 @@
-use super::StartupCollection;
 use crate::game::GameState;
 use bevy::app::AppExit;
 use bevy::prelude::*;
@@ -9,14 +8,8 @@ pub fn show_main_menu(
     mut egui_context: ResMut<EguiContext>,
     mut game_state: ResMut<State<GameState>>,
     mut ew_exit: EventWriter<AppExit>,
-    collection: Res<StartupCollection>,
     windows: Res<Windows>,
 ) {
-    egui_context.set_egui_texture(0, collection.splash.clone());
-    egui_context.set_egui_texture(1, collection.start.clone());
-    egui_context.set_egui_texture(2, collection.options.clone());
-    egui_context.set_egui_texture(3, collection.exit.clone());
-
     let window = windows.get_primary().unwrap();
     egui::Window::new("broutus")
         .collapsible(false)
@@ -39,10 +32,12 @@ pub fn show_main_menu(
                         egui::TextureId::User(1),
                         (152., 47.),
                     ));
+                    ui.add_space(30.0);
                     let options = ui.add(egui::ImageButton::new(
                         egui::TextureId::User(2),
                         (203., 52.),
                     ));
+                    ui.add_space(30.0);
                     let exit = ui.add(egui::ImageButton::new(
                         egui::TextureId::User(3),
                         (119., 54.),

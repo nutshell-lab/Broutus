@@ -63,7 +63,8 @@ pub fn show_turn_ui(
                                     .bg_color(color::DEFAULT_BG_LIGHTER)
                                     .text_color(color::TEXT_LIGHT)
                                     .custom_text(health.as_text())
-                                    .desired_height(12.0),
+                                    .desired_height(12.0)
+                                    .corner_radius(2.0),
                             );
 
                             ui.add(
@@ -72,7 +73,8 @@ pub fn show_turn_ui(
                                     .bg_color(color::DEFAULT_BG_LIGHTER)
                                     .text_color(color::TEXT_LIGHT)
                                     .custom_text(shield.value().to_string())
-                                    .desired_height(12.0),
+                                    .desired_height(12.0)
+                                    .corner_radius(2.0),
                             );
                         });
 
@@ -163,8 +165,13 @@ pub fn show_health_bar_ui(
             ui.visuals_mut().selection.bg_fill = color::HEALTH.into();
             ui.add(
                 LightProgressBar::new(health.as_percentage())
+                    .fg_color(color::HEALTH)
+                    .bg_color(color::DEFAULT_BG_LIGHTER)
                     .custom_text(RichText::new(health.as_text()).color(color::BG_TEXT))
-                    .desired_width(500.0),
+                    .text_align(LightProgressBarTextAlign::Center)
+                    .desired_width(500.0)
+                    .desired_height(20.0)
+                    .corner_radius(5.0),
             );
         });
 }
