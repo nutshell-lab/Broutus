@@ -9,9 +9,8 @@ use self::map::{LayerIndex, Map, MapPosition};
 
 mod color;
 mod gameplay;
+mod gui;
 mod map;
-mod ui;
-mod widgets;
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub enum GameState {
@@ -20,9 +19,6 @@ pub enum GameState {
 
     // /// Show main menu
     Menu,
-
-    /// Prepare your team by picking
-    Picking,
 
     /// Fight !
     Arena,
@@ -42,32 +38,31 @@ impl Plugin for GamePlugin {
             .with_collection::<gameplay::AnimationCollection>()
             .with_collection::<gameplay::IconCollection>()
             .with_collection::<gameplay::PortraitCollection>()
-            .continue_to_state(GameState::Picking)
+            .continue_to_state(GameState::Arena)
             .build(app);
 
         app.add_state(GameState::Loading)
             .add_plugin(WorldInspectorPlugin::new())
             .add_plugin(map::TiledmapPlugin)
             .add_plugin(gameplay::GameplayPlugin)
-            .add_startup_system(setup_camera)
+            .add_system_set(
+                SystemSet::on_exit(GameState::Loading)
+                    .with_system(setup_camera)
+                    .with_system(gui::setup_ui),
+            )
             .add_system_set(
                 SystemSet::on_update(GameState::Menu), // .with_system(ui::show_main_menu)
             )
-            .add_system_set(SystemSet::on_enter(GameState::Picking).with_system(ui::setup_ui)) // TODO move this before menu
-            .add_system_set(
-                SystemSet::on_update(GameState::Picking).with_system(ui::show_warrior_selection_ui),
-            )
             .add_system_set(
                 SystemSet::on_update(GameState::Arena)
-                    .with_system(ui::show_turn_ui)
-                    .with_system(ui::show_turn_button_ui)
-                    .with_system(ui::show_health_bar_ui)
-                    .with_system(ui::show_action_points_ui)
-                    .with_system(ui::show_movement_points_ui)
-                    .with_system(ui::show_action_bar_ui)
-                    .with_system(ui::handle_action_bar_shortcuts)
-                    .with_system(ui::show_battlelog_ui)
-                    .with_system(ui::show_warrior_ui)
+                    .with_system(gui::arena::show_turn_ui)
+                    .with_system(gui::arena::show_turn_button_ui)
+                    .with_system(gui::arena::show_health_bar_ui)
+                    .with_system(gui::arena::show_action_points_ui)
+                    .with_system(gui::arena::show_movement_points_ui)
+                    .with_system(gui::arena::show_action_bar_ui)
+                    .with_system(gui::arena::handle_action_bar_shortcuts)
+                    .with_system(gui::arena::show_warrior_ui)
                     .with_system(map_position_update)
                     .with_system(map_position_update_smoolthy::<200>),
             )
