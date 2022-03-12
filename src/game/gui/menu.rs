@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use bevy_egui::egui;
 use bevy_egui::EguiContext;
 
-pub enum Menu {
+enum Menu {
     Main,
     Options,
 }

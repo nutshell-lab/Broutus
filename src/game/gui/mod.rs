@@ -1,7 +1,10 @@
 use bevy::prelude::*;
+use bevy::window::WindowId;
+use bevy::winit::WinitWindows;
 use bevy_asset_loader::AssetCollection;
 use bevy_egui::egui;
 use bevy_egui::EguiContext;
+use winit::window::Icon;
 
 pub mod arena;
 pub mod menu;
@@ -10,6 +13,9 @@ mod widgets;
 
 #[derive(AssetCollection)]
 pub struct StartupCollection {
+    #[asset(path = "icon.png")]
+    pub icon: Handle<Image>,
+
     #[asset(path = "splash.png")]
     pub splash: Handle<Image>,
 
@@ -105,4 +111,21 @@ pub fn map_gui_textures(
     for (index, handle) in icons.get_all().iter().enumerate() {
         egui_context.set_egui_texture(10 + index as u64, handle.clone());
     }
+}
+
+pub fn set_window_icon(
+    windows: Res<WinitWindows>,
+    images: Res<StartupCollection>,
+    server: Res<Assets<Image>>,
+) {
+    let primary = windows.get_window(WindowId::primary()).unwrap();
+    let icon = server.get(images.icon.clone()).unwrap();
+    let icon = Icon::from_rgba(
+        icon.data.clone(),
+        icon.texture_descriptor.size.width,
+        icon.texture_descriptor.size.height,
+    )
+    .unwrap();
+
+    primary.set_window_icon(Some(icon));
 }

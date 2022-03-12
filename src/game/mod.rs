@@ -1,9 +1,10 @@
 use std::time::Duration;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, window::WindowId, winit::WinitWindows};
 use bevy_asset_loader::AssetLoader;
 use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_tweening::{lens::TransformPositionLens, Animator, EaseFunction, Tween, TweeningType};
+use winit::window::Icon;
 
 use self::map::{LayerIndex, Map, MapPosition};
 
@@ -50,6 +51,9 @@ impl Plugin for GamePlugin {
             .add_plugin(WorldInspectorPlugin::new())
             .add_plugin(map::TiledmapPlugin)
             .add_plugin(gameplay::GameplayPlugin)
+            .add_system_set(
+                SystemSet::on_enter(GameState::Loading).with_system(gui::set_window_icon),
+            )
             .add_system_set(
                 SystemSet::on_update(GameState::Loading).with_system(gui::splash::show_splash),
             )
