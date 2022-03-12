@@ -4,11 +4,26 @@ use bevy::prelude::*;
 use bevy_egui::egui;
 use bevy_egui::EguiContext;
 
+pub enum Menu {
+    Main,
+    Options,
+}
+
+impl Default for Menu {
+    fn default() -> Self {
+        Self::Main
+    }
+}
+
+#[derive(Default)]
+pub struct SelectedMenu(Menu);
+
 pub fn show_main_menu(
     mut egui_context: ResMut<EguiContext>,
     mut game_state: ResMut<State<GameState>>,
     mut ew_exit: EventWriter<AppExit>,
     windows: Res<Windows>,
+    mut local: Local<SelectedMenu>,
 ) {
     let window = windows.get_primary().unwrap();
     egui::Window::new("broutus")
@@ -24,33 +39,55 @@ pub fn show_main_menu(
                 .stroke(egui::Stroke::none())
                 .fill(egui::Color32::from_black_alpha(0)),
         )
-        .show(egui_context.ctx_mut(), |ui| {
-            ui.centered_and_justified(|ui| {
-                ui.vertical_centered_justified(|ui| {
-                    ui.image(egui::TextureId::User(1), (768., 480.));
-                    let start = ui.add(egui::ImageButton::new(
-                        egui::TextureId::User(2),
-                        (152., 47.),
-                    ));
-                    ui.add_space(30.0);
-                    let options = ui.add(egui::ImageButton::new(
-                        egui::TextureId::User(3),
-                        (203., 52.),
-                    ));
-                    ui.add_space(30.0);
-                    let exit = ui.add(egui::ImageButton::new(
-                        egui::TextureId::User(4),
-                        (119., 54.),
-                    ));
+        .show(egui_context.ctx_mut(), |ui| match local.0 {
+            Menu::Main => {
+                ui.centered_and_justified(|ui| {
+                    ui.vertical_centered_justified(|ui| {
+                        ui.image(egui::TextureId::User(1), (768., 480.));
+                        let start = ui.add(egui::ImageButton::new(
+                            egui::TextureId::User(2),
+                            (152., 47.),
+                        ));
+                        ui.add_space(30.0);
+                        let options = ui.add(egui::ImageButton::new(
+                            egui::TextureId::User(3),
+                            (203., 52.),
+                        ));
+                        ui.add_space(30.0);
+                        let exit = ui.add(egui::ImageButton::new(
+                            egui::TextureId::User(4),
+                            (119., 54.),
+                        ));
 
-                    if start.clicked() {
-                        game_state.set(GameState::Arena).unwrap();
-                    }
+                        if start.clicked() {
+                            game_state.set(GameState::Arena).unwrap();
+                        }
 
-                    if exit.clicked() {
-                        ew_exit.send(AppExit);
-                    }
+                        if options.clicked() {
+                            local.0 = Menu::Options;
+                        }
+
+                        if exit.clicked() {
+                            ew_exit.send(AppExit);
+                        }
+                    });
                 });
-            });
+            }
+            Menu::Options => {
+                ui.centered_and_justified(|ui| {
+                    ui.vertical_centered_justified(|ui| {
+                        ui.image(egui::TextureId::User(1), (768., 480.));
+
+                        let back = ui.add(egui::ImageButton::new(
+                            egui::TextureId::User(5),
+                            (186., 45.),
+                        ));
+
+                        if back.clicked() {
+                            local.0 = Menu::Main;
+                        }
+                    });
+                });
+            }
         });
 }

@@ -14,16 +14,19 @@ pub struct StartupCollection {
     pub splash: Handle<Image>,
 
     #[asset(path = "title.png")]
-    pub title: Handle<Image>,
+    pub btn_title: Handle<Image>,
 
     #[asset(path = "main_menu_start.png")]
-    pub start: Handle<Image>,
+    pub btn_start: Handle<Image>,
 
     #[asset(path = "main_menu_options.png")]
-    pub options: Handle<Image>,
+    pub btn_options: Handle<Image>,
 
     #[asset(path = "main_menu_exit.png")]
-    pub exit: Handle<Image>,
+    pub btn_exit: Handle<Image>,
+
+    #[asset(path = "main_menu_return.png")]
+    pub btn_return: Handle<Image>,
 }
 
 // TODO find a way to load a folder into as HashMap<String, Handle<..>>
@@ -93,10 +96,11 @@ pub fn map_gui_textures(
     icons: Res<IconCollection>,
 ) {
     egui_context.set_egui_texture(0, startup.splash.clone());
-    egui_context.set_egui_texture(1, startup.title.clone());
-    egui_context.set_egui_texture(2, startup.start.clone());
-    egui_context.set_egui_texture(3, startup.options.clone());
-    egui_context.set_egui_texture(4, startup.exit.clone());
+    egui_context.set_egui_texture(1, startup.btn_title.clone());
+    egui_context.set_egui_texture(2, startup.btn_start.clone());
+    egui_context.set_egui_texture(3, startup.btn_options.clone());
+    egui_context.set_egui_texture(4, startup.btn_exit.clone());
+    egui_context.set_egui_texture(5, startup.btn_return.clone());
 
     for (index, handle) in icons.get_all().iter().enumerate() {
         egui_context.set_egui_texture(10 + index as u64, handle.clone());
