@@ -12,6 +12,7 @@ fn main() {
             title: String::from("Broutus"),
             ..Default::default()
         })
+        .insert_resource(ClearColor(Color::rgb_u8(29, 32, 31)))
         .add_plugins(DefaultPlugins)
         .add_plugin(TweeningPlugin)
         // .add_plugin(LogDiagnosticsPlugin::default())

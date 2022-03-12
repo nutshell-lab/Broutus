@@ -14,6 +14,9 @@ mod map;
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub enum GameState {
+    /// Load splashscreen
+    Startup,
+
     /// Load all game assets
     Loading,
 
@@ -22,15 +25,18 @@ pub enum GameState {
 
     /// Fight !
     Arena,
-
-    /// Game is paused (suspend turn timer)
-    Paused,
 }
 
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
+        AssetLoader::new(GameState::Startup)
+            .with_asset_collection_file("dynamic.assets")
+            .with_collection::<gui::StartupCollection>()
+            .continue_to_state(GameState::Loading)
+            .build(app);
+
         AssetLoader::new(GameState::Loading)
             .with_asset_collection_file("dynamic.assets")
             .with_collection::<map::MapsAssets>()
@@ -38,20 +44,21 @@ impl Plugin for GamePlugin {
             .with_collection::<gameplay::AnimationCollection>()
             .with_collection::<gameplay::IconCollection>()
             .with_collection::<gameplay::PortraitCollection>()
-            .continue_to_state(GameState::Arena)
+            .continue_to_state(GameState::Menu)
             .build(app);
 
-        app.add_state(GameState::Loading)
+        app.add_state(GameState::Startup)
             .add_plugin(WorldInspectorPlugin::new())
             .add_plugin(map::TiledmapPlugin)
             .add_plugin(gameplay::GameplayPlugin)
+            .add_system_set(SystemSet::on_update(GameState::Loading).with_system(gui::show_splash))
             .add_system_set(
                 SystemSet::on_exit(GameState::Loading)
                     .with_system(setup_camera)
                     .with_system(gui::setup_ui),
             )
             .add_system_set(
-                SystemSet::on_update(GameState::Menu), // .with_system(ui::show_main_menu)
+                SystemSet::on_update(GameState::Menu).with_system(gui::menu::show_main_menu),
             )
             .add_system_set(
                 SystemSet::on_update(GameState::Arena)
@@ -65,9 +72,6 @@ impl Plugin for GamePlugin {
                     .with_system(gui::arena::show_warrior_ui)
                     .with_system(map_position_update)
                     .with_system(map_position_update_smoolthy::<200>),
-            )
-            .add_system_set(
-                SystemSet::on_update(GameState::Paused), // .with_system(ui::show_pause_menu)
             );
     }
 }

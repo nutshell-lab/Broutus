@@ -1,8 +1,6 @@
 use bevy::prelude::Color as ColorBevy;
 use bevy_egui::egui::Color32;
 
-// https://coolors.co/c8122c-f7b538-388057-4e4187-5bd17d
-
 #[derive(Copy, Clone)]
 pub struct Color(u8, u8, u8);
 
