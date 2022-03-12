@@ -1,10 +1,9 @@
 use std::time::Duration;
 
-use bevy::{prelude::*, window::WindowId, winit::WinitWindows};
+use bevy::prelude::*;
 use bevy_asset_loader::AssetLoader;
 use bevy_inspector_egui::WorldInspectorPlugin;
 use bevy_tweening::{lens::TransformPositionLens, Animator, EaseFunction, Tween, TweeningType};
-use winit::window::Icon;
 
 use self::map::{LayerIndex, Map, MapPosition};
 
@@ -76,10 +75,11 @@ impl Plugin for GamePlugin {
                     .with_system(gui::arena::handle_action_bar_shortcuts)
                     .with_system(gui::arena::show_warrior_ui)
                     .with_system(map_position_update)
-                    .with_system(map_position_update_smoolthy::<200>),
+                    .with_system(map_position_update_smoolthy::<150>),
             );
     }
 }
+
 
 /// Spawn the main camera
 fn setup_camera(mut commands: Commands) {
