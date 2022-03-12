@@ -21,7 +21,7 @@
     shield: (
         value: Shield(0),
         min: Shield(0),
-        max: Shield(10000),
+        max: Shield(0),
     ),
     action_points: (
         value: ActionPoints(8),
@@ -40,7 +40,7 @@
             animation_key: "action_shoot",
             cost: ActionPoints(4),
             aoe: Zone(min_distance: 0, max_distance: 1),
-            range: Around(min_distance: 2, max_distance: 6, check_los: true),
+            range: Around(min_distance: 3, max_distance: 8, check_los: true),
             effects: [Damage(amount: 120, erode: 0.1, crit_mult: 1.4, crit_chance: 0.30)]
         ),
         Action(

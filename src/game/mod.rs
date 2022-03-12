@@ -3,9 +3,7 @@ use std::time::Duration;
 use bevy::prelude::*;
 use bevy_asset_loader::AssetLoader;
 use bevy_inspector_egui::WorldInspectorPlugin;
-use bevy_tweening::{
-    lens::TransformPositionLens, Animator, EaseFunction, Tween, TweeningType,
-};
+use bevy_tweening::{lens::TransformPositionLens, Animator, EaseFunction, Tween, TweeningType};
 
 use self::map::{LayerIndex, Map, MapPosition};
 
@@ -13,6 +11,7 @@ mod color;
 mod gameplay;
 mod map;
 mod ui;
+mod widgets;
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub enum GameState {
@@ -107,7 +106,7 @@ pub fn map_position_update_smoolthy<const DURATION: u64>(
     for (transform, position, layer_index, mut animator) in query.iter_mut() {
         // Could we append the new tween at the end of the current Animator's Sequence ?
         animator.set_tweenable(Tween::new(
-            EaseFunction::CircularInOut,
+            EaseFunction::ExponentialIn,
             TweeningType::Once,
             Duration::from_millis(DURATION),
             TransformPositionLens {

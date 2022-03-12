@@ -52,7 +52,7 @@ impl Action {
         to_position: &MapPosition,
         mut map_query: &mut MapQuery,
         warrior_query: &mut Query<(Entity, &Warrior, &MapPosition)>,
-        ev_warrior: &mut WarriorEventWriterQuery,
+        ev_warrior: &mut events::WarriorEventWriterQuery,
     ) {
         use rand::prelude::*;
         let mut rng = rand::thread_rng();
@@ -73,7 +73,9 @@ impl Action {
                             let is_crit = crit_chance >= rng.gen();
                             let mutl = if is_crit { crit_mult } else { 1.0 };
                             let amount = (amount as f32 * mutl).round() as u32;
-                            ev_warrior.ew_damage.send(Damage(entity, amount, erode));
+                            ev_warrior
+                                .ew_damage
+                                .send(events::Damage(entity, amount, erode));
                         }
                     }
                 }
@@ -85,11 +87,17 @@ impl Action {
                 &ActionEffect::Heal { amount } => {
                     for (entity, _w, position) in warrior_query.iter() {
                         if hit_positions.contains(&position) {
-                            ev_warrior.ew_heal.send(Heal(entity, amount));
+                            ev_warrior.ew_heal.send(events::Heal(entity, amount));
                         }
                     }
                 }
-                &ActionEffect::Shield { amount } => {}
+                &ActionEffect::Shield { amount } => {
+                    for (entity, _w, position) in warrior_query.iter() {
+                        if hit_positions.contains(&position) {
+                            ev_warrior.ew_shield.send(events::Shield(entity, amount));
+                        }
+                    }
+                }
                 &ActionEffect::RemoveActionPoints { amount } => {}
                 &ActionEffect::RemoveMovementPoints { amount } => {}
                 &ActionEffect::StealActionPoints { amount } => {}
@@ -109,7 +117,9 @@ impl Action {
                         == 0;
 
                     if is_empty {
-                        ev_warrior.ew_move.send(Move(warrior.0, *to_position));
+                        ev_warrior
+                            .ew_move
+                            .send(events::Move(warrior.0, *to_position));
                     }
                 }
                 &ActionEffect::TeleportSwitch => {
@@ -123,8 +133,8 @@ impl Action {
                         .find(|(_, _, &position)| position.eq(to_position));
 
                     if let Some(right) = right {
-                        ev_warrior.ew_move.send(Move(left.0, *right.2));
-                        ev_warrior.ew_move.send(Move(right.0, *left.2));
+                        ev_warrior.ew_move.send(events::Move(left.0, *right.2));
+                        ev_warrior.ew_move.send(events::Move(right.0, *left.2));
                     }
                 }
             }
@@ -151,6 +161,12 @@ impl Action {
                 })
             },
         );
+    }
+
+    pub fn show_effects_ui(&self, mut ui: &mut egui::Ui) {
+        for effect in self.effects.iter() {
+            effect.show_description_ui(&mut ui);
+        }
     }
 }
 
@@ -426,7 +442,7 @@ impl ActionEffect {
             ActionEffect::WalkTo { to } => {}
             ActionEffect::Damage { amount, .. } => {
                 ui.label(
-                    egui::RichText::new(format!("removes {} health", amount))
+                    egui::RichText::new(format!("-{} health", amount))
                         .strong()
                         .color(color::ACTION_BAD),
                 );
@@ -435,31 +451,28 @@ impl ActionEffect {
                 amount, duration, ..
             } => {
                 ui.label(
-                    egui::RichText::new(format!(
-                        "removes {} health, for {} turns",
-                        amount, duration
-                    ))
-                    .strong()
-                    .color(color::ACTION_BAD),
+                    egui::RichText::new(format!("-{} health, for {} turns", amount, duration))
+                        .strong()
+                        .color(color::ACTION_BAD),
                 );
             }
             ActionEffect::Heal { amount, .. } => {
                 ui.label(
-                    egui::RichText::new(format!("restores {} health", amount))
+                    egui::RichText::new(format!("+{} health", amount))
                         .strong()
                         .color(color::ACTION_GOOD),
                 );
             }
             ActionEffect::Shield { amount, .. } => {
                 ui.label(
-                    egui::RichText::new(format!("gives {} shield", amount))
+                    egui::RichText::new(format!("+{} shield", amount))
                         .strong()
                         .color(color::ACTION_GOOD),
                 );
             }
             ActionEffect::RemoveActionPoints { amount, .. } => {
                 ui.label(
-                    egui::RichText::new(format!("removes {} action points", amount))
+                    egui::RichText::new(format!("-{} action points", amount))
                         .strong()
                         .color(color::ACTION_BAD),
                 );
@@ -473,7 +486,7 @@ impl ActionEffect {
             }
             ActionEffect::RemoveMovementPoints { amount, .. } => {
                 ui.label(
-                    egui::RichText::new(format!("removes {} movement points", amount))
+                    egui::RichText::new(format!("-{} movement points", amount))
                         .strong()
                         .color(color::ACTION_BAD),
                 );
@@ -501,12 +514,9 @@ impl ActionEffect {
             }
             ActionEffect::Push { distance } => {
                 ui.label(
-                    egui::RichText::new(format!(
-                        "pushes the target {} tiles away from you",
-                        distance
-                    ))
-                    .strong()
-                    .color(color::ACTION_NEUTRAL),
+                    egui::RichText::new(format!("pushes {} tiles away", distance))
+                        .strong()
+                        .color(color::ACTION_NEUTRAL),
                 );
             }
         }

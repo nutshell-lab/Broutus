@@ -25,11 +25,14 @@ impl From<Color> for ColorBevy {
 }
 
 pub const BG_TEXT: Color = Color(243, 243, 247);
-pub const DEFAULT_BG: Color = Color(36, 35, 49);
 pub const WHITE_BG: Color = Color(255, 255, 255);
+pub const DEFAULT_BG: Color = Color(36, 35, 49);
+pub const DEFAULT_BG_LIGHTER: Color = Color(70, 68, 95);
+pub const TEXT_LIGHT: Color = Color(231, 235, 238);
 pub const HIGHLIGHT_BORDER: Color = Color(195, 197, 213);
 
 pub const HEALTH: Color = Color(200, 18, 44);
+pub const SHIELD: Color = Color(147, 205, 240);
 pub const ACTION_POINTS: Color = Color(247, 181, 56);
 pub const MOVEMENT_POINTS: Color = Color(74, 191, 178);
 

@@ -1,7 +1,7 @@
 use super::super::{MapPosition, MapPositionPath};
 use bevy::prelude::*;
 use bevy::utils::HashMap;
-use bevy_tweening::{Animator};
+use bevy_tweening::Animator;
 
 #[derive(Reflect, Component, Default)]
 #[reflect(Component)]

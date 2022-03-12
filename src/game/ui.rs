@@ -4,6 +4,7 @@ use super::map::LayerIndex;
 use super::map::Map;
 use super::map::MapPosition;
 use super::map::MouseMapPosition;
+use super::widgets::*;
 use super::GameState;
 use bevy::prelude::*;
 use bevy_egui::egui;
@@ -190,15 +191,7 @@ pub fn show_warrior_selection_ui(
 /// Display all infos about the turn system in a dedicated window
 pub fn show_turn_ui(
     turn: Res<Turn>,
-    warrior_query: Query<
-        (
-            &Name,
-            &Attribute<Health>,
-            &Attribute<ActionPoints>,
-            &Attribute<MovementPoints>,
-        ),
-        With<Warrior>,
-    >,
+    warrior_query: Query<(&Name, &Attribute<Health>, &Attribute<Shield>), With<Warrior>>,
     mut egui_context: ResMut<EguiContext>,
     team_query: Query<&Team, With<Warrior>>,
 ) {
@@ -224,7 +217,7 @@ pub fn show_turn_ui(
             while display_slots > 0 {
                 let offset = if index == 0 { turn.order_index } else { 0 };
                 for &entity in turn.order.iter().skip(offset).take(display_slots) {
-                    let (name, health, _, _) = warrior_query.get(entity).unwrap();
+                    let (name, health, shield) = warrior_query.get(entity).unwrap();
                     let color = team_query.get(entity).unwrap().color();
                     let stroke = if index == 0 && display_slots == turn.order.len() {
                         egui::Stroke::new(2.0, color::HIGHLIGHT_BORDER)
@@ -239,10 +232,23 @@ pub fn show_turn_ui(
                         .fill(color::DEFAULT_BG.into())
                         .show(ui, |ui| {
                             ui.label(egui::RichText::new(name.as_str()).color(color).strong());
+
                             ui.add(
-                                ProgressBar::new(health.as_percentage()).text(
-                                    egui::RichText::new(health.as_text()).color(color::BG_TEXT),
-                                ),
+                                LightProgressBar::new(health.as_percentage())
+                                    .fg_color(color::HEALTH)
+                                    .bg_color(color::DEFAULT_BG_LIGHTER)
+                                    .text_color(color::TEXT_LIGHT)
+                                    .custom_text(health.as_text())
+                                    .desired_height(12.0),
+                            );
+
+                            ui.add(
+                                LightProgressBar::new(shield.as_percentage())
+                                    .fg_color(color::SHIELD)
+                                    .bg_color(color::DEFAULT_BG_LIGHTER)
+                                    .text_color(color::TEXT_LIGHT)
+                                    .custom_text(shield.value().to_string())
+                                    .desired_height(12.0),
                             );
                         });
 
@@ -589,14 +595,25 @@ pub fn show_battlelog_ui(mut egui_context: ResMut<EguiContext>) {
 
 /// Show a bubble on top of the head of warrior on hover
 pub fn show_warrior_ui(
+    turn: Res<Turn>,
     windows: Res<Windows>,
     mouse_position: Res<MouseMapPosition>,
     selected_action: Res<SelectedAction>,
     map_query: Query<&Map>,
-    warrior_query: Query<(Entity, &Name, &Attribute<Health>, &MapPosition), With<Warrior>>,
+    warrior_query: Query<
+        (
+            Entity,
+            &Name,
+            &Team,
+            &Attribute<Health>,
+            &Attribute<Shield>,
+            &MapPosition,
+        ),
+        With<Warrior>,
+    >,
+    actions_query: Query<&Actions>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
     mut egui_context: ResMut<EguiContext>,
-    team_query: Query<&Team, With<Warrior>>,
 ) {
     if map_query.is_empty() {
         return;
@@ -609,7 +626,7 @@ pub fn show_warrior_ui(
         let map = map_query.single();
         let (camera, camera_transform) = camera_query.single();
 
-        for (entity, name, health, position) in warrior_query.iter() {
+        for (entity, name, team, health, shield, position) in warrior_query.iter() {
             if mouse_position.ne(position) {
                 continue;
             }
@@ -619,9 +636,9 @@ pub fn show_warrior_ui(
             if let Some(hover_position) =
                 camera.world_to_screen(windows.as_ref(), camera_transform, world_position)
             {
-                let color = team_query.get(entity).unwrap().color();
+                let color = team.color();
                 let main_window = windows.get_primary().unwrap();
-                egui::containers::Window::new("warrior_mouse_hover")
+                egui::containers::Window::new(format!("warrior_mouse_hover_{}", entity.id()))
                     .collapsible(false)
                     .resizable(false)
                     .title_bar(false)
@@ -638,26 +655,30 @@ pub fn show_warrior_ui(
                             .corner_radius(5.0),
                     )
                     .show(egui_context.ctx_mut(), |ui| {
-                        ui.label(egui::RichText::new(name.as_str()).color(color).heading());
+                        ui.label(egui::RichText::new(name.as_str()).color(color).monospace());
                         ui.visuals_mut().selection.bg_fill = color::HEALTH.into();
                         ui.add(
-                            ProgressBar::new(health.as_percentage())
-                                .text(egui::RichText::new(health.as_text()).color(color::BG_TEXT)),
+                            LightProgressBar::new(health.as_percentage())
+                                .fg_color(color::HEALTH)
+                                .bg_color(color::DEFAULT_BG_LIGHTER)
+                                .desired_height(4.0),
+                        );
+                        ui.add(
+                            LightProgressBar::new(shield.as_percentage())
+                                .fg_color(color::SHIELD)
+                                .bg_color(color::DEFAULT_BG_LIGHTER)
+                                .desired_height(4.0),
                         );
 
                         // Preview selected action consequences on the hovered warrior
-                        if selected_action.0.is_some() {
-                            ui.separator();
-                            ui.label(
-                                egui::RichText::new("Slash")
-                                    .color(color::ACTION_POINTS)
-                                    .text_style(egui::TextStyle::Button),
-                            );
-                            ui.label(
-                                egui::RichText::new("-15 health")
-                                    .color(color::HEALTH)
-                                    .strong(),
-                            );
+                        if let Some(selected_action) = selected_action.0 {
+                            let actions = actions_query
+                                .get(turn.get_current_warrior_entity().unwrap())
+                                .unwrap();
+                            if let Some(action) = actions.0.get(selected_action) {
+                                ui.separator();
+                                action.show_effects_ui(ui);
+                            }
                         }
                     });
             }

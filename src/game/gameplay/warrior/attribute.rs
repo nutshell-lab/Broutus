@@ -97,6 +97,20 @@ impl Attribute<Health> {
     }
 }
 
+impl Attribute<Shield> {
+    pub fn damage(&mut self, amount: u32) -> u32 {
+        let remaining = self.drop(amount);
+        self.set_max(Shield(self.value()));
+
+        remaining
+    }
+
+    pub fn protect(&mut self, amount: u32) -> u32 {
+        self.set_max(Shield(self.value() + amount));
+        self.rise(amount)
+    }
+}
+
 /// A way to interact with attributes NewTypes (maybe their is a better way ?)
 pub trait AttributeValue {
     fn value(&self) -> u32;

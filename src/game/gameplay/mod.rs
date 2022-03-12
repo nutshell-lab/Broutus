@@ -23,10 +23,11 @@ impl Plugin for GameplayPlugin {
             .register_type::<AnimationTimer>()
             .add_event::<TurnStart>()
             .add_event::<TurnEnd>()
-            .add_event::<Damage>()
-            .add_event::<Heal>()
-            .add_event::<DrainHealth>()
-            .add_event::<Move>()
+            .add_event::<events::Damage>()
+            .add_event::<events::Heal>()
+            .add_event::<events::Shield>()
+            .add_event::<events::DrainHealth>()
+            .add_event::<events::Move>()
             .add_system_set(SystemSet::on_enter(GameState::Arena).with_system(spawn_warriors))
             .add_system_set(
                 SystemSet::on_update(GameState::Arena)
@@ -37,10 +38,11 @@ impl Plugin for GameplayPlugin {
                     .with_system(reset_warrior_attributes_on_turn_end)
                     .with_system(handle_warrior_action_on_click)
                     .with_system(apply_active_effects)
-                    .with_system(process_damage_event)
-                    .with_system(process_heal_event)
-                    .with_system(process_drain_health_event)
-                    .with_system(process_move_event)
+                    .with_system(events::process_damage_event)
+                    .with_system(events::process_heal_event)
+                    .with_system(events::process_shield_event)
+                    .with_system(events::process_drain_health_event)
+                    .with_system(events::process_move_event)
                     .with_system(despawn_warrior_on_death),
             )
             .add_system_set(
@@ -262,7 +264,7 @@ fn highlight_potential_movement(
 fn handle_warrior_action_on_click(
     turn: Res<Turn>,
     mut ev_clicked: EventReader<TileLeftClickedEvent>,
-    mut ev_warrior: WarriorEventWriterQuery,
+    mut ev_warrior: events::WarriorEventWriterQuery,
     mut selected_action: ResMut<SelectedAction>,
     mut warrior_query: QuerySet<(
         QueryState<(Entity, &Warrior, &MapPosition)>,

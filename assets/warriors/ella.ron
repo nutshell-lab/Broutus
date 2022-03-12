@@ -21,7 +21,7 @@
     shield: (
         value: Shield(0),
         min: Shield(0),
-        max: Shield(10000),
+        max: Shield(0),
     ),
     action_points: (
         value: ActionPoints(8),

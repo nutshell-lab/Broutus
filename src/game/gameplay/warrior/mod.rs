@@ -1,7 +1,7 @@
 mod action;
 mod asset;
 mod attribute;
-mod events;
+pub mod events;
 mod render;
 
 use bevy::prelude::*;
@@ -11,7 +11,6 @@ use std::time::Duration;
 pub use action::*;
 pub use asset::*;
 pub use attribute::*;
-pub use events::*;
 pub use render::*;
 
 use crate::game::map::{LayerIndex, MapPosition};

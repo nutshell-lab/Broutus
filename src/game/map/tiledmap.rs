@@ -173,7 +173,7 @@ pub fn spawn_tiledmap(
                         let mut sprite = TextureAtlasSprite::new(tile.gid as usize - 1);
                         // Set obstacle a little transparent
                         sprite.color = if layer_index == 2 {
-                            Color::rgba(1., 1., 1., 0.85)
+                            Color::rgba(1., 1., 1., 0.95)
                         } else {
                             Color::rgba(1., 1., 1., 1.)
                         };
