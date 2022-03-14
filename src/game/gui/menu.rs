@@ -44,39 +44,45 @@ pub fn show_main_menu(
                 ui.centered_and_justified(|ui| {
                     ui.vertical_centered_justified(|ui| {
                         ui.image(egui::TextureId::User(1), (768., 480.));
-                        let start = ui.add(egui::ImageButton::new(
-                            egui::TextureId::User(2),
-                            (152., 47.),
-                        ));
-                        ui.add_space(30.0);
-                        let resume = ui.add_enabled(
-                            false,
-                            egui::ImageButton::new(egui::TextureId::User(3), (184., 41.)),
-                        );
+
+                        match *game_state.current() {
+                            GameState::Menu => {
+                                let start = ui.add(egui::ImageButton::new(
+                                    egui::TextureId::User(2),
+                                    (152., 47.),
+                                ));
+
+                                if start.clicked() {
+                                    game_state.push(GameState::Arena).unwrap();
+                                }
+                            }
+                            GameState::Paused => {
+                                let start = ui.add(egui::ImageButton::new(
+                                    egui::TextureId::User(3),
+                                    (152., 47.),
+                                ));
+
+                                if start.clicked() {
+                                    game_state.pop().unwrap();
+                                }
+                            }
+                            _ => (),
+                        }
+
                         ui.add_space(30.0);
                         let options = ui.add(egui::ImageButton::new(
                             egui::TextureId::User(4),
                             (203., 52.),
                         ));
+                        if options.clicked() {
+                            local.0 = Menu::Options;
+                        }
+
                         ui.add_space(30.0);
                         let exit = ui.add(egui::ImageButton::new(
                             egui::TextureId::User(5),
                             (119., 54.),
                         ));
-
-                        if start.clicked() {
-                            game_state.set(GameState::Arena).unwrap();
-                        }
-
-                        if resume.clicked() {
-                            // TODO do something
-                            unimplemented!();
-                        }
-
-                        if options.clicked() {
-                            local.0 = Menu::Options;
-                        }
-
                         if exit.clicked() {
                             ew_exit.send(AppExit);
                         }

@@ -4,6 +4,7 @@ use super::IconCollection;
 use crate::game::color;
 use crate::game::gameplay::*;
 use crate::game::map::*;
+use crate::game::GameState;
 use bevy::ecs::prelude::*;
 use bevy::input::prelude::*;
 use bevy::prelude::Camera;
@@ -12,6 +13,66 @@ use bevy::prelude::Name;
 use bevy::window::Windows;
 use bevy_egui::egui::*;
 use bevy_egui::EguiContext;
+
+pub fn handle_escape_shortcut(mut game_state: ResMut<State<GameState>>, keys: Res<Input<KeyCode>>) {
+    if keys.just_pressed(KeyCode::Escape) {
+        game_state.push(GameState::Paused).unwrap();
+    }
+}
+
+pub fn handle_action_bar_shortcuts(
+    mut selected_action: ResMut<SelectedAction>,
+    keys: Res<Input<KeyCode>>,
+    buttons: Res<Input<MouseButton>>,
+    turn: Res<Turn>,
+    warrior_query: Query<&Attribute<ActionPoints>, With<Warrior>>,
+) {
+    if keys.just_pressed(KeyCode::Escape) || buttons.just_pressed(MouseButton::Right) {
+        selected_action.0 = None;
+    }
+
+    let entity = turn.get_current_warrior_entity().unwrap();
+    let action_points = warrior_query.get(entity).unwrap();
+    let is_disabled = action_points.value() < 3; // TODO replace by the real action cost, for each action
+
+    if is_disabled {
+        return;
+    }
+
+    // TODO switch to ScanCode to be layout agnostic
+    // see: https://bevy-cheatbook.github.io/input/keyboard.html#layout-agnostic-key-bindings
+    if keys.just_pressed(KeyCode::Key1) {
+        selected_action.0 = Some(0);
+    }
+
+    if keys.just_pressed(KeyCode::Key2) {
+        selected_action.0 = Some(1);
+    }
+
+    if keys.just_pressed(KeyCode::Key3) {
+        selected_action.0 = Some(2);
+    }
+
+    if keys.just_pressed(KeyCode::Key4) {
+        selected_action.0 = Some(3);
+    }
+
+    if keys.just_pressed(KeyCode::Key5) {
+        selected_action.0 = Some(4);
+    }
+
+    if keys.just_pressed(KeyCode::Key6) {
+        selected_action.0 = Some(5);
+    }
+
+    if keys.just_pressed(KeyCode::Key7) {
+        selected_action.0 = Some(6);
+    }
+
+    if keys.just_pressed(KeyCode::Key8) {
+        selected_action.0 = Some(7);
+    }
+}
 
 /// Display all infos about the turn system in a dedicated window
 pub fn show_turn_ui(
@@ -311,60 +372,6 @@ pub fn show_action_bar_ui(
                     }
                 });
         });
-}
-
-pub fn handle_action_bar_shortcuts(
-    mut selected_action: ResMut<SelectedAction>,
-    keys: Res<Input<KeyCode>>,
-    buttons: Res<Input<MouseButton>>,
-    turn: Res<Turn>,
-    warrior_query: Query<&Attribute<ActionPoints>, With<Warrior>>,
-) {
-    if keys.just_pressed(KeyCode::Escape) || buttons.just_pressed(MouseButton::Right) {
-        selected_action.0 = None;
-    }
-
-    let entity = turn.get_current_warrior_entity().unwrap();
-    let action_points = warrior_query.get(entity).unwrap();
-    let is_disabled = action_points.value() < 3; // TODO replace by the real action cost, for each action
-
-    if is_disabled {
-        return;
-    }
-
-    // TODO switch to ScanCode to be layout agnostic
-    // see: https://bevy-cheatbook.github.io/input/keyboard.html#layout-agnostic-key-bindings
-    if keys.just_pressed(KeyCode::Key1) {
-        selected_action.0 = Some(0);
-    }
-
-    if keys.just_pressed(KeyCode::Key2) {
-        selected_action.0 = Some(1);
-    }
-
-    if keys.just_pressed(KeyCode::Key3) {
-        selected_action.0 = Some(2);
-    }
-
-    if keys.just_pressed(KeyCode::Key4) {
-        selected_action.0 = Some(3);
-    }
-
-    if keys.just_pressed(KeyCode::Key5) {
-        selected_action.0 = Some(4);
-    }
-
-    if keys.just_pressed(KeyCode::Key6) {
-        selected_action.0 = Some(5);
-    }
-
-    if keys.just_pressed(KeyCode::Key7) {
-        selected_action.0 = Some(6);
-    }
-
-    if keys.just_pressed(KeyCode::Key8) {
-        selected_action.0 = Some(7);
-    }
 }
 
 /// Show a bubble on top of the head of warrior on hover

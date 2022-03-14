@@ -20,11 +20,14 @@ pub enum GameState {
     /// Load all game assets
     Loading,
 
-    // /// Show main menu
+    /// Show main menu
     Menu,
 
     /// Fight !
     Arena,
+
+    /// Game is Paused
+    Paused,
 }
 
 pub struct GamePlugin;
@@ -66,16 +69,20 @@ impl Plugin for GamePlugin {
             )
             .add_system_set(
                 SystemSet::on_update(GameState::Arena)
+                    .with_system(gui::arena::handle_escape_shortcut)
+                    .with_system(gui::arena::handle_action_bar_shortcuts)
                     .with_system(gui::arena::show_turn_ui)
                     .with_system(gui::arena::show_turn_button_ui)
                     .with_system(gui::arena::show_health_bar_ui)
                     .with_system(gui::arena::show_action_points_ui)
                     .with_system(gui::arena::show_movement_points_ui)
                     .with_system(gui::arena::show_action_bar_ui)
-                    .with_system(gui::arena::handle_action_bar_shortcuts)
                     .with_system(gui::arena::show_warrior_ui)
                     .with_system(map_position_update)
                     .with_system(map_position_update_smoolthy::<150>),
+            )
+            .add_system_set(
+                SystemSet::on_update(GameState::Paused).with_system(gui::menu::show_main_menu),
             );
     }
 }

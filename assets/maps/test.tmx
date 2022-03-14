@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.5" tiledversion="1.7.2" orientation="isometric" renderorder="right-down" width="16" height="16" tilewidth="128" tileheight="64" infinite="0" backgroundcolor="#ffffff" nextlayerid="5" nextobjectid="1">
+<map version="1.5" tiledversion="1.7.2" orientation="isometric" renderorder="right-down" width="16" height="16" tilewidth="128" tileheight="64" infinite="0" backgroundcolor="#000000" nextlayerid="5" nextobjectid="1">
  <tileset firstgid="1" source="tileset_1.tsx"/>
  <layer id="1" name="ground" width="16" height="16">
   <data encoding="csv">
 18,14,14,14,14,14,14,14,14,14,14,14,14,14,14,19,
+13,23,2,2,2,2,2,2,2,2,2,2,2,2,2,15,
 13,2,2,2,2,2,2,2,2,2,2,2,2,2,2,15,
 13,2,2,2,2,2,2,2,2,2,2,2,2,2,2,15,
 13,2,2,2,2,2,2,2,2,2,2,2,2,2,2,15,
@@ -16,8 +17,7 @@
 13,2,2,2,2,2,2,2,2,2,2,2,2,2,2,15,
 13,2,2,2,2,2,2,2,2,2,2,2,2,2,2,15,
 13,2,2,2,2,2,2,2,2,2,2,2,2,2,2,15,
-13,2,2,2,2,2,2,2,2,2,2,2,2,2,2,15,
-13,2,2,2,2,2,2,2,2,2,2,2,2,2,2,15,
+13,2,2,2,2,2,2,2,2,2,2,2,2,2,25,15,
 17,12,12,12,12,12,12,12,12,12,12,12,12,12,12,20
 </data>
  </layer>

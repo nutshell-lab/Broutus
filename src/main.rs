@@ -7,9 +7,8 @@ mod game;
 fn main() {
     App::new()
         .insert_resource(WindowDescriptor {
-            width: 2560.0,
-            height: 1440.0,
             title: String::from("Broutus"),
+            mode: bevy::window::WindowMode::BorderlessFullscreen,
             ..Default::default()
         })
         .insert_resource(ClearColor(Color::rgb_u8(29, 32, 31)))
