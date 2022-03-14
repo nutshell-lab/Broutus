@@ -80,7 +80,6 @@ impl Plugin for GamePlugin {
     }
 }
 
-
 /// Spawn the main camera
 fn setup_camera(mut commands: Commands) {
     commands.spawn_bundle(OrthographicCameraBundle {

@@ -56,13 +56,13 @@
             ]
         ),
         Action(
-            name: "Shield",
-            icon_key: "action_shield",
-            animation_key: "action_shield",
+            name: "Heal",
+            icon_key: "action_heal",
+            animation_key: "action_heal",
             cost: ActionPoints(2),
             aoe: Cell,
-            range: Line(min_distance: 0, max_distance: 1, check_los: true),
-            effects: [Shield(amount: 90)]
+            range: Line(min_distance: 0, max_distance: 0, check_los: true),
+            effects: [Heal(amount: 120)]
         ),
         Action(
             name: "Teleport Switch",

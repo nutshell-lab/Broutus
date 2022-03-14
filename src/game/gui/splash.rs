@@ -28,7 +28,7 @@ pub fn show_splash(
         .show(egui_context.ctx_mut(), |ui| {
             ui.vertical_centered_justified(|ui| {
                 ui.centered_and_justified(|ui| {
-                    ui.image(egui::TextureId::User(0), (768., 480.));
+                    ui.image(egui::TextureId::User(0), (372., 73.));
                 });
             });
         });

@@ -49,18 +49,28 @@ pub fn show_main_menu(
                             (152., 47.),
                         ));
                         ui.add_space(30.0);
+                        let resume = ui.add_enabled(
+                            false,
+                            egui::ImageButton::new(egui::TextureId::User(3), (184., 41.)),
+                        );
+                        ui.add_space(30.0);
                         let options = ui.add(egui::ImageButton::new(
-                            egui::TextureId::User(3),
+                            egui::TextureId::User(4),
                             (203., 52.),
                         ));
                         ui.add_space(30.0);
                         let exit = ui.add(egui::ImageButton::new(
-                            egui::TextureId::User(4),
+                            egui::TextureId::User(5),
                             (119., 54.),
                         ));
 
                         if start.clicked() {
                             game_state.set(GameState::Arena).unwrap();
+                        }
+
+                        if resume.clicked() {
+                            // TODO do something
+                            unimplemented!();
                         }
 
                         if options.clicked() {
@@ -79,7 +89,7 @@ pub fn show_main_menu(
                         ui.image(egui::TextureId::User(1), (768., 480.));
 
                         let back = ui.add(egui::ImageButton::new(
-                            egui::TextureId::User(5),
+                            egui::TextureId::User(6),
                             (186., 45.),
                         ));
 

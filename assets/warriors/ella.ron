@@ -44,13 +44,13 @@
             effects: [Damage(amount: 150, erode: 0.1, crit_mult: 2.5, crit_chance: 0.05)]
         ),
         Action(
-            name: "Heal",
-            icon_key: "action_heal",
-            animation_key: "action_heal",
+            name: "Shield",
+            icon_key: "action_shield",
+            animation_key: "action_shield",
             cost: ActionPoints(2),
             aoe: Cell,
-            range: Line(min_distance: 0, max_distance: 0, check_los: true),
-            effects: [Heal(amount: 120)]
+            range: Line(min_distance: 0, max_distance: 1, check_los: true),
+            effects: [Shield(amount: 90)]
         ),
         Action(
             name: "Push",

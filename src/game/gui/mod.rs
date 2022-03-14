@@ -22,16 +22,19 @@ pub struct StartupCollection {
     #[asset(path = "title.png")]
     pub btn_title: Handle<Image>,
 
-    #[asset(path = "main_menu_start.png")]
+    #[asset(path = "buttons/start.png")]
     pub btn_start: Handle<Image>,
 
-    #[asset(path = "main_menu_options.png")]
+    #[asset(path = "buttons/resume.png")]
+    pub btn_resume: Handle<Image>,
+
+    #[asset(path = "buttons/options.png")]
     pub btn_options: Handle<Image>,
 
-    #[asset(path = "main_menu_exit.png")]
+    #[asset(path = "buttons/exit.png")]
     pub btn_exit: Handle<Image>,
 
-    #[asset(path = "main_menu_return.png")]
+    #[asset(path = "buttons/return.png")]
     pub btn_return: Handle<Image>,
 }
 
@@ -104,9 +107,10 @@ pub fn map_gui_textures(
     egui_context.set_egui_texture(0, startup.splash.clone());
     egui_context.set_egui_texture(1, startup.btn_title.clone());
     egui_context.set_egui_texture(2, startup.btn_start.clone());
-    egui_context.set_egui_texture(3, startup.btn_options.clone());
-    egui_context.set_egui_texture(4, startup.btn_exit.clone());
-    egui_context.set_egui_texture(5, startup.btn_return.clone());
+    egui_context.set_egui_texture(3, startup.btn_resume.clone());
+    egui_context.set_egui_texture(4, startup.btn_options.clone());
+    egui_context.set_egui_texture(5, startup.btn_exit.clone());
+    egui_context.set_egui_texture(6, startup.btn_return.clone());
 
     for (index, handle) in icons.get_all().iter().enumerate() {
         egui_context.set_egui_texture(10 + index as u64, handle.clone());
